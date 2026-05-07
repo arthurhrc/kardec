@@ -14,6 +14,16 @@
 //	    log.Fatal(err)
 //	}
 //
+// # Styles
+//
+// Every block resolves its visual attributes through the named style table
+// the document carries. BuiltinStyles seeds the table with Default, H1..H6,
+// Caption, Quote, Code, TableHeader, TableCell, Header, Footer, ListItem
+// and Link; users add or override entries via Document.DefineStyle. Styles
+// inherit from a parent (Style.ParentStyle), and per-block overrides via
+// AddParagraph(...).WithStyle(...) layer on top during resolution. See
+// Document.ResolveStyle and Document.ResolveBlockStyle for the full chain.
+//
 // # Concurrency
 //
 // A *Document is not safe for concurrent use by multiple goroutines, in line
