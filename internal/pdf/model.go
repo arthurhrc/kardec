@@ -1,7 +1,5 @@
 package pdf
 
-import "github.com/arthurhrc/kardec"
-
 // Document is the writer's local input model. It is deliberately decoupled
 // from the public kardec.Document so the layout track can populate it
 // without circular imports — the renderer never sees blocks or styles, only
@@ -32,7 +30,15 @@ type TextItem struct {
 	Text     string
 	FontID   int
 	FontSize float64
-	Color    kardec.Color
+	Color    Color
+}
+
+// Color is the writer's local sRGB triple. The public package mirrors
+// kardec.Color one-to-one onto this type at the conversion boundary in
+// Document.toPDFModel; keeping a separate type in internal/pdf prevents
+// the import cycle that would arise from depending on the root package.
+type Color struct {
+	R, G, B uint8
 }
 
 // EmbeddedFont carries a font's display name and its raw TrueType bytes.

@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/arthurhrc/kardec"
 )
 
 // loadTestFont returns a TrueType byte slice usable as an EmbeddedFont
@@ -77,7 +75,7 @@ func TestWriteSingleTextItem(t *testing.T) {
 			Items: []TextItem{{
 				X: 72, Y: 770,
 				Text: "Hello, Kardec.", FontID: 0, FontSize: 14,
-				Color: kardec.RGB(40, 40, 40),
+				Color: Color{R: 40, G: 40, B: 40},
 			}},
 		}},
 	}
@@ -140,7 +138,7 @@ func TestPdftotextSmoke(t *testing.T) {
 			Height: 842,
 			Items: []TextItem{{
 				X: 72, Y: 770, Text: wantText, FontID: 0, FontSize: 12,
-				Color: kardec.ColorBlack,
+				Color: Color{R: 0, G: 0, B: 0},
 			}},
 		}},
 	}
