@@ -55,25 +55,14 @@ func TestHeadingClampsLevel(t *testing.T) {
 	}
 }
 
-func TestBytesProducesValidPDF17(t *testing.T) {
-	// With the renderer track wired, Document.Bytes must produce a real
-	// PDF 1.7 stream — even the layout-track stub yields a single blank
-	// page that opens in Acrobat / Chrome.
+func TestBytesWithoutRenderImplReturnsSentinel(t *testing.T) {
+	// Without the render package imported, Document.Bytes must surface
+	// ErrRendererUnregistered so callers learn to wire the orchestrator.
+	// The matching positive test lives in render/render_test.go where the
+	// init hook is loaded.
 	doc := New(PageA4, MarginsNormal).Paragraph(Text("hi"))
-	out, err := doc.Bytes()
-	if err != nil {
-		t.Fatalf("Bytes: %v", err)
-	}
-	if len(out) < 100 {
-		t.Fatalf("rendered PDF unexpectedly short: %d bytes", len(out))
-	}
-	if string(out[:8]) != "%PDF-1.7" {
-		t.Errorf("expected %%PDF-1.7 prefix, got %q", string(out[:8]))
-	}
-	for _, marker := range []string{"/Catalog", "/Pages", "/Type /Page", "%%EOF"} {
-		if !bytesContains(out, marker) {
-			t.Errorf("rendered PDF missing %q", marker)
-		}
+	if _, err := doc.Bytes(); !errors.Is(err, ErrRendererUnregistered) {
+		t.Errorf("want ErrRendererUnregistered, got %v", err)
 	}
 }
 
@@ -85,22 +74,6 @@ func TestRenderPropagatesBuilderError(t *testing.T) {
 	}
 }
 
-func bytesContains(haystack []byte, needle string) bool {
-	n := []byte(needle)
-	for i := 0; i+len(n) <= len(haystack); i++ {
-		match := true
-		for j := range n {
-			if haystack[i+j] != n[j] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return true
-		}
-	}
-	return false
-}
 
 func TestErrPropagationStopsFurtherAppends(t *testing.T) {
 	doc := New(PageA4, MarginsNormal)
