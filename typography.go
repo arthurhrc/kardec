@@ -42,11 +42,15 @@ func (d *Document) MeasureText(text string, family string, size Length, weight W
 	return Length(face.Measure(text, size.Points())), true
 }
 
-// fontRegistry exposes the underlying typography registry to internal
-// subpackages (layout, renderer). It is unexported; callers route through
-// MeasureText and RegisterFont. The lazy-initialization pattern matches
-// New, which calls ensureFontRegistry the same way.
-func (d *Document) fontRegistry() *typography.Registry {
+// FontRegistry exposes the underlying typography registry. It exists so the
+// public render package (github.com/arthurhrc/kardec/render) can construct a
+// FontProvider for the layout engine without going through every measurement
+// via MeasureText. End-user code should prefer MeasureText / RegisterFont.
+//
+// The returned *typography.Registry is the document's own backing store;
+// callers must not register fonts directly through it (use RegisterFont so
+// errors flow through the deferred-error chain).
+func (d *Document) FontRegistry() *typography.Registry {
 	if d.fonts == nil {
 		d.fonts = typography.NewRegistry()
 	}
