@@ -244,6 +244,61 @@ func BuiltinStyles() map[string]Style {
 	}
 }
 
+// mergeStyle layers child on top of parent and returns the combined Style.
+// Each field in child wins if it is set; otherwise parent's value flows
+// through. The function does not chase ParentStyle — that is the caller's
+// responsibility (see Document.ResolveStyle), so mergeStyle stays a pure
+// per-field overlay and trivially testable.
+func mergeStyle(child, parent Style) Style {
+	out := parent
+
+	if child.Family != "" {
+		out.Family = child.Family
+	}
+	if child.Size != 0 {
+		out.Size = child.Size
+	}
+	// Weight==WeightRegular is the zero value; we cannot distinguish
+	// "explicitly set to Regular" from "unset". This is acceptable because
+	// Default sets WeightRegular too — every chain ends with the same
+	// Regular fallback, so there is no observable difference.
+	if child.Weight != WeightRegular {
+		out.Weight = child.Weight
+	}
+	if child.Italic {
+		out.Italic = true
+	}
+	if child.Color != (Color{}) {
+		out.Color = child.Color
+	}
+	if child.SpaceBefore != 0 {
+		out.SpaceBefore = child.SpaceBefore
+	}
+	if child.SpaceAfter != 0 {
+		out.SpaceAfter = child.SpaceAfter
+	}
+	if child.LineHeight != 0 {
+		out.LineHeight = child.LineHeight
+	}
+	if child.Alignment != AlignLeft {
+		out.Alignment = child.Alignment
+	}
+	if child.KeepWithNext {
+		out.KeepWithNext = true
+	}
+	if child.KeepTogether {
+		out.KeepTogether = true
+	}
+	if child.PageBreakBefore {
+		out.PageBreakBefore = true
+	}
+	// ParentStyle is metadata about lookup, not a visual property; the
+	// merged value is meaningless and intentionally cleared.
+	out.ParentStyle = ""
+
+	return out
+}
+
 // HeadingStyleName returns the built-in named style that corresponds to a
 // heading level (1..6). Levels outside the range are clamped, matching the
 // Document.Heading constructor.
