@@ -9,9 +9,10 @@ import (
 // writeXrefAndTrailer emits the cross-reference table, trailer dictionary
 // and startxref pointer that close out a PDF file (PDF 7.5.4 / 7.5.5).
 //
-// xrefOffset is the byte offset where the xref keyword starts in the final
-// file (i.e. header_size + ow.bodyLen()). offsets is the per-object map
-// kept by objectWriter; nextID is one past the highest used ID.
+// offsets stores body-local byte positions per object (as produced by
+// objectWriter). headerLen shifts those positions to file-absolute by
+// the size of the PDF header that precedes the body. nextID is one past
+// the highest used ID.
 //
 // info is the indirect ID of the /Info dictionary (or 0 to omit it). root
 // is the /Catalog ID and is always required.
@@ -19,7 +20,7 @@ import (
 // The xref table is written as a single subsection covering object IDs
 // 0..nextID-1. Object 0 is the conventional "free" head of the free list
 // with generation 65535.
-func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, nextID, root, info int) error {
+func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, nextID, root, info int) error {
 	var b strings.Builder
 	b.WriteString("xref\n")
 	fmt.Fprintf(&b, "0 %d\n", nextID)
@@ -37,7 +38,7 @@ func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, nextID, root, info 
 			b.WriteString("0000000000 00000 f \n")
 			continue
 		}
-		fmt.Fprintf(&b, "%010d 00000 n \n", off)
+		fmt.Fprintf(&b, "%010d 00000 n \n", off+headerLen)
 	}
 
 	// Trailer: /Size = highest ID + 1 (i.e. nextID), /Root = catalog,

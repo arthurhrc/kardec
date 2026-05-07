@@ -110,7 +110,7 @@ func (Writer) Write(w io.Writer, doc Document) error {
 	if _, err := ow.writeTo(w); err != nil {
 		return err
 	}
-	if err := writeXrefAndTrailer(w, ow.offsets, ow.nextID, catalogID, infoID); err != nil {
+	if err := writeXrefAndTrailer(w, ow.offsets, int64(len(pdfHeader)), ow.nextID, catalogID, infoID); err != nil {
 		return err
 	}
 	if err := writeStartxref(w, xrefOffset); err != nil {
