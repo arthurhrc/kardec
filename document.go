@@ -1,8 +1,12 @@
 package kardec
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"os"
+
+	pdfwriter "github.com/arthurhrc/kardec/internal/pdf"
 )
 
 // Document is the central builder a caller composes content onto. It holds
@@ -89,35 +93,85 @@ func (d *Document) PageBreak() *Document { return d.append(PageBreak{}) }
 // Spacer appends vertical whitespace of the given height.
 func (d *Document) Spacer(h Length) *Document { return d.append(Spacer{Height: h}) }
 
-// ErrNotImplemented is returned by Render and friends until the layout and
-// PDF tracks land. It exists so callers can write conditional code today.
+// ErrNotImplemented is retained as a sentinel for callers who wrote
+// against the skeleton phase. Once the layout and typography tracks land
+// it will be unreferenced from the render path and may be removed in a
+// future minor version.
 var ErrNotImplemented = errors.New("kardec: render path not implemented yet")
 
-// Render produces a PDF and writes it to the named file. Returns ErrNotImplemented
-// while the layout / typography / renderer tracks are under construction.
+// Render produces a PDF and writes it to the named file. The file is
+// created (or truncated) with default permissions and closed before
+// Render returns; callers don't manage the handle.
 func (d *Document) Render(path string) error {
 	if d.err != nil {
 		return d.err
 	}
-	_ = path
-	return ErrNotImplemented
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return d.RenderTo(f)
 }
 
-// RenderTo produces a PDF and writes it to the supplied io.Writer. Returns
-// ErrNotImplemented during the skeleton phase.
+// RenderTo produces a PDF and writes it to the supplied io.Writer. The
+// pipeline is: builder model -> stub layout (until the Layout track
+// lands) -> internal/pdf writer. Errors from the writer propagate
+// unchanged.
 func (d *Document) RenderTo(w io.Writer) error {
 	if d.err != nil {
 		return d.err
 	}
-	_ = w
-	return ErrNotImplemented
+	model := d.toPDFModel()
+	return pdfwriter.Writer{}.Write(w, model)
 }
 
-// Bytes returns the rendered PDF as a byte slice. Returns ErrNotImplemented
-// during the skeleton phase.
+// Bytes returns the rendered PDF as a byte slice. Convenient for tests
+// and for HTTP handlers that buffer responses; for large documents
+// callers should prefer RenderTo + io.Pipe.
 func (d *Document) Bytes() ([]byte, error) {
 	if d.err != nil {
 		return nil, d.err
 	}
-	return nil, ErrNotImplemented
+	var buf bytes.Buffer
+	if err := d.RenderTo(&buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// toPDFModel converts the builder state into the renderer's input model.
+//
+// LAYOUT-TRACK STUB: until the Layout agent lands, this function emits a
+// single blank page sized to the first section's PageSetup with a
+// placeholder TextItem that references font ID 0. Because Fonts is left
+// empty, the content-stream builder drops the item — the rendered PDF
+// shows a blank page (still a valid PDF that opens in viewers, which is
+// the v0.1 acceptance criterion). When Layout integrates, this body is
+// replaced with the real walk over Sections/Blocks/Runs and the embedded
+// font registry; the public Render/RenderTo/Bytes signatures stay
+// unchanged.
+func (d *Document) toPDFModel() pdfwriter.Document {
+	if len(d.sections) == 0 {
+		return pdfwriter.Document{}
+	}
+	setup := d.sections[0].Setup
+	w, h := setup.Size.Width.Points(), setup.Size.Height.Points()
+	if setup.Orientation == Landscape {
+		w, h = h, w
+	}
+	return pdfwriter.Document{
+		Title: "",
+		Pages: []pdfwriter.Page{{
+			Width:  w,
+			Height: h,
+			Items: []pdfwriter.TextItem{{
+				X: 72, Y: h - 72,
+				Text:     "Render placeholder — Layout track integrates next",
+				FontID:   0,
+				FontSize: 12,
+				Color:    pdfwriter.Color{R: 0, G: 0, B: 0},
+			}},
+		}},
+	}
 }
