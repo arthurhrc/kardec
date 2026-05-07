@@ -14,6 +14,8 @@ type Document struct {
 	sections []*Section
 	cur      *Section // pointer into sections; the section currently receiving blocks
 
+	styles map[string]Style // named style table; pre-populated from BuiltinStyles
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
 
@@ -38,7 +40,78 @@ func New(size PageSize, margins Margins) *Document {
 	return &Document{
 		sections: []*Section{first},
 		cur:      first,
+		styles:   BuiltinStyles(),
 	}
+}
+
+// DefineStyle adds or overrides a named style on the document. Subsequent
+// blocks that resolve through name will see the new definition; existing
+// blocks already laid out are unaffected (layout consumes resolved values
+// at render time). Returns d for fluent chaining.
+func (d *Document) DefineStyle(name string, s Style) *Document {
+	if d.err != nil {
+		return d
+	}
+	if d.styles == nil {
+		d.styles = BuiltinStyles()
+	}
+	d.styles[name] = s
+	return d
+}
+
+// ResolveStyle returns the fully merged Style identified by name. The walk
+// order is: the named style → its ParentStyle (recursively) → DefaultStyle
+// at the root. Unknown names resolve through DefaultStyle alone, and a cycle
+// in the ParentStyle chain is captured via Document.fail.
+//
+// Resolution is read-only with respect to the style table; callers may
+// invoke ResolveStyle freely without invalidating builder state.
+func (d *Document) ResolveStyle(name string) Style {
+	if d.styles == nil {
+		d.styles = BuiltinStyles()
+	}
+
+	// Collect the chain top-down: chain[0] is the named style, chain[n]
+	// the most distant ancestor before Default. Detect cycles through a
+	// visited set keyed by name; depth is also bounded as a belt-and-
+	// braces guard against pathological tables.
+	const maxDepth = 32
+	chain := make([]Style, 0, 4)
+	visited := make(map[string]struct{}, 4)
+
+	current := name
+	for i := 0; current != "" && i < maxDepth; i++ {
+		if _, seen := visited[current]; seen {
+			d.fail(errors.New("kardec: style cycle detected at " + current))
+			break
+		}
+		visited[current] = struct{}{}
+
+		s, ok := d.styles[current]
+		if !ok {
+			break
+		}
+		chain = append(chain, s)
+		// Default has no parent; stop explicitly so an empty ParentStyle
+		// on Default does not redirect the walk back into itself.
+		if current == StyleDefault {
+			break
+		}
+		current = s.ParentStyle
+	}
+
+	// Fold from root downward. Start with DefaultStyle as the absolute
+	// floor, then layer the document's Default entry (so users can
+	// override even Default), then everything from the chain in
+	// ancestor→descendant order.
+	out := DefaultStyle
+	if defStyle, ok := d.styles[StyleDefault]; ok && name != StyleDefault {
+		out = mergeStyle(defStyle, out)
+	}
+	for i := len(chain) - 1; i >= 0; i-- {
+		out = mergeStyle(chain[i], out)
+	}
+	return out
 }
 
 // Err returns the first error captured during builder usage, or nil. Render
