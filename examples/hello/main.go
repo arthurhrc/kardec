@@ -1,11 +1,15 @@
 // Hello demonstrates the smallest meaningful Kardec document. The Render
-// call currently returns kardec.ErrNotImplemented; this example will start
-// producing actual PDFs once the layout, typography, and renderer tracks
-// land on main.
+// path is wired end-to-end through the internal/pdf writer, so running
+// this example actually produces hello.pdf — open it in Chrome, Acrobat
+// or pdftk to confirm.
+//
+// Note that the Layout track is still stubbed at the time of writing,
+// so the rendered page is currently blank (a valid PDF nonetheless).
+// When Layout lands, the same builder calls below will lay out the
+// heading and paragraphs without changes to this example.
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
@@ -21,19 +25,14 @@ func main() {
 			kardec.Text(" PDFs without containers or LibreOffice."),
 		).
 		Spacer(kardec.Pt(12)).
-		Paragraph(kardec.Italic("Skeleton phase — output is not yet generated."))
+		Paragraph(kardec.Italic("Renderer track wired — Layout integration coming next."))
 
 	if err := doc.Err(); err != nil {
 		log.Fatalf("builder error: %v", err)
 	}
 
-	err := doc.Render("hello.pdf")
-	switch {
-	case errors.Is(err, kardec.ErrNotImplemented):
-		fmt.Println("builder OK — render path lands in v0.1 layout/typography/renderer tracks")
-	case err != nil:
+	if err := doc.Render("hello.pdf"); err != nil {
 		log.Fatalf("render: %v", err)
-	default:
-		fmt.Println("rendered hello.pdf")
 	}
+	fmt.Println("rendered hello.pdf")
 }
