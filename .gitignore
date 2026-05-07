@@ -1,0 +1,32 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+coverage.txt
+coverage.html
+
+# Build artifacts
+/bin/
+/dist/
+/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local
+.env
+.env.local
+.envrc
+
+# Generated test fixtures
+/testdata/output/
+/examples/*/out/*.pdf
