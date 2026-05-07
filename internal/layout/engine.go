@@ -33,7 +33,7 @@ func (e Engine) Layout(doc *kardec.Document, fonts FontProvider) ([]Page, error)
 
 	var pages []Page
 	for _, sec := range doc.Sections() {
-		secPages, err := e.layoutSection(sec, fonts)
+		secPages, err := e.layoutSection(doc, sec, fonts)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,10 @@ func (c *pageCursor) finish() Page {
 }
 
 // layoutSection lays out one section, possibly producing multiple pages.
-func (e Engine) layoutSection(sec *kardec.Section, fonts FontProvider) ([]Page, error) {
+// Style for each block is resolved through doc.ResolveBlockStyle, so a
+// caller's DefineStyle / WithStyle / WithNamedStyle decisions actually
+// shape the output.
+func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts FontProvider) ([]Page, error) {
 	var pages []Page
 	cur := startPage(sec.Setup)
 	flush := func() {
@@ -106,11 +109,13 @@ func (e Engine) layoutSection(sec *kardec.Section, fonts FontProvider) ([]Page, 
 	for _, b := range sec.Blocks {
 		switch v := b.(type) {
 		case kardec.Paragraph:
-			if err := e.placeTextBlock(cur, flush, v.Runs(), defaultParagraphStyleWith(v.Alignment(), v.LineHeight()), fonts); err != nil {
+			style := styleFromKardec(doc.ResolveBlockStyle(v))
+			if err := e.placeTextBlock(cur, flush, v.Runs(), style, fonts); err != nil {
 				return nil, err
 			}
 		case kardec.Heading:
-			if err := e.placeTextBlock(cur, flush, v.Runs(), headingStyle(v.Level()), fonts); err != nil {
+			style := styleFromKardec(doc.ResolveBlockStyle(v))
+			if err := e.placeTextBlock(cur, flush, v.Runs(), style, fonts); err != nil {
 				return nil, err
 			}
 		case kardec.PageBreak:
@@ -131,18 +136,6 @@ func (e Engine) layoutSection(sec *kardec.Section, fonts FontProvider) ([]Page, 
 	}
 	pages = append(pages, cur.finish())
 	return pages, nil
-}
-
-// defaultParagraphStyleWith merges a paragraph's explicit alignment and
-// line-height into the heuristic default style. Zero values fall back to
-// the heuristic's defaults.
-func defaultParagraphStyleWith(align kardec.Alignment, lineHeight float64) blockStyle {
-	s := defaultParagraphStyle()
-	s.alignment = align
-	if lineHeight > 0 {
-		s.lineHeight = lineHeight
-	}
-	return s
 }
 
 // placeStub emits a debug placeholder for not-yet-implemented block kinds.

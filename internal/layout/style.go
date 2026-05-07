@@ -4,53 +4,55 @@ import "github.com/arthurhrc/kardec"
 
 // blockStyle is the resolved style the engine consumes for a single
 // block. It is intentionally tiny: only the fields that influence
-// placement live here. Once feat/dsl-style ships, this struct will be
-// produced by Style.Resolve rather than the heuristics below.
+// placement live here. The canonical source of these values is
+// kardec.Document.ResolveBlockStyle; styleFromKardec converts the
+// returned kardec.Style into the engine-internal shape.
 type blockStyle struct {
-	sizePt       float64
-	bold         bool
-	italic       bool
-	color        kardec.Color
-	lineHeight   float64 // multiplier; 1.2 == 120% of size
+	family        string
+	sizePt        float64
+	bold          bool
+	italic        bool
+	color         kardec.Color
+	lineHeight    float64 // multiplier; 1.2 == 120% of size
 	spaceBeforePt float64
 	spaceAfterPt  float64
-	alignment    kardec.Alignment
+	alignment     kardec.Alignment
 }
 
-// defaultParagraphStyle is the fallback style used for body paragraphs
-// when no Style.Resolve hook is wired up (the v0.1 case).
-func defaultParagraphStyle() blockStyle {
+// styleFromKardec maps a fully-resolved kardec.Style onto the engine's
+// internal representation. The conversion is straightforward: lengths
+// become point floats, the Weight enum collapses to a bold flag (the
+// only distinction the engine cares about for line breaking), and a
+// zero LineHeight falls back to 1.2× — Kardec's documented body
+// default.
+func styleFromKardec(s kardec.Style) blockStyle {
+	lh := s.LineHeight
+	if lh <= 0 {
+		lh = 1.2
+	}
 	return blockStyle{
-		sizePt:        11,
-		color:         kardec.ColorBlack,
-		lineHeight:    1.2,
-		spaceBeforePt: 0,
-		spaceAfterPt:  6,
-		alignment:     kardec.AlignLeft,
+		family:        s.Family,
+		sizePt:        s.Size.Points(),
+		bold:          s.Weight >= kardec.WeightSemiBold,
+		italic:        s.Italic,
+		color:         s.Color,
+		lineHeight:    lh,
+		spaceBeforePt: s.SpaceBefore.Points(),
+		spaceAfterPt:  s.SpaceAfter.Points(),
+		alignment:     s.Alignment,
 	}
 }
 
-// headingStyle returns the heuristic style for a heading at the given
-// level. Sizes follow Word's default H1..H6 scale loosely (24/18/14/12/11/10
-// pt). Spacing-before grows with importance so H1 visually anchors a new
-// section without manual spacers.
-func headingStyle(level int) blockStyle {
-	if level < 1 {
-		level = 1
-	}
-	if level > 6 {
-		level = 6
-	}
-	sizes := [6]float64{24, 18, 14, 12, 11, 10}
-	spacesBefore := [6]float64{18, 14, 10, 8, 6, 6}
-	spacesAfter := [6]float64{6, 6, 4, 4, 4, 4}
+// stubBlockStyle is the style applied to placeholder fragments emitted
+// for not-yet-implemented block kinds (tables, images). It is small,
+// gray, and visually distinct from real content so the placeholder is
+// obvious during dry runs.
+func stubBlockStyle() blockStyle {
 	return blockStyle{
-		sizePt:        sizes[level-1],
-		bold:          true,
-		color:         kardec.ColorBlack,
-		lineHeight:    1.15,
-		spaceBeforePt: spacesBefore[level-1],
-		spaceAfterPt:  spacesAfter[level-1],
-		alignment:     kardec.AlignLeft,
+		family:     kardec.FontLiberationSans,
+		sizePt:     11,
+		color:      kardec.ColorGray,
+		lineHeight: 1.2,
+		alignment:  kardec.AlignLeft,
 	}
 }
