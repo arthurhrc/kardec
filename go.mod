@@ -2,6 +2,8 @@ module github.com/arthurhrc/kardec
 
 go 1.26.3
 
+require github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e
+
 require (
 	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
 	github.com/BurntSushi/freetype-go v0.0.0-20160129220410-b763ddbfe298 // indirect
@@ -17,7 +19,6 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/srwiley/scanx v0.0.0-20190309010443-e94503791388 // indirect
-	github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e // indirect
 	github.com/tdewolff/font v0.0.0-20260314002930-9f995dac393e // indirect
 	github.com/tdewolff/minify/v2 v2.24.11 // indirect
 	github.com/tdewolff/parse/v2 v2.8.11 // indirect

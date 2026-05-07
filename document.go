@@ -322,6 +322,12 @@ func (d *Document) Spacer(h Length) *Document { return d.append(Spacer{Height: h
 // PDF tracks land. It exists so callers can write conditional code today.
 var ErrNotImplemented = errors.New("kardec: render path not implemented yet")
 
+// The layout engine lives in github.com/arthurhrc/kardec/internal/layout
+// and is invoked via layout.Layout(doc, fonts). It is intentionally not
+// exposed as a method on *Document, since the layout package already
+// depends on this one and a method would create an import cycle. The
+// renderer track wires the two ends together.
+
 // Render produces a PDF and writes it to the named file. Returns ErrNotImplemented
 // while the layout / typography / renderer tracks are under construction.
 func (d *Document) Render(path string) error {
