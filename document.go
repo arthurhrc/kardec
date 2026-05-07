@@ -156,6 +156,151 @@ func (d *Document) Paragraph(runs ...Run) *Document {
 	return d.append(Paragraph{runs: runs})
 }
 
+// Builder pattern note
+// --------------------
+// The bare Paragraph / Heading methods above return *Document so existing
+// chains like doc.Heading(...).Paragraph(...).PageBreak() keep working
+// without changes. Style-aware fluent construction requires a different
+// return type, so AddParagraph / AddHeading expose dedicated builders that
+// commit back to the document via Done(). This split keeps the pre-style
+// builder backward compatible while still allowing
+//
+//     doc.AddParagraph(kardec.Text("Body")).WithStyle(myStyle).LineHeight(1.4).Done()
+//
+// to flow naturally.
+
+// ParagraphBuilder accumulates customization for a Paragraph and commits it
+// to the document on Done. It is intentionally not safe for concurrent use.
+type ParagraphBuilder struct {
+	doc *Document
+	p   Paragraph
+}
+
+// AddParagraph starts a fluent Paragraph builder pre-loaded with the given
+// runs. Customize via WithStyle / WithNamedStyle / Justify / LineHeight,
+// then call Done to commit and rejoin the *Document chain.
+func (d *Document) AddParagraph(runs ...Run) *ParagraphBuilder {
+	return &ParagraphBuilder{doc: d, p: Paragraph{runs: runs}}
+}
+
+// WithStyle attaches an inline Style override.
+func (b *ParagraphBuilder) WithStyle(s Style) *ParagraphBuilder {
+	b.p = b.p.WithStyle(s)
+	return b
+}
+
+// WithNamedStyle selects a named style for resolution.
+func (b *ParagraphBuilder) WithNamedStyle(name string) *ParagraphBuilder {
+	b.p = b.p.WithNamedStyle(name)
+	return b
+}
+
+// Justify shorthand for setting Alignment to AlignJustify.
+func (b *ParagraphBuilder) Justify() *ParagraphBuilder {
+	b.p.alignment = AlignJustify
+	return b
+}
+
+// Align sets the paragraph's horizontal alignment explicitly.
+func (b *ParagraphBuilder) Align(a Alignment) *ParagraphBuilder {
+	b.p.alignment = a
+	return b
+}
+
+// LineHeight sets the paragraph's line-height multiplier.
+func (b *ParagraphBuilder) LineHeight(v float64) *ParagraphBuilder {
+	b.p.lineHeight = v
+	return b
+}
+
+// Done commits the accumulated Paragraph onto the document and returns the
+// underlying *Document so the caller can resume the top-level builder
+// chain.
+func (b *ParagraphBuilder) Done() *Document {
+	return b.doc.append(b.p)
+}
+
+// HeadingBuilder is the fluent counterpart for Heading blocks.
+type HeadingBuilder struct {
+	doc *Document
+	h   Heading
+}
+
+// AddHeading starts a fluent Heading builder. Levels outside 1..6 are
+// clamped, mirroring Heading.
+func (d *Document) AddHeading(level int, runs ...Run) *HeadingBuilder {
+	if level < 1 {
+		level = 1
+	}
+	if level > 6 {
+		level = 6
+	}
+	return &HeadingBuilder{doc: d, h: Heading{level: level, runs: runs}}
+}
+
+// WithStyle attaches an inline Style override to the heading.
+func (b *HeadingBuilder) WithStyle(s Style) *HeadingBuilder {
+	b.h = b.h.WithStyle(s)
+	return b
+}
+
+// WithNamedStyle selects a named style for resolution.
+func (b *HeadingBuilder) WithNamedStyle(name string) *HeadingBuilder {
+	b.h = b.h.WithNamedStyle(name)
+	return b
+}
+
+// Done commits the heading and returns the underlying *Document.
+func (b *HeadingBuilder) Done() *Document {
+	return b.doc.append(b.h)
+}
+
+// ResolveBlockStyle returns the effective Style for a Block, applying the
+// priority chain documented in RFC-001 §6:
+//
+//  1. Block-level WithStyle override (Paragraph.style / Heading.style)
+//  2. Block-level WithNamedStyle (Paragraph.styleName / Heading.styleName)
+//  3. The block kind's default named style
+//     (H1..H6 for Heading by level, Default for Paragraph)
+//  4. ParentStyle chain of whichever named style was selected
+//  5. DefaultStyle as the absolute floor
+//
+// Run-level inline overrides apply during typography (per-glyph) and are
+// therefore out of scope here.
+func (d *Document) ResolveBlockStyle(b Block) Style {
+	switch v := b.(type) {
+	case Paragraph:
+		name := v.styleName
+		if name == "" {
+			name = StyleDefault
+		}
+		base := d.ResolveStyle(name)
+		if v.hasStyle {
+			base = mergeStyle(v.style, base)
+		}
+		// Paragraph builder convenience overrides applied last.
+		if v.alignment != AlignLeft {
+			base.Alignment = v.alignment
+		}
+		if v.lineHeight != 0 {
+			base.LineHeight = v.lineHeight
+		}
+		return base
+	case Heading:
+		name := v.styleName
+		if name == "" {
+			name = HeadingStyleName(v.level)
+		}
+		base := d.ResolveStyle(name)
+		if v.hasStyle {
+			base = mergeStyle(v.style, base)
+		}
+		return base
+	default:
+		return d.ResolveStyle(StyleDefault)
+	}
+}
+
 // PageBreak appends a forced page break.
 func (d *Document) PageBreak() *Document { return d.append(PageBreak{}) }
 
