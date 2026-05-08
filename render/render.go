@@ -67,16 +67,9 @@ func Bytes(d *kardec.Document) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// defaultFontFile is the single TTF the v0.1 PDF writer embeds. Every text
-// item in the rendered document references this font, regardless of the
-// (family, weight, italic) tuple the layout engine resolved. Multi-font
-// fidelity (bold runs really bold, italic runs really italic) lands in v0.2
-// once the typography registry exposes ttf bytes per face.
-const defaultFontFile = "embedded/LiberationSans-Regular.ttf"
-
-// renderImpl is the canonical implementation registered with kardec at init.
-// It runs the layout engine over the document, converts the layout pages to
-// the PDF writer's input model, and emits PDF 1.7 bytes.
+// renderImpl is the canonical implementation registered with kardec at
+// init. It runs the layout engine over the document, converts the
+// layout pages to the PDF writer's input model, and emits PDF 1.7 bytes.
 func renderImpl(d *kardec.Document, w io.Writer) error {
 	registry := d.FontRegistry()
 	provider := newLayoutFontProvider(registry)
@@ -86,51 +79,165 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 		return fmt.Errorf("render: layout: %w", err)
 	}
 
-	model, err := buildPDFModel(pages)
-	if err != nil {
-		return fmt.Errorf("render: build pdf model: %w", err)
-	}
+	model := buildPDFModel(pages, registry)
 	if err := (pdf.Writer{}).Write(w, model); err != nil {
 		return fmt.Errorf("render: pdf write: %w", err)
 	}
 	return nil
 }
 
-// buildPDFModel converts layout output into the pdf package's input shape.
-// Coordinates are flipped from layout's top-left origin to PDF's bottom-left.
-//
-// v0.1 limitation: only Liberation Sans Regular is embedded. Every text item
-// uses font ID 0 even if the source style requested bold or italic. Layout
-// still measures correctly via the typography registry because measurement
-// and embedding are decoupled — the visual difference is glyph weight only.
-func buildPDFModel(pages []layout.Page) (pdf.Document, error) {
-	ttf, err := typography.FontsFS.ReadFile(defaultFontFile)
-	if err != nil {
-		return pdf.Document{}, fmt.Errorf("read default font %s: %w", defaultFontFile, err)
-	}
-	out := pdf.Document{
-		Fonts: []pdf.EmbeddedFont{{
-			Name:    "LiberationSans",
-			TTFData: ttf,
-		}},
-	}
+// fontKey identifies an (family, bold, italic) tuple within the
+// embedded-font index. Mirrors the inputs to layout.FontProvider.Resolve
+// so a PlacedItem's measureAdapter maps cleanly onto a registered face.
+type fontKey struct {
+	family string
+	bold   bool
+	italic bool
+}
 
+// buildPDFModel converts layout output into the pdf package's input
+// shape. Coordinates are flipped from layout's top-left origin to PDF's
+// bottom-left.
+//
+// Only faces actually referenced by a PlacedItem are embedded; the rest
+// of the registry is left out so the resulting PDF stays close in size
+// to the v0.1 single-font baseline. Subsetting (trimming individual
+// glyphs within an embedded face) is a v0.3 feature.
+func buildPDFModel(pages []layout.Page, registry *typography.Registry) pdf.Document {
+	used := collectUsedFontKeys(pages)
+	embedded, index, defaultID := assembleEmbeddedFonts(registry, used)
+
+	out := pdf.Document{Fonts: embedded}
 	for _, lp := range pages {
 		pdfPage := pdf.Page{
 			Width:  lp.Size.Width.Points(),
 			Height: lp.Size.Height.Points(),
 		}
 		for _, item := range lp.Items {
+			id := defaultID
+			if a, ok := item.Font.(*measureAdapter); ok {
+				if mapped, found := index[fontKey{family: a.family, bold: a.bold, italic: a.italic}]; found {
+					id = mapped
+				}
+			}
 			pdfPage.Items = append(pdfPage.Items, pdf.TextItem{
 				X:        item.X.Points(),
 				Y:        pdfPage.Height - item.Y.Points(),
 				Text:     item.Text,
-				FontID:   0,
+				FontID:   id,
 				FontSize: item.Size.Points(),
 				Color:    pdf.Color{R: item.Color.R, G: item.Color.G, B: item.Color.B},
 			})
 		}
 		out.Pages = append(out.Pages, pdfPage)
 	}
-	return out, nil
+	return out
+}
+
+// collectUsedFontKeys walks every PlacedItem on every page and gathers
+// the set of (family, bold, italic) tuples each measureAdapter carried.
+// Items whose Font is not a *measureAdapter (stub items) are ignored.
+func collectUsedFontKeys(pages []layout.Page) map[fontKey]struct{} {
+	used := make(map[fontKey]struct{})
+	for _, p := range pages {
+		for _, it := range p.Items {
+			a, ok := it.Font.(*measureAdapter)
+			if !ok {
+				continue
+			}
+			used[fontKey{family: a.family, bold: a.bold, italic: a.italic}] = struct{}{}
+		}
+	}
+	return used
+}
+
+// assembleEmbeddedFonts builds the pdf.EmbeddedFont slice that includes
+// only the faces referenced by used. The returned index maps each
+// fontKey to its position in the slice. defaultID points at the first
+// regular, non-italic face that made it in (or 0 when nothing did).
+//
+// At least one face is always embedded so the PDF writer has a font to
+// reference even for documents that had no measurable runs.
+func assembleEmbeddedFonts(registry *typography.Registry, used map[fontKey]struct{}) (
+	[]pdf.EmbeddedFont, map[fontKey]int, int,
+) {
+	faces := registry.Faces()
+	embedded := make([]pdf.EmbeddedFont, 0, len(faces))
+	index := make(map[fontKey]int)
+	defaultID := 0
+
+	for _, f := range faces {
+		bold := f.Weight >= typography.Bold
+		key := fontKey{family: f.Family, bold: bold, italic: f.Italic}
+		if _, hit := used[key]; !hit {
+			continue
+		}
+		idx := len(embedded)
+		embedded = append(embedded, pdf.EmbeddedFont{
+			Name:    faceFontName(f.Family, f.Weight, f.Italic),
+			TTFData: f.Bytes,
+		})
+		index[key] = idx
+		if defaultID == 0 && f.Weight == typography.Regular && !f.Italic {
+			defaultID = idx
+		}
+	}
+
+	// Guarantee at least one embedded face so the PDF writer has
+	// something to reference. Fall back to the registry default.
+	if len(embedded) == 0 {
+		def := registry.Default()
+		if def != nil {
+			for _, f := range faces {
+				if f.Font == def {
+					embedded = append(embedded, pdf.EmbeddedFont{
+						Name:    faceFontName(f.Family, f.Weight, f.Italic),
+						TTFData: f.Bytes,
+					})
+					index[fontKey{family: f.Family, bold: f.Weight >= typography.Bold, italic: f.Italic}] = 0
+					break
+				}
+			}
+		}
+	}
+	return embedded, index, defaultID
+}
+
+// faceFontName produces a PostScript-style identifier for an
+// (family, weight, italic) tuple. Spaces in the family are removed; a
+// dash plus the qualifying suffix is appended when the face is anything
+// other than plain Regular.
+func faceFontName(family string, weight typography.Weight, italic bool) string {
+	base := strings_replaceAll(family, " ", "")
+	suffix := ""
+	switch {
+	case weight >= typography.Bold && italic:
+		suffix = "-BoldItalic"
+	case weight >= typography.Bold:
+		suffix = "-Bold"
+	case italic:
+		suffix = "-Italic"
+	}
+	return base + suffix
+}
+
+// strings_replaceAll inlines strings.ReplaceAll(s, old, new) — keeping
+// this file out of the main strings dependency footprint while the
+// helper is the only consumer. Drop in favor of strings.ReplaceAll if
+// other helpers in this package need it later.
+func strings_replaceAll(s, old, new string) string {
+	if old == "" {
+		return s
+	}
+	out := []byte{}
+	for i := 0; i < len(s); {
+		if i+len(old) <= len(s) && s[i:i+len(old)] == old {
+			out = append(out, new...)
+			i += len(old)
+			continue
+		}
+		out = append(out, s[i])
+		i++
+	}
+	return string(out)
 }
