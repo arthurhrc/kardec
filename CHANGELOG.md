@@ -15,7 +15,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   unordered and ordered lists (flattened to bullets in v0.1), thematic
   breaks (mapped to PageBreak), code blocks (rendered with StyleCode),
   blockquotes (rendered with StyleQuote). Backed by `goldmark` v1.8.
+- **`Template`** — `kardec.NewTemplate(src, opts...)` compiles a Markdown
+  template with `text/template` placeholders. `Template.Render(data)`
+  produces a fresh `*Document`. Options: `WithPageSize`, `WithMargins`,
+  `WithName`. `MustNewTemplate` provides a panicking variant for init
+  blocks. Useful for invoice / certificate / report-per-record flows.
 - **`examples/markdown`** — end-to-end CommonMark → PDF demo.
+- **`examples/invoice`** — three invoices generated from a single
+  Markdown template, demonstrating per-record templating.
 
 ## [0.1.0] — 2026-05-07
 
