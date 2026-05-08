@@ -5,6 +5,18 @@ All notable changes to Kardec are documented here. The format follows
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 `v1.0.0`, the public API is allowed to break between minor releases.
 
+## [Unreleased]
+
+### Added
+
+- **`Document.AppendMarkdown`** — feeds raw CommonMark to a document and
+  appends the resulting blocks to the current section. Supports headings
+  (1–6), paragraphs, bold / italic / bold-italic emphasis, inline code,
+  unordered and ordered lists (flattened to bullets in v0.1), thematic
+  breaks (mapped to PageBreak), code blocks (rendered with StyleCode),
+  blockquotes (rendered with StyleQuote). Backed by `goldmark` v1.8.
+- **`examples/markdown`** — end-to-end CommonMark → PDF demo.
+
 ## [0.1.0] — 2026-05-07
 
 The first usable release. Kardec produces real PDFs (`%PDF-1.7`) from a
