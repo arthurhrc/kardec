@@ -118,6 +118,10 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 			if err := e.placeTextBlock(cur, flush, v.Runs(), style, fonts); err != nil {
 				return nil, err
 			}
+		case kardec.Table:
+			cellStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableCell))
+			headerStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableHeader))
+			e.placeTable(cur, flush, v, headerStyle, cellStyle, fonts)
 		case kardec.PageBreak:
 			flush()
 		case kardec.Spacer:
@@ -128,9 +132,9 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 			}
 			cur.cursorY += advance
 		default:
-			// Unknown block kinds (Tables/Images, future v0.2): emit a
-			// stub placeholder so the renderer track sees something
-			// recognisable, and reserve plausible vertical space.
+			// Unknown block kinds (Image, future v0.3): emit a stub
+			// placeholder so the renderer track sees something
+			// recognisable and reserves plausible vertical space.
 			placeStub(cur, flush, b, fonts)
 		}
 	}
