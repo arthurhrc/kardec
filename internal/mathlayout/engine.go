@@ -66,6 +66,10 @@ func layoutNode(expr Expr, font Font, sizePt float64, display bool) Box {
 		if r, ok := expr.(NthRoot); ok {
 			return layoutNthRoot(r, font, sizePt, display)
 		}
+	case KindBigOp:
+		if op, ok := expr.(BigOp); ok {
+			return layoutBigOp(op, font, sizePt, display)
+		}
 	}
 	return Box{}
 }
