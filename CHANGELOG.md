@@ -9,6 +9,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Real tables.** New `Table` block, `TableBuilder` fluent API
+  (`doc.Table().Columns(...).Row(...).Build()`), `Col` / `Width` /
+  `AlignLeftCol` / `AlignCenterCol` / `AlignRightCol` column-option
+  helpers, and a `Cells` helper for rich-content cells. Layout supports
+  fractional / fixed / auto column widths, multi-line cells, page split
+  with optional `RepeatHeader`. Replaces the v0.1 `"TODO table"` stub.
 - **Multi-face font embedding.** PlacedItems now flow with their resolved
   family (Style.Family), weight (bold flag) and italic flag through a new
   `*measureAdapter` that the render package reads back when assembling

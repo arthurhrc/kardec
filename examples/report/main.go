@@ -84,9 +84,23 @@ func main() {
 	doc.Paragraph(
 		kardec.Text("Kardec ships four bundled font families totaling roughly seven megabytes "),
 		kardec.Text("(Liberation Sans, Liberation Serif, Carlito, JetBrains Mono — each in Regular, Bold, "),
-		kardec.Text("Italic and BoldItalic). The PDF writer subsets nothing in v0.1, so output files "),
-		kardec.Text("are larger than they will be in v0.2."),
+		kardec.Text("Italic and BoldItalic). The PDF writer subsets nothing yet, so output files "),
+		kardec.Text("are larger than they will be once subsetting lands."),
 	)
+	doc.Paragraph(kardec.Text("Bundled families and their roles:"))
+	doc.Table().
+		Columns(
+			kardec.Col("Family", kardec.Width(0.35)),
+			kardec.Col("Role", kardec.Width(0.45)),
+			kardec.Col("Faces", kardec.Width(0.20), kardec.AlignRightCol()),
+		).
+		RepeatHeader().
+		Row("Family", "Role", "Faces").
+		Row("Liberation Sans", "Default sans (Arial-equivalent)", "4").
+		Row("Liberation Serif", "Default serif (Times-equivalent)", "4").
+		Row("Carlito", "Calibri-equivalent for Word-style docs", "4").
+		Row("JetBrains Mono", "Monospace, code blocks", "4").
+		Build()
 
 	// Section 3 — example with named style.
 	doc.Heading(2, kardec.Text("3 — Wiring the renderer"))
