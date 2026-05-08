@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"time"
 
 	"github.com/arthurhrc/kardec/internal/typography"
 )
@@ -25,6 +26,12 @@ type Document struct {
 	// by Document.MathFont, so each AST atom resolved by the layout
 	// engine reuses a single parsed *canvas.Font.
 	mathFont typography.MathFont
+
+	// creationDate fixes the timestamp written to the rendered PDF's
+	// /Info /CreationDate. nil means "use time.Now() at render time".
+	// Callers that want byte-reproducible output pin this via
+	// SetCreationDate.
+	creationDate *time.Time
 
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
