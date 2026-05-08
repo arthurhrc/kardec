@@ -9,6 +9,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Section headers and footers + page-number tokens.** New
+  `Document.Header(runs...)` / `Document.Footer(runs...)` setters
+  attach inline content reprinted at the top and bottom of every
+  page in the current section. Token substitution at render time:
+  `{{page}}` (1-based), `{{totalPages}}` (resolved in a final
+  post-pass), `{{section}}` (1-based), `{{date}}` (UTC YYYY-MM-DD).
+  `examples/report` adopts the chrome to demonstrate. Closes
+  recommendation #2 from the strategic audit.
 - **List block.** New `List` / `ListItem` types plus
   `Document.List()` / `Document.OrderedList()` builders carrying
   fluent `Item(...)` / `Nested(runs, children...)` / `Build()` calls

@@ -58,6 +58,10 @@ func main() {
 		Italic:      true,
 	})
 
+	// Page chrome — repeated on every page.
+	doc.Header(kardec.Text("Kardec Quarterly Report — confidential"))
+	doc.Footer(kardec.Text("Page {{page}} of {{totalPages}} · generated {{date}}"))
+
 	// Cover.
 	doc.Heading(1, kardec.Text("Kardec Quarterly Report"))
 	doc.AddParagraph(kardec.Text("Q4 2025 — Generated end-to-end by Kardec v0.1.0")).
