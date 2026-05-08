@@ -14,11 +14,12 @@ import (
 // A Registry is not safe for concurrent use by multiple goroutines, in line
 // with the rest of the Kardec API.
 type Registry struct {
-	fonts        map[faceKey]Font
-	defaultFont  Font
-	familyOrder  []string         // insertion order, for deterministic iteration
-	familySeen   map[string]bool  // dedup helper
-	familyFaces  map[string][]faceKey
+	fonts       map[faceKey]Font
+	rawBytes    map[faceKey][]byte // retained TTF payload, used by the renderer for PDF embedding
+	defaultFont Font
+	familyOrder []string        // insertion order, for deterministic iteration
+	familySeen  map[string]bool // dedup helper
+	familyFaces map[string][]faceKey
 }
 
 // faceKey is the composite map key for a font face.
@@ -28,10 +29,22 @@ type faceKey struct {
 	italic bool
 }
 
+// FaceRecord is a public, read-only snapshot of one registered face.
+// The render package iterates Registry.Faces to assemble the embedded
+// font table that the PDF writer consumes; user code seldom needs it.
+type FaceRecord struct {
+	Family string
+	Weight Weight
+	Italic bool
+	Font   Font
+	Bytes  []byte // shared with the registry; do not mutate
+}
+
 // NewRegistry returns an empty Registry.
 func NewRegistry() *Registry {
 	return &Registry{
 		fonts:       make(map[faceKey]Font),
+		rawBytes:    make(map[faceKey][]byte),
 		familySeen:  make(map[string]bool),
 		familyFaces: make(map[string][]faceKey),
 	}
@@ -55,6 +68,9 @@ func (r *Registry) Register(family string, weight Weight, italic bool, ttfBytes 
 	}
 	k := faceKey{family: family, weight: weight, italic: italic}
 	r.fonts[k] = f
+	// Retain the TTF payload so the PDF renderer can embed it later.
+	// The slice is shared with the caller; documented as read-only.
+	r.rawBytes[k] = ttfBytes
 	if !r.familySeen[family] {
 		r.familySeen[family] = true
 		r.familyOrder = append(r.familyOrder, family)
@@ -64,6 +80,26 @@ func (r *Registry) Register(family string, weight Weight, italic bool, ttfBytes 
 		r.defaultFont = f
 	}
 	return nil
+}
+
+// Faces returns a snapshot of every registered face in insertion order
+// (per family). The returned slice is freshly allocated; the Bytes
+// field of each record aliases the registry's stored payload and must
+// not be mutated.
+func (r *Registry) Faces() []FaceRecord {
+	out := make([]FaceRecord, 0, len(r.fonts))
+	for _, family := range r.familyOrder {
+		for _, k := range r.familyFaces[family] {
+			out = append(out, FaceRecord{
+				Family: k.family,
+				Weight: k.weight,
+				Italic: k.italic,
+				Font:   r.fonts[k],
+				Bytes:  r.rawBytes[k],
+			})
+		}
+	}
+	return out
 }
 
 // Resolve returns the font registered for (family, weight, italic). If that
