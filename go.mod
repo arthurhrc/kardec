@@ -2,7 +2,10 @@ module github.com/arthurhrc/kardec
 
 go 1.26.3
 
-require github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e
+require (
+	github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e
+	github.com/yuin/goldmark v1.8.2
+)
 
 require (
 	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
@@ -22,7 +25,6 @@ require (
 	github.com/tdewolff/font v0.0.0-20260314002930-9f995dac393e // indirect
 	github.com/tdewolff/minify/v2 v2.24.11 // indirect
 	github.com/tdewolff/parse/v2 v2.8.11 // indirect
-	github.com/yuin/goldmark v1.8.2 // indirect
 	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
