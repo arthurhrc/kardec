@@ -9,18 +9,47 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **LaTeX math subset.** New `Math` block plus `Document.Math(src)` and
+  `Document.MathInline(src)`. Source is parsed from the LaTeX subset
+  documented in `internal/math` (greek lowercase + uppercase, fractions
+  via `\frac` / `\dfrac`, square roots, nth roots, sub/superscripts,
+  big operators `\sum` / `\int` / `\prod` with optional limits, named
+  operators / relations / arrows). Layout follows TeXbook conventions:
+  display style for the standalone block, inline style with side
+  scripts on big operators when `MathInline` is used.
+- **`internal/math`** — hand-rolled lexer + recursive-descent parser
+  producing a sealed AST (`Atom`, `Op`, `Number`, `Identifier`, `Group`,
+  `Frac`, `Sqrt`, `NthRoot`, `SubSup`, `BigOp`) plus a canonical symbol
+  table mapping LaTeX commands to Unicode runes and categories.
+- **`internal/mathlayout`** — TeXbook-style box layout: atom/group/op
+  spacing, sub/superscript scaling (70 % size, 0.30 × down / 0.45 × up),
+  fraction (numerator and denominator with rule between), square-root
+  with overline, big-op inline / display modes.
 - **Math typography subsystem.** New `typography.MathFont` interface
   (`GlyphFor` / `Measure` / `AscentDescent`) plus a Latin Modern Math
   implementation served via `typography.LatinModernMath`. The OTF
-  comes from the upstream `github.com/go-fonts/latin-modern/lmmath`
-  module — no shadow copy under `internal/typography/embedded/`.
-  A self-contained LaTeX-command → Unicode-rune fallback table covers
-  Greek (lower + upper), big operators (`\sum`, `\int`, `\prod`, ...),
-  relations (`\leq`, `\geq`, `\neq`, `\approx`, `\to`, ...), arrows,
-  and common binary operators, so the package stands on its own ahead
-  of the math-parser track landing its richer table. Public entry
-  point: `(*Document).MathFont() typography.MathFont`, lazy-loaded
-  and memoised per Document.
+  comes from `github.com/go-fonts/latin-modern/lmmath` — no shadow
+  copy. Public entry point: `(*Document).MathFont() typography.MathFont`,
+  lazy-loaded and memoised per Document.
+- **`internal/mathadapter`** — bridges the parser's AST onto the layout
+  engine's interfaces and `typography.MathFont` onto `mathlayout.Font`,
+  isolating the seam between the three independently-built tracks.
+- **`examples/math`** — five display equations plus a greek-letters
+  formula.
+
+### Limitations (intentional, lifted later)
+
+- **Fraction bars and square-root overlines are not yet rendered.**
+  The math layout engine produces `Box.Rules` for them, but the PDF
+  writer has no rectangle primitive yet — adding one is queued for
+  v0.3.x. Until then frac / sqrt show the glyphs without the bar.
+- **Math font embedding deferred.** Latin Modern Math ships as
+  OpenType/CFF (sfnt header `OTTO`); the current writer only embeds
+  TrueType (`0x00010000`). v0.3 routes math glyphs to the default body
+  font (Liberation Sans) so PDFs remain valid. Greek letters render
+  through Liberation Sans's coverage; large math operators (`∑`, `∫`,
+  `∏`, `√`) fall back to the default font's glyph table. CFF support
+  lands in v0.3.x.
 
 ## [0.2.0] — 2026-05-07
 
