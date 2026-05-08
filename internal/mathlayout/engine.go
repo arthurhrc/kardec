@@ -58,6 +58,14 @@ func layoutNode(expr Expr, font Font, sizePt float64, display bool) Box {
 		if f, ok := expr.(Frac); ok {
 			return layoutFrac(f, font, sizePt, display)
 		}
+	case KindSqrt:
+		if s, ok := expr.(Sqrt); ok {
+			return layoutSqrt(s, font, sizePt, display)
+		}
+	case KindNthRoot:
+		if r, ok := expr.(NthRoot); ok {
+			return layoutNthRoot(r, font, sizePt, display)
+		}
 	}
 	return Box{}
 }
