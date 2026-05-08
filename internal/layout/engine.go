@@ -98,12 +98,18 @@ func (c *pageCursor) finish() Page {
 // Style for each block is resolved through doc.ResolveBlockStyle, so a
 // caller's DefineStyle / WithStyle / WithNamedStyle decisions actually
 // shape the output.
+//
+// flush is implemented as an in-place mutation of cur (rather than a
+// reassignment) so block-level placement code holding a *pageCursor can
+// continue appending after a forced page break and still target the
+// correct page. Reassignment alone would leave inner callers writing to
+// the just-finished page through their stale pointer.
 func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts FontProvider) ([]Page, error) {
 	var pages []Page
 	cur := startPage(sec.Setup)
 	flush := func() {
 		pages = append(pages, cur.finish())
-		cur = startPage(sec.Setup)
+		*cur = *startPage(sec.Setup)
 	}
 
 	for _, b := range sec.Blocks {
