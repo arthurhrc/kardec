@@ -151,3 +151,29 @@ func TestWeightCSSAndString(t *testing.T) {
 		}
 	}
 }
+
+func TestRegistryFacesReturnsRegisteredPayload(t *testing.T) {
+	data := loadSampleTTF(t)
+	reg := NewRegistry()
+	if err := reg.Register("Sample", Regular, false, data); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := reg.Register("Sample", Bold, false, data); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	faces := reg.Faces()
+	if len(faces) != 2 {
+		t.Fatalf("want 2 faces, got %d", len(faces))
+	}
+	for _, f := range faces {
+		if f.Family != "Sample" {
+			t.Errorf("face family = %q, want Sample", f.Family)
+		}
+		if f.Font == nil {
+			t.Errorf("face Font should be non-nil")
+		}
+		if len(f.Bytes) != len(data) {
+			t.Errorf("face Bytes length = %d, want %d", len(f.Bytes), len(data))
+		}
+	}
+}

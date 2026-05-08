@@ -21,15 +21,18 @@ type token struct {
 
 // shapeRuns turns a slice of kardec.Run values into the flat token stream
 // the line breaker consumes. Each Run becomes one or more tokens following
-// the rule "split on whitespace, keep whitespace as its own token".
-func shapeRuns(runs []kardec.Run, fonts FontProvider, defaultSize kardec.Length, defaultColor kardec.Color) []token {
+// the rule "split on whitespace, keep whitespace as its own token". The
+// blockStyle's family / bold / italic flow as defaults; per-Run bold and
+// italic flags are ORed on top so an inline Bold(...) run inside a
+// regular paragraph still resolves to a bold face.
+func shapeRuns(runs []kardec.Run, fonts FontProvider, style blockStyle, defaultSize kardec.Length, defaultColor kardec.Color) []token {
 	var out []token
 	for _, r := range runs {
 		text := r.Text()
 		if text == "" {
 			continue
 		}
-		font := fonts.Resolve("", r.Bold(), r.Italic())
+		font := fonts.Resolve(style.family, style.bold || r.Bold(), style.italic || r.Italic())
 		size := float64(defaultSize)
 		if v, ok := r.SizeOverride(); ok {
 			size = float64(v)

@@ -9,6 +9,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Multi-face font embedding.** PlacedItems now flow with their resolved
+  family (Style.Family), weight (bold flag) and italic flag through a new
+  `*measureAdapter` that the render package reads back when assembling
+  the embedded-font table. Bold and italic glyphs land in the PDF as the
+  actual TrueType faces from the registry (e.g. LiberationSans-Bold,
+  LiberationSerif-Italic), not flat regulars. Only faces actually
+  referenced by the document are embedded; the rest of the registry is
+  left out so size growth stays proportional to what is used.
+- **`typography.Registry.Faces`** + new `FaceRecord` type — exposes the
+  registered faces (with their TTF bytes) so the renderer can embed them
+  in the PDF without re-reading the bundled FS.
 - **`Document.AppendMarkdown`** — feeds raw CommonMark to a document and
   appends the resulting blocks to the current section. Supports headings
   (1–6), paragraphs, bold / italic / bold-italic emphasis, inline code,
@@ -23,6 +34,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 - **`examples/markdown`** — end-to-end CommonMark → PDF demo.
 - **`examples/invoice`** — three invoices generated from a single
   Markdown template, demonstrating per-record templating.
+
+### Changed
+
+- `internal/layout` linebreaker now passes `Style.Family` and the
+  block-style bold/italic flags through to `FontProvider.Resolve`,
+  rather than always asking for the empty-string family.
 
 ## [0.1.0] — 2026-05-07
 
