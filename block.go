@@ -20,6 +20,7 @@ const (
 	kindTable
 	kindImage
 	kindMath
+	kindList
 )
 
 // Paragraph is a body-text block of one or more inline Runs.
