@@ -33,6 +33,12 @@ type Document struct {
 	// SetCreationDate.
 	creationDate *time.Time
 
+	// warnings accumulates non-fatal advisories — Markdown nodes that
+	// were dropped silently, link URLs that arrived empty, etc.
+	// Surfaced via Document.Warnings; callers that opt into noise
+	// log them or fail their CI on non-empty output.
+	warnings []string
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
 

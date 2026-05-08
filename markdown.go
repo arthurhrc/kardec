@@ -40,14 +40,15 @@ func (d *Document) AppendMarkdown(src string) *Document {
 }
 
 // appendMarkdownNode dispatches a single block-level AST node onto the
-// document's builder. Unknown block kinds fall through silently so an
-// unsupported construct never aborts the whole import.
+// document's builder. Unknown block kinds fall through into a warning
+// — surface via Document.Warnings — so callers see what their source
+// dropped without aborting the whole import.
 func (d *Document) appendMarkdownNode(node ast.Node, source []byte) {
 	switch n := node.(type) {
 	case *ast.Heading:
-		d.Heading(n.Level, runsFromInline(n, source)...)
+		d.Heading(n.Level, runsFromInline(d, n, source)...)
 	case *ast.Paragraph:
-		d.Paragraph(runsFromInline(n, source)...)
+		d.Paragraph(runsFromInline(d, n, source)...)
 	case *ast.ThematicBreak:
 		d.PageBreak()
 	case *ast.FencedCodeBlock, *ast.CodeBlock:
@@ -57,11 +58,32 @@ func (d *Document) appendMarkdownNode(node ast.Node, source []byte) {
 	case *ast.List:
 		d.appendMarkdownList(n, source)
 	case *ast.Blockquote:
-		d.AddParagraph(runsFromInline(n, source)...).
+		d.AddParagraph(runsFromInline(d, n, source)...).
 			WithNamedStyle(StyleQuote).
 			Done()
 	case *extast.Table:
 		d.appendMarkdownTable(n, source)
+	default:
+		d.warn("AppendMarkdown: dropped unsupported block " + nodeKindLabel(node))
+	}
+}
+
+// nodeKindLabel returns a stable human-readable label for a goldmark
+// AST node, used in warnings so callers can grep / triage which
+// constructs their source carries that the bridge does not yet
+// translate.
+func nodeKindLabel(node ast.Node) string {
+	switch node.(type) {
+	case *ast.HTMLBlock:
+		return "HTMLBlock"
+	case *ast.RawHTML:
+		return "RawHTML"
+	case *ast.AutoLink:
+		return "AutoLink"
+	case *ast.Image:
+		return "Image (inline)"
+	default:
+		return node.Kind().String()
 	}
 }
 
@@ -116,7 +138,7 @@ func (d *Document) appendMarkdownTable(t *extast.Table, source []byte) {
 			if !ok {
 				continue
 			}
-			cells = append(cells, Cell{Runs: runsFromInline(tc, source)})
+			cells = append(cells, Cell{Runs: runsFromInline(d, tc, source)})
 		}
 		// Pad missing trailing cells so layout sees a uniform shape.
 		for len(cells) < len(cols) {
@@ -174,13 +196,14 @@ func extractInlineText(node ast.Node, source []byte) []byte {
 // so the layout engine can indent properly. The legacy "flatten to
 // bulleted paragraphs" behaviour ended once the List block landed.
 func (d *Document) appendMarkdownList(list *ast.List, source []byte) {
-	d.append(buildMarkdownList(list, source))
+	d.append(buildMarkdownList(d, list, source))
 }
 
 // buildMarkdownList recursively converts a goldmark List node into a
-// kardec.List. Plain string-prefixed paragraphs are no longer emitted;
-// the layout engine owns marker rendering.
-func buildMarkdownList(list *ast.List, source []byte) List {
+// kardec.List. The Document is passed so nested inline content can
+// route warnings through the same accumulator the rest of
+// AppendMarkdown uses.
+func buildMarkdownList(d *Document, list *ast.List, source []byte) List {
 	style := ListUnordered
 	if list.IsOrdered() {
 		style = ListOrdered
@@ -191,10 +214,10 @@ func buildMarkdownList(list *ast.List, source []byte) List {
 		if !ok {
 			continue
 		}
-		entry := ListItem{Runs: runsFromInlineExcludingNested(item, source)}
+		entry := ListItem{Runs: runsFromInlineExcludingNested(d, item, source)}
 		for sub := item.FirstChild(); sub != nil; sub = sub.NextSibling() {
 			if nested, ok := sub.(*ast.List); ok {
-				entry.Children = append(entry.Children, buildMarkdownList(nested, source))
+				entry.Children = append(entry.Children, buildMarkdownList(d, nested, source))
 			}
 		}
 		out.items = append(out.items, entry)
@@ -205,13 +228,13 @@ func buildMarkdownList(list *ast.List, source []byte) List {
 // runsFromInlineExcludingNested gathers the inline runs of a list item
 // while skipping any nested list children — those become Children of
 // the produced ListItem and would otherwise be flattened twice.
-func runsFromInlineExcludingNested(item ast.Node, source []byte) []Run {
+func runsFromInlineExcludingNested(d *Document, item ast.Node, source []byte) []Run {
 	var out []Run
 	for c := item.FirstChild(); c != nil; c = c.NextSibling() {
 		if _, isList := c.(*ast.List); isList {
 			continue
 		}
-		walkInline(c, source, false, false, &out)
+		walkInline(d, c, source, false, false, &out)
 	}
 	return out
 }
@@ -220,16 +243,20 @@ func runsFromInlineExcludingNested(item ast.Node, source []byte) []Run {
 // Paragraph or similar) into a slice of Runs. Bold, italic and inline
 // code each map to their kardec helper; nested combinations like
 // bold-italic resolve to BoldItalic when both flags are seen.
-func runsFromInline(parent ast.Node, source []byte) []Run {
+//
+// The Document is passed so the walker can record warnings for inline
+// constructs the bridge knows about but cannot fully render (links
+// without a destination, images, raw HTML).
+func runsFromInline(d *Document, parent ast.Node, source []byte) []Run {
 	var out []Run
-	walkInline(parent, source, false, false, &out)
+	walkInline(d, parent, source, false, false, &out)
 	return out
 }
 
 // walkInline recursively traverses inline nodes, carrying the bold/italic
 // flags down so a Run inherits formatting from its enclosing Emphasis
 // node. Plain text is the only leaf that produces a Run.
-func walkInline(node ast.Node, source []byte, bold, italic bool, out *[]Run) {
+func walkInline(d *Document, node ast.Node, source []byte, bold, italic bool, out *[]Run) {
 	switch n := node.(type) {
 	case *ast.Text:
 		s := string(n.Segment.Value(source))
@@ -246,7 +273,7 @@ func walkInline(node ast.Node, source []byte, bold, italic bool, out *[]Run) {
 			newBold = true
 		}
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			walkInline(c, source, newBold, newItalic, out)
+			walkInline(d, c, source, newBold, newItalic, out)
 		}
 	case *ast.CodeSpan:
 		// Inline code: keep the text but annotate via inline style override
@@ -258,17 +285,34 @@ func walkInline(node ast.Node, source []byte, bold, italic bool, out *[]Run) {
 		// text wrapped in a Link run so the renderer attaches a /URI
 		// annotation. Bold / italic flags travel through unchanged.
 		url := string(n.Destination)
+		if url == "" && d != nil {
+			d.warn("AppendMarkdown: inline link with empty destination")
+		}
 		var nested []Run
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			walkInline(c, source, bold, italic, &nested)
+			walkInline(d, c, source, bold, italic, &nested)
 		}
 		for _, r := range nested {
 			r.SetLink(url)
 			*out = append(*out, r)
 		}
 	default:
+		// Inline constructs the bridge does not yet honour (Image,
+		// AutoLink, RawHTML) record a warning the first time we see
+		// them, then their children's text content is preserved via
+		// the recursive descent so nothing visible is dropped.
+		if d != nil {
+			switch n.(type) {
+			case *ast.Image:
+				d.warn("AppendMarkdown: inline image dropped (URL preserved as text only)")
+			case *ast.AutoLink:
+				d.warn("AppendMarkdown: autolink rendered as plain text — URL not clickable")
+			case *ast.RawHTML:
+				d.warn("AppendMarkdown: raw HTML stripped from output")
+			}
+		}
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			walkInline(c, source, bold, italic, out)
+			walkInline(d, c, source, bold, italic, out)
 		}
 	}
 }

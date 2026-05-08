@@ -9,6 +9,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **`Document.Warnings()` for Markdown silent failures.** The
+  `AppendMarkdown` bridge previously dropped unsupported nodes
+  silently (autolinks, inline images, raw-HTML blocks, empty link
+  destinations). It now records a human-readable advisory through a
+  new `Document.warn` helper; callers retrieve them via
+  `doc.Warnings() []string`. Clean Markdown produces an empty slice;
+  CI pipelines that demand strict fidelity assert
+  `len(doc.Warnings()) == 0`. Closes recommendation #5 from the
+  strategic audit.
 - **Byte-reproducible output.** `Document.SetCreationDate(t)` pins the
   `/Info /CreationDate` entry the renderer writes; two renders of the
   same Document with the same fixed timestamp now produce
