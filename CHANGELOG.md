@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Markdown table support.** GFM-style pipe tables in source passed to
+  `AppendMarkdown` now produce real `Table` blocks (instead of being
+  rendered as inline text). Header cells become bold runs, the column
+  alignment syntax (`:---`, `:---:`, `---:`) is honoured, and the
+  resulting table opts in to `RepeatHeader` so multi-page tables keep
+  their column titles visible. Powered by the upstream `extension.Table`
+  parser; the bridge lives in `markdown.go`.
 - **Real tables.** New `Table` block, `TableBuilder` fluent API
   (`doc.Table().Columns(...).Row(...).Build()`), `Col` / `Width` /
   `AlignLeftCol` / `AlignCenterCol` / `AlignRightCol` column-option

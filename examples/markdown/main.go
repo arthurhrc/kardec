@@ -35,8 +35,16 @@ Body text flows through the same layout engine, so headings honor the
 
 ## What is not (yet)
 
-- Tables and images render as TODO stubs (v0.2)
-- Inline links keep the visible text only — URL is dropped (v0.2)
+- Inline links keep the visible text only — URL is dropped
+- Images render as TODO stubs (next milestone)
+
+## Tables (GFM)
+
+| Month    | Revenue   | Δ    |
+|:---------|----------:|:----:|
+| October  | R$ 12,000 | +5%  |
+| November | R$ 14,500 | +12% |
+| December | R$ 13,200 | -9%  |
 
 ---
 
