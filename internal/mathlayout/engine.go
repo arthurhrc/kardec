@@ -50,6 +50,10 @@ func layoutNode(expr Expr, font Font, sizePt float64, display bool) Box {
 		if g, ok := expr.(Group); ok {
 			return layoutGroup(g, font, sizePt, display)
 		}
+	case KindSubSup:
+		if s, ok := expr.(SubSup); ok {
+			return layoutSubSup(s, font, sizePt, display)
+		}
 	}
 	return Box{}
 }
