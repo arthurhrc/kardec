@@ -85,9 +85,27 @@ func emitMathBox(cur *pageCursor, box mathlayout.Box, originX, baselineY float64
 	for _, child := range box.Children {
 		emitMathBox(cur, child, originX+box.X+child.X, baselineY+child.Y, color)
 	}
-	// Rules deferred: the layout track produces them but the PDF writer
-	// has no rectangle primitive in v0.3. v0.3.x lands a pdf.RectDraw
-	// and this loop will translate Box.Rules into those.
+	for _, rule := range box.Rules {
+		// Rule coordinates are relative to the box; the math layout
+		// engine already places them on the math axis (frac bar /
+		// sqrt overline). Translate to absolute page coordinates.
+		ruleX := originX + box.X + rule.X
+		// rule.Y in the math layout is reported relative to the box
+		// baseline; emitMathBox's baselineY is the absolute baseline,
+		// and the math engine emits negative offsets for content
+		// above it. The renderer expects top-left coords, so the
+		// rule's top-left is baselineY - |Height_above| + rule.Y.
+		ruleY := baselineY + rule.Y
+		cur.items = append(cur.items, PlacedItem{
+			X: kardec.Pt(ruleX),
+			Y: kardec.Pt(ruleY),
+			Rect: &PlacedRect{
+				Width:     kardec.Pt(rule.Width),
+				Thickness: kardec.Pt(rule.Thickness),
+				Color:     color,
+			},
+		})
+	}
 }
 
 // mathFont is a marker Font implementation carrying a single math rune.
