@@ -9,6 +9,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Hyperlinks + PDF outline (sidebar bookmarks).**
+  - `kardec.Link(text, url)` produces a Run that becomes a clickable
+    `/URI` annotation in the rendered PDF. Markdown source links —
+    previously rendered as plain text — now flow their destination
+    through the same annotation path.
+  - Heading blocks build a PDF `/Outlines` tree automatically. H1
+    becomes a top-level entry, H2 nests under the closest preceding
+    H1, and so on. Catalog `/PageMode /UseOutlines` opens the
+    sidebar by default in Acrobat / Chrome / Firefox.
+  - Layout's `PlacedItem` gains a `Link` field; render coalesces
+    consecutive same-target items into one rectangular annotation
+    per page so multi-word links remain a single click target.
+  - Closes recommendation #3 from the strategic audit.
 - **Section headers and footers + page-number tokens.** New
   `Document.Header(runs...)` / `Document.Footer(runs...)` setters
   attach inline content reprinted at the top and bottom of every

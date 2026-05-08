@@ -254,9 +254,17 @@ func walkInline(node ast.Node, source []byte, bold, italic bool, out *[]Run) {
 		// font level once StyleCode flows down to runs).
 		*out = append(*out, Text(string(extractText(n, source))))
 	case *ast.Link:
-		// Treat as plain text in v0.1; URL rendering is a v0.2 feature.
+		// Markdown links carry a Destination URL; emit each child's
+		// text wrapped in a Link run so the renderer attaches a /URI
+		// annotation. Bold / italic flags travel through unchanged.
+		url := string(n.Destination)
+		var nested []Run
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			walkInline(c, source, bold, italic, out)
+			walkInline(c, source, bold, italic, &nested)
+		}
+		for _, r := range nested {
+			r.SetLink(url)
+			*out = append(*out, r)
 		}
 	default:
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
