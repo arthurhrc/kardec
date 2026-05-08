@@ -55,3 +55,9 @@ func (r Run) SizeOverride() (Length, bool) {
 // Link returns the run's hyperlink target (its `url` argument when
 // constructed via Link), or the empty string when the run is plain.
 func (r Run) Link() string { return r.link }
+
+// SetLink replaces the run's hyperlink target in place. Used by
+// AppendMarkdown to retrofit goldmark inline-link destinations onto
+// already-walked Run children. End-user code should prefer the Link
+// constructor for new content.
+func (r *Run) SetLink(url string) { r.link = url }
