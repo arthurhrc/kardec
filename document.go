@@ -32,9 +32,15 @@ type Document struct {
 // Section couples a PageSetup with the ordered list of blocks that flow
 // inside it. Most documents use a single Section; multi-section support
 // (different page setups within one document) lands later in v0.x.
+//
+// Header and Footer are inline runs reprinted at the top and bottom of
+// every page in the section. They support the token substitutions
+// documented on Document.Header / Document.Footer.
 type Section struct {
 	Setup  PageSetup
 	Blocks []Block
+	Header []Run
+	Footer []Run
 }
 
 // New creates an empty Document with a single Section configured from the
