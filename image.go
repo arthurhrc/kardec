@@ -1,0 +1,167 @@
+package kardec
+
+import (
+	"errors"
+	"fmt"
+	"os"
+)
+
+// ImageFormat identifies the supported on-disk encodings. JPEG carries
+// straight through into the PDF; PNG is decoded and re-encoded as raw
+// RGB + FlateDecode (transparency is flattened against white in v0.2).
+type ImageFormat uint8
+
+const (
+	// ImageFormatUnknown is the zero value. Builders treat it as an error.
+	ImageFormatUnknown ImageFormat = iota
+	ImageFormatJPEG
+	ImageFormatPNG
+)
+
+// String returns a human-readable label, mainly for error messages.
+func (f ImageFormat) String() string {
+	switch f {
+	case ImageFormatJPEG:
+		return "JPEG"
+	case ImageFormatPNG:
+		return "PNG"
+	default:
+		return "unknown"
+	}
+}
+
+// Image is the block carrying a raster image. Width and Height are
+// expressed in PDF points; if both are zero the layout engine substitutes
+// the image's natural pixel dimensions converted to points at 72 DPI.
+// If exactly one is set, the other is derived from the source aspect
+// ratio so the image is never distorted.
+type Image struct {
+	data      []byte
+	format    ImageFormat
+	width     Length
+	height    Length
+	alignment Alignment
+}
+
+// blockKind implements Block.
+func (Image) blockKind() blockKind { return kindImage }
+
+// Data returns the raw bytes that the renderer will embed. Read-only:
+// callers must not mutate the slice.
+func (i Image) Data() []byte { return i.data }
+
+// Format reports the on-disk encoding of Data.
+func (i Image) Format() ImageFormat { return i.format }
+
+// Width returns the requested target width in points (zero means
+// "derive from height or natural size").
+func (i Image) Width() Length { return i.width }
+
+// Height returns the requested target height in points.
+func (i Image) Height() Length { return i.height }
+
+// Alignment returns the horizontal placement of the image inside the
+// page's content area.
+func (i Image) Alignment() Alignment { return i.alignment }
+
+// detectImageFormat inspects the first few bytes of data and returns
+// the matching ImageFormat. Empty or unrecognised payloads return
+// ImageFormatUnknown plus an error.
+func detectImageFormat(data []byte) (ImageFormat, error) {
+	if len(data) < 8 {
+		return ImageFormatUnknown, errors.New("kardec: image data too short to identify")
+	}
+	switch {
+	case data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF:
+		return ImageFormatJPEG, nil
+	case data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G':
+		return ImageFormatPNG, nil
+	default:
+		return ImageFormatUnknown, fmt.Errorf("kardec: unsupported image format (header %x)", data[:4])
+	}
+}
+
+// ImageBuilder accumulates customisation for an image before the
+// caller commits it to the document via Build. Functional helpers
+// (Width / Height / Center / etc.) keep the builder fluent.
+type ImageBuilder struct {
+	doc *Document
+	img Image
+	err error
+}
+
+// Image starts an ImageBuilder from an in-memory image payload. The
+// format is auto-detected from the leading bytes; callers needing
+// explicit control can use AddImage with a fully-built Image value.
+func (d *Document) Image(data []byte) *ImageBuilder {
+	b := &ImageBuilder{doc: d, img: Image{data: data}}
+	if d.err != nil {
+		return b
+	}
+	format, err := detectImageFormat(data)
+	if err != nil {
+		b.err = err
+		return b
+	}
+	b.img.format = format
+	return b
+}
+
+// ImageFile is a convenience that reads path and forwards to Image.
+// Errors from the read are captured in the builder and surface from
+// Build through the document's deferred-error chain.
+func (d *Document) ImageFile(path string) *ImageBuilder {
+	b := &ImageBuilder{doc: d}
+	if d.err != nil {
+		return b
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		b.err = fmt.Errorf("kardec: read image %s: %w", path, err)
+		return b
+	}
+	return d.Image(data)
+}
+
+// Width sets the image's target width. Pair with Height for explicit
+// sizing or call alone to derive the height from the source aspect ratio.
+func (b *ImageBuilder) Width(w Length) *ImageBuilder {
+	b.img.width = w
+	return b
+}
+
+// Height sets the image's target height. Pair with Width for explicit
+// sizing or call alone to derive the width from the source aspect ratio.
+func (b *ImageBuilder) Height(h Length) *ImageBuilder {
+	b.img.height = h
+	return b
+}
+
+// Center horizontally centers the image in the page's content area.
+func (b *ImageBuilder) Center() *ImageBuilder {
+	b.img.alignment = AlignCenter
+	return b
+}
+
+// AlignRight right-aligns the image in the page's content area.
+func (b *ImageBuilder) AlignRight() *ImageBuilder {
+	b.img.alignment = AlignRight
+	return b
+}
+
+// Build appends the image to the parent document and returns the
+// document so the caller can resume the top-level chain. Builder-side
+// errors (read failure, unrecognised format) are folded into the
+// document's deferred error.
+func (b *ImageBuilder) Build() *Document {
+	if b.doc.err != nil {
+		return b.doc
+	}
+	if b.err != nil {
+		return b.doc.fail(b.err)
+	}
+	if len(b.img.data) == 0 {
+		return b.doc.fail(errors.New("kardec: image with no data"))
+	}
+	return b.doc.append(b.img)
+}
