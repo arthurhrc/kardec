@@ -9,6 +9,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Byte-reproducible output.** `Document.SetCreationDate(t)` pins the
+  `/Info /CreationDate` entry the renderer writes; two renders of the
+  same Document with the same fixed timestamp now produce
+  byte-identical PDFs. Without an explicit value the renderer falls
+  back to `time.Now()` at emission time, matching the pre-v0.3
+  behaviour. `pdf.Writer` gains a `Clock func() time.Time` seam the
+  render package wires through. Closes recommendation #4 from the
+  strategic audit and concretises the "deterministic Go documents"
+  unique-angle play the competitive analysis flagged.
 - **Hyperlinks + PDF outline (sidebar bookmarks).**
   - `kardec.Link(text, url)` produces a Run that becomes a clickable
     `/URI` annotation in the rendered PDF. Markdown source links —
