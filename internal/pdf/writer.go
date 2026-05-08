@@ -7,9 +7,16 @@ import (
 	"time"
 )
 
-// Writer turns a Document into a PDF 1.7 byte stream. The zero value is
-// ready to use — Writer holds no state between calls.
-type Writer struct{}
+// Writer turns a Document into a PDF 1.7 byte stream. The zero value
+// is ready to use — Writer holds no inter-call state of its own.
+//
+// Clock supplies the timestamp written to the /Info /CreationDate
+// entry. When nil, time.Now is used; tests and reproducible-build
+// callers inject a fixed clock so two renders of the same document
+// produce identical bytes.
+type Writer struct {
+	Clock func() time.Time
+}
 
 // pdfHeader is emitted verbatim at byte 0 of every output. The four
 // high-bit bytes after the version comment are the standard "binary file"
@@ -30,10 +37,11 @@ const pdfHeader = "%PDF-1.7\n%\xE2\xE3\xCF\xD3\n"
 //
 // IDs are allocated lazily as objects are emitted; the layout above is
 // the realized order, not a contract.
-func (Writer) Write(w io.Writer, doc Document) error {
+func (wr Writer) Write(w io.Writer, doc Document) error {
 	if w == nil {
 		return fmt.Errorf("pdf: nil io.Writer")
 	}
+	writerClock := wr.Clock
 
 	ow := newObjectWriter()
 
@@ -124,7 +132,7 @@ func (Writer) Write(w io.Writer, doc Document) error {
 
 	// Info dict (optional; /Producer "Kardec" + Title/Author when set).
 	infoID := ow.allocID()
-	infoBody := buildInfoDict(doc)
+	infoBody := buildInfoDict(doc, w_clockOrDefault(writerClock))
 	ow.writeObject(infoID, infoBody)
 
 	// Final emission: header, body, xref, trailer, startxref.
@@ -192,7 +200,7 @@ func pageImages(p Page, all []*imageHandle) []*imageHandle {
 // written as PDF literal strings (UTF-8 inside parens, escaped); Acrobat
 // reads ASCII subsets correctly. Non-ASCII metadata would need a UTF-16BE
 // "BOM-prefixed" string in v0.2.
-func buildInfoDict(doc Document) string {
+func buildInfoDict(doc Document, now time.Time) string {
 	var buf bytes.Buffer
 	buf.WriteString("<<")
 	if doc.Title != "" {
@@ -204,10 +212,22 @@ func buildInfoDict(doc Document) string {
 	fmt.Fprintf(&buf, " /Producer %s", escapeLiteralString("Kardec PDF Writer v0.1"))
 	fmt.Fprintf(&buf, " /Creator %s", escapeLiteralString("Kardec"))
 	// PDF date format: D:YYYYMMDDHHmmSSOHH'mm — see PDF 7.9.4. The 'Z'
-	// timezone form (UTC) keeps this deterministic-ish for tests; callers
-	// who need wall-clock dates can post-process.
-	now := time.Now().UTC().Format("20060102150405")
-	fmt.Fprintf(&buf, " /CreationDate (D:%sZ)", now)
+	// timezone form (UTC) keeps the value comparable across machines;
+	// the caller passes the wall-clock or a fixed moment for
+	// reproducible builds.
+	stamp := now.UTC().Format("20060102150405")
+	fmt.Fprintf(&buf, " /CreationDate (D:%sZ)", stamp)
 	buf.WriteString(" >>")
 	return buf.String()
+}
+
+// w_clockOrDefault resolves the Writer.Clock seam. A nil clock falls
+// back to time.Now so the default Writer remains usable without any
+// configuration; non-nil clocks are returned verbatim so callers can
+// inject deterministic timestamps for reproducibility tests.
+func w_clockOrDefault(c func() time.Time) time.Time {
+	if c == nil {
+		return time.Now()
+	}
+	return c()
 }

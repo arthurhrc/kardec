@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/arthurhrc/kardec"
 	"github.com/arthurhrc/kardec/internal/layout"
@@ -83,7 +84,12 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("render: build pdf model: %w", err)
 	}
-	if err := (pdf.Writer{}).Write(w, model); err != nil {
+	writer := pdf.Writer{}
+	if t, ok := d.CreationDate(); ok {
+		fixed := t
+		writer.Clock = func() time.Time { return fixed }
+	}
+	if err := writer.Write(w, model); err != nil {
 		return fmt.Errorf("render: pdf write: %w", err)
 	}
 	return nil
