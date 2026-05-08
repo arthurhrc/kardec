@@ -60,10 +60,9 @@ That is the whole goal — nothing more. If you need pixel-perfect DOCX conversi
 
 | Version | Scope |
 |---------|-------|
-| **[0.1.0](CHANGELOG.md#010--2026-05-07)** _(current)_ | Paragraphs, headings, page breaks, style system, embedded fonts, Liberation Sans output |
-| 0.2 | Multi-face embedding (real bold / italic glyphs), tables, images |
-| 0.3 | Markdown input (`Document.AppendMarkdown`), templating |
-| 0.4 | Hyphenation, justified text refinements, multi-section page setups |
+| 0.1.0 | Paragraphs, headings, page breaks, style system, embedded fonts, Liberation Sans output |
+| **[0.2.0](CHANGELOG.md#020--2026-05-07)** _(current)_ | Multi-face embedding (real bold / italic glyphs), real tables, raster images (JPEG passthrough + PNG decode-RGB), Markdown ingest with GFM tables, Markdown templating |
+| 0.3 | TTF subsetting, hyphenation, full Knuth–Plass, multi-section page setups, table borders/shading |
 | 1.0 | API freeze + comprehensive examples + ≥85 % test coverage |
 
 Full design spec: [docs/RFC-001-dsl.md](docs/RFC-001-dsl.md).
@@ -89,8 +88,11 @@ kardec/
 
 ```sh
 go test ./...
-go run ./examples/hello    # smallest end-to-end PDF (hello.pdf)
-go run ./examples/report   # multi-section showcase exercising DefineStyle (report.pdf)
+go run ./examples/hello     # smallest end-to-end PDF
+go run ./examples/report    # multi-section showcase with DefineStyle and a real table
+go run ./examples/markdown  # CommonMark + GFM tables → PDF
+go run ./examples/invoice   # text/template + Markdown → one PDF per record
+go run ./examples/image     # PNG embedded into the rendered PDF
 ```
 
 ## Contributing

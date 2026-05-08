@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-07
+
 ### Added
 
 - **Image embedding.** New `Image` block + `ImageBuilder` fluent API
@@ -125,4 +127,5 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
+[0.2.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.2.0
 [0.1.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.1.0
