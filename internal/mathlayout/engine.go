@@ -46,6 +46,10 @@ func layoutNode(expr Expr, font Font, sizePt float64, display bool) Box {
 		if id, ok := expr.(Identifier); ok {
 			return layoutGlyphRun(id.Name(), font, sizePt)
 		}
+	case KindGroup:
+		if g, ok := expr.(Group); ok {
+			return layoutGroup(g, font, sizePt, display)
+		}
 	}
 	return Box{}
 }
