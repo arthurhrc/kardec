@@ -32,14 +32,42 @@ func (e Engine) Layout(doc *kardec.Document, fonts FontProvider) ([]Page, error)
 	}
 
 	var pages []Page
-	for _, sec := range doc.Sections() {
+	for secIdx, sec := range doc.Sections() {
 		secPages, err := e.layoutSection(doc, sec, fonts)
 		if err != nil {
 			return nil, err
 		}
+		// Stamp section chrome (header / footer) on each page that the
+		// section produced, with per-page tokens already substituted.
+		// {{totalPages}} stays as a marker until the post-pass below.
+		if len(sec.Header) > 0 || len(sec.Footer) > 0 {
+			chromeStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleHeader))
+			for i := range secPages {
+				stampSectionChrome(&secPages[i], sec, chromeStyle, fonts, secIdx+1, len(pages)+i+1)
+			}
+		}
 		pages = append(pages, secPages...)
 	}
+	// Final pass: now that we know the grand page count, replace any
+	// {{totalPages}} placeholders left in header / footer items.
+	SubstituteTotalPages(pages, len(pages))
 	return pages, nil
+}
+
+// stampSectionChrome paints header / footer onto an already-laid-out
+// page. The page's pageCursor is reconstructed from setup so chrome
+// emission can reuse the shared shapeRuns/PlacedItem path.
+func stampSectionChrome(
+	page *Page,
+	sec *kardec.Section,
+	style blockStyle,
+	fonts FontProvider,
+	sectionNumber, pageNumber int,
+) {
+	cur := startPage(sec.Setup)
+	cur.items = page.Items
+	emitSectionChrome(cur, sec.Header, sec.Footer, style, fonts, pageNumber, sectionNumber)
+	page.Items = cur.items
 }
 
 // pageCursor tracks the geometry of the page currently being filled.
