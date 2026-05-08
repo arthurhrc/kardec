@@ -46,6 +46,11 @@ type PlacedItem struct {
 	// detects the flag and routes the glyph to the math-font ID.
 	IsMath bool
 
+	// Link is non-empty when this PlacedItem participates in a
+	// hyperlink. The renderer collects every link-bearing item with
+	// the same Link target into one rectangular annotation per page.
+	Link string
+
 	// Rect is non-nil when this PlacedItem represents a filled
 	// rectangle drawn at (X, Y) with the dimensions and color stored
 	// on PlacedRect. Used by the math layout engine for fraction

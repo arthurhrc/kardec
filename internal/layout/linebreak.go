@@ -17,6 +17,7 @@ type token struct {
 	color     kardec.Color
 	ascentPt  float64
 	descentPt float64
+	link      string // copied from the originating Run; empty when plain
 }
 
 // shapeRuns turns a slice of kardec.Run values into the flat token stream
@@ -52,6 +53,7 @@ func shapeRuns(runs []kardec.Run, fonts FontProvider, style blockStyle, defaultS
 				color:     color,
 				ascentPt:  asc,
 				descentPt: desc,
+				link:      r.Link(),
 			})
 		}
 	}

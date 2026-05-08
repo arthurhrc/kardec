@@ -114,6 +114,7 @@ func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Co
 			Font:  t.font,
 			Size:  kardec.Pt(t.sizePt),
 			Color: style.color,
+			Link:  t.link,
 		})
 		x += t.width
 	}
