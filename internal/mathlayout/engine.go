@@ -54,6 +54,10 @@ func layoutNode(expr Expr, font Font, sizePt float64, display bool) Box {
 		if s, ok := expr.(SubSup); ok {
 			return layoutSubSup(s, font, sizePt, display)
 		}
+	case KindFrac:
+		if f, ok := expr.(Frac); ok {
+			return layoutFrac(f, font, sizePt, display)
+		}
 	}
 	return Box{}
 }
