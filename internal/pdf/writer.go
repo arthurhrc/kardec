@@ -53,13 +53,25 @@ func (Writer) Write(w io.Writer, doc Document) error {
 		handles = append(handles, fh)
 	}
 
-	// Emit each page. We decide which fonts are referenced by the page
-	// and only list those in /Resources — keeps the dict small for
-	// docs with many fonts.
+	// Embed every image as an XObject so multiple pages can reference
+	// the same payload.
+	imageHandles := make([]*imageHandle, 0, len(doc.Images))
+	for i, img := range doc.Images {
+		ih, err := emitImage(ow, i, img)
+		if err != nil {
+			return err
+		}
+		imageHandles = append(imageHandles, ih)
+	}
+
+	// Emit each page. We decide which fonts and images are referenced
+	// by the page and only list those in /Resources — keeps the dict
+	// small for docs with many fonts or many images.
 	pageIDs := make([]int, 0, len(doc.Pages))
 	for _, p := range doc.Pages {
-		used := pageFonts(p, handles)
-		raw := buildContentStream(p, handles)
+		usedFonts := pageFonts(p, handles)
+		usedImages := pageImages(p, imageHandles)
+		raw := buildContentStream(p, handles, imageHandles)
 		data, compressed := maybeFlate(raw)
 
 		streamID := ow.allocID()
@@ -74,7 +86,7 @@ func (Writer) Write(w io.Writer, doc Document) error {
 				"/Resources %s /Contents %s >>",
 			ref(pagesID),
 			p.Width, p.Height,
-			resourcesDict(used),
+			resourcesDict(usedFonts, usedImages),
 			ref(streamID),
 		)
 		pageIDs = append(pageIDs, ow.allocAndWrite(pageBody))
@@ -137,6 +149,28 @@ func pageFonts(p Page, all []*fontHandle) []*fontHandle {
 		}
 		seen[it.FontID] = true
 		used = append(used, all[it.FontID])
+	}
+	return used
+}
+
+// pageImages returns the subset of image handles actually referenced
+// by p, deduplicated. Pages without images return nil so the resource
+// dict can omit the /XObject section entirely.
+func pageImages(p Page, all []*imageHandle) []*imageHandle {
+	if len(all) == 0 {
+		return nil
+	}
+	seen := make(map[int]bool, len(all))
+	var used []*imageHandle
+	for _, im := range p.Images {
+		if im.ImageID < 0 || im.ImageID >= len(all) {
+			continue
+		}
+		if seen[im.ImageID] {
+			continue
+		}
+		seen[im.ImageID] = true
+		used = append(used, all[im.ImageID])
 	}
 	return used
 }

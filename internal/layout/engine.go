@@ -128,6 +128,10 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 			cellStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableCell))
 			headerStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableHeader))
 			e.placeTable(cur, flush, v, headerStyle, cellStyle, fonts)
+		case kardec.Image:
+			if err := e.placeImage(cur, flush, v); err != nil {
+				return nil, err
+			}
 		case kardec.PageBreak:
 			flush()
 		case kardec.Spacer:

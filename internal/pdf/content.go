@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-// buildContentStream renders a Page's TextItems into the byte payload of
-// a PDF content stream (PDF 7.8.2). The returned bytes are the raw
-// operators; the caller wraps them with the stream dictionary and the
-// stream/endstream markers via objectWriter.writeStreamObject.
+// buildContentStream renders a Page's text items and image draws into
+// the byte payload of a PDF content stream (PDF 7.8.2). The returned
+// bytes are the raw operators; the caller wraps them with the stream
+// dictionary and the stream/endstream markers via writeStreamObject.
 //
-// The op sequence per text item is:
+// Text op sequence per item:
 //
 //	q                       % save graphics state
 //	r g b rg                % nonstroking RGB fill color
@@ -21,22 +21,38 @@ import (
 //	ET                      % end text object
 //	Q                       % restore graphics state
 //
-// Wrapping each item in q/Q isolates color state so a later item with no
-// explicit color falls back to the page default rather than inheriting
-// the previous item's. It costs ~6 bytes per item — negligible.
-func buildContentStream(page Page, fonts []*fontHandle) []byte {
+// Image op sequence per draw:
+//
+//	q                       % save graphics state
+//	W 0 0 H X Y cm          % scale + translate matrix (W/H = width/height pt)
+//	/Im0 Do                 % paint the named XObject
+//	Q
+//
+// Images are drawn before text so text that overlaps an image lands on
+// top — the PDF renderer paints in op order.
+func buildContentStream(page Page, fonts []*fontHandle, images []*imageHandle) []byte {
 	var buf bytes.Buffer
+
+	for _, im := range page.Images {
+		if im.ImageID < 0 || im.ImageID >= len(images) {
+			continue
+		}
+		ih := images[im.ImageID]
+		fmt.Fprintf(&buf,
+			"q\n%.4f 0 0 %.4f %.4f %.4f cm\n/%s Do\nQ\n",
+			im.W, im.H, im.X, im.Y, ih.Name,
+		)
+	}
+
 	for _, it := range page.Items {
 		if it.FontID < 0 || it.FontID >= len(fonts) {
 			continue // skip silently rather than panicking on bad input
 		}
 		fh := fonts[it.FontID]
-		// Convert color (uint8 0..255) to PDF's 0..1 range.
 		r := float64(it.Color.R) / 255.0
 		g := float64(it.Color.G) / 255.0
 		b := float64(it.Color.B) / 255.0
 
-		// WinAnsi-encode the text and escape it for a PDF literal string.
 		encoded := encodeWinAnsi([]rune(it.Text))
 		literal := escapeLiteralString(string(encoded))
 
@@ -51,16 +67,27 @@ func buildContentStream(page Page, fonts []*fontHandle) []byte {
 	return buf.Bytes()
 }
 
-// resourcesDict returns the /Resources dict body for a page, listing every
-// font under its /Font subdictionary. The /ProcSet entry is legacy (PDF
-// 1.4 deprecated requiring it) but Acrobat older than 5 still warns
-// without it; including it costs nothing.
-func resourcesDict(fonts []*fontHandle) string {
+// resourcesDict returns the /Resources dict body for a page. Fonts go
+// under /Font; images go under /XObject. /ProcSet stays for legacy
+// Acrobat compatibility and grows /ImageC when images are present.
+func resourcesDict(fonts []*fontHandle, images []*imageHandle) string {
 	var buf bytes.Buffer
-	buf.WriteString("<< /ProcSet [/PDF /Text] /Font <<")
+	buf.WriteString("<< /ProcSet [/PDF /Text")
+	if len(images) > 0 {
+		buf.WriteString(" /ImageC")
+	}
+	buf.WriteString("] /Font <<")
 	for _, fh := range fonts {
 		fmt.Fprintf(&buf, " /%s %s", fh.Name, ref(fh.DictID))
 	}
-	buf.WriteString(" >> >>")
+	buf.WriteString(" >>")
+	if len(images) > 0 {
+		buf.WriteString(" /XObject <<")
+		for _, ih := range images {
+			fmt.Fprintf(&buf, " /%s %s", ih.Name, ref(ih.ID))
+		}
+		buf.WriteString(" >>")
+	}
+	buf.WriteString(" >>")
 	return buf.String()
 }

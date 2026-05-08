@@ -9,6 +9,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Image embedding.** New `Image` block + `ImageBuilder` fluent API
+  (`doc.Image(bytes).Width(...).Center().Build()`, plus `ImageFile(path)`
+  for the common case). JPEG payloads pass through into the PDF via
+  `/Filter /DCTDecode` — no decode, no recompression. PNG payloads are
+  decoded with stdlib `image/png`, alpha is composited over white, and
+  the result is written as packed 8-bit RGB through `/Filter /FlateDecode`.
+  Layout chooses target dimensions by combining `Width()` / `Height()` /
+  natural aspect ratio, scales down to fit the available width, and
+  paginates when the image does not fit on the remaining page.
+- **`examples/image`** — generates a gradient PNG in-process and embeds
+  it into the rendered PDF, demonstrating the pipeline end-to-end.
 - **Markdown table support.** GFM-style pipe tables in source passed to
   `AppendMarkdown` now produce real `Table` blocks (instead of being
   rendered as inline text). Header cells become bold runs, the column

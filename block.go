@@ -18,6 +18,7 @@ const (
 	kindPageBreak
 	kindSpacer
 	kindTable
+	kindImage
 )
 
 // Paragraph is a body-text block of one or more inline Runs.
