@@ -73,12 +73,13 @@ func emitMathBox(cur *pageCursor, box mathlayout.Box, originX, baselineY float64
 	for _, g := range box.Glyphs {
 		glyphTopY := baselineY - 0.7*g.SizePt + g.Y
 		cur.items = append(cur.items, PlacedItem{
-			X:     kardec.Pt(originX + box.X + g.X),
-			Y:     kardec.Pt(glyphTopY),
-			Text:  string(g.Rune),
-			Font:  &mathFont{rune: g.Rune},
-			Size:  kardec.Pt(g.SizePt),
-			Color: color,
+			X:      kardec.Pt(originX + box.X + g.X),
+			Y:      kardec.Pt(glyphTopY),
+			Text:   string(g.Rune),
+			Font:   &mathFont{rune: g.Rune},
+			Size:   kardec.Pt(g.SizePt),
+			Color:  color,
+			IsMath: true,
 		})
 	}
 	for _, child := range box.Children {

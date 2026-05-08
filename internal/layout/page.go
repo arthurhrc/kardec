@@ -39,6 +39,12 @@ type PlacedItem struct {
 	// Image is non-nil when this PlacedItem represents a raster image
 	// drawn at (X, Y) with the dimensions stored on PlacedImage.
 	Image *PlacedImage
+
+	// IsMath signals that Text was emitted by the math layout engine
+	// and must be rendered with the math face (Latin Modern Math)
+	// rather than the body font referenced by Font. The renderer
+	// detects the flag and routes the glyph to the math-font ID.
+	IsMath bool
 }
 
 // PlacedImage carries the raster payload and final geometry the
