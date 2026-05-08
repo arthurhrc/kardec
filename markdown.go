@@ -55,7 +55,7 @@ func (d *Document) appendMarkdownNode(node ast.Node, source []byte) {
 			WithNamedStyle(StyleCode).
 			Done()
 	case *ast.List:
-		d.appendMarkdownList(n, source, 0)
+		d.appendMarkdownList(n, source)
 	case *ast.Blockquote:
 		d.AddParagraph(runsFromInline(n, source)...).
 			WithNamedStyle(StyleQuote).
@@ -169,36 +169,51 @@ func extractInlineText(node ast.Node, source []byte) []byte {
 	return buf
 }
 
-// appendMarkdownList walks an ordered or unordered list and emits one
-// paragraph per item with a leading bullet or index marker. Nested lists
-// indent visually by repeating the marker prefix; real list nesting lands
-// in v0.2.
-func (d *Document) appendMarkdownList(list *ast.List, source []byte, depth int) {
-	indent := ""
-	for i := 0; i < depth; i++ {
-		indent += "  "
+// appendMarkdownList walks an ordered or unordered list and emits a
+// real List block, with nested lists carried through ListItem.Children
+// so the layout engine can indent properly. The legacy "flatten to
+// bulleted paragraphs" behaviour ended once the List block landed.
+func (d *Document) appendMarkdownList(list *ast.List, source []byte) {
+	d.append(buildMarkdownList(list, source))
+}
+
+// buildMarkdownList recursively converts a goldmark List node into a
+// kardec.List. Plain string-prefixed paragraphs are no longer emitted;
+// the layout engine owns marker rendering.
+func buildMarkdownList(list *ast.List, source []byte) List {
+	style := ListUnordered
+	if list.IsOrdered() {
+		style = ListOrdered
 	}
-	idx := 1
+	out := List{style: style}
 	for child := list.FirstChild(); child != nil; child = child.NextSibling() {
 		item, ok := child.(*ast.ListItem)
 		if !ok {
 			continue
 		}
-		marker := "• "
-		if list.IsOrdered() {
-			marker = formatOrderedMarker(idx)
-			idx++
-		}
-		runs := []Run{Text(indent + marker)}
-		runs = append(runs, runsFromInline(item, source)...)
-		d.Paragraph(runs...)
-		// Recurse into nested lists.
+		entry := ListItem{Runs: runsFromInlineExcludingNested(item, source)}
 		for sub := item.FirstChild(); sub != nil; sub = sub.NextSibling() {
 			if nested, ok := sub.(*ast.List); ok {
-				d.appendMarkdownList(nested, source, depth+1)
+				entry.Children = append(entry.Children, buildMarkdownList(nested, source))
 			}
 		}
+		out.items = append(out.items, entry)
 	}
+	return out
+}
+
+// runsFromInlineExcludingNested gathers the inline runs of a list item
+// while skipping any nested list children — those become Children of
+// the produced ListItem and would otherwise be flattened twice.
+func runsFromInlineExcludingNested(item ast.Node, source []byte) []Run {
+	var out []Run
+	for c := item.FirstChild(); c != nil; c = c.NextSibling() {
+		if _, isList := c.(*ast.List); isList {
+			continue
+		}
+		walkInline(c, source, false, false, &out)
+	}
+	return out
 }
 
 // runsFromInline flattens an inline subtree (the children of a Heading,
@@ -297,15 +312,3 @@ func extractText(node ast.Node, source []byte) string {
 	return string(buf)
 }
 
-// formatOrderedMarker returns the leading marker for the i-th item of an
-// ordered list (1-based). Goldmark normalises any starting number to 1.
-func formatOrderedMarker(i int) string {
-	digits := []byte{}
-	if i == 0 {
-		digits = []byte{'0'}
-	}
-	for n := i; n > 0; n /= 10 {
-		digits = append([]byte{byte('0' + n%10)}, digits...)
-	}
-	return string(digits) + ". "
-}

@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **List block.** New `List` / `ListItem` types plus
+  `Document.List()` / `Document.OrderedList()` builders carrying
+  fluent `Item(...)` / `Nested(runs, children...)` / `Build()` calls
+  and a top-level `SubList` helper for rich nested construction.
+  Layout indents nested levels and rotates the unordered marker
+  (• / ◦ / ▪) by depth so the level is visually obvious; ordered
+  lists carry decimal numerals. `AppendMarkdown` now produces real
+  `List` blocks instead of flattening to bullet-prefixed paragraphs
+  — the v0.2 limitation explicitly called out in the prior CHANGELOG
+  entry is gone.
 - **Rectangle primitive in the PDF writer.** `pdf.RectDraw` plus
   content-stream `re`/`f` ops. Layout's `PlacedItem` gains a `Rect`
   field carrying width/thickness/color; the renderer translates it

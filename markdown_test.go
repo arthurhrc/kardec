@@ -91,20 +91,23 @@ func TestAppendMarkdownUnorderedList(t *testing.T) {
 - Beta
 - Gamma`)
 	blocks := doc.Sections()[0].Blocks
-	if len(blocks) != 3 {
-		t.Fatalf("want 3 paragraphs (one per item), got %d", len(blocks))
+	if len(blocks) != 1 {
+		t.Fatalf("want 1 List block, got %d (%+v)", len(blocks), blocks)
+	}
+	list, ok := blocks[0].(List)
+	if !ok {
+		t.Fatalf("want List, got %T", blocks[0])
+	}
+	if list.Style() != ListUnordered {
+		t.Errorf("want ListUnordered, got %v", list.Style())
+	}
+	items := list.Items()
+	if len(items) != 3 {
+		t.Fatalf("want 3 items, got %d", len(items))
 	}
 	for i, expected := range []string{"Alpha", "Beta", "Gamma"} {
-		runs := blocks[i].(Paragraph).Runs()
-		if len(runs) < 2 {
-			t.Errorf("item %d: want bullet + text runs, got %d", i, len(runs))
-			continue
-		}
-		if runs[0].Text() != "• " {
-			t.Errorf("item %d marker = %q, want %q", i, runs[0].Text(), "• ")
-		}
-		if runs[1].Text() != expected {
-			t.Errorf("item %d text = %q, want %q", i, runs[1].Text(), expected)
+		if len(items[i].Runs) == 0 || items[i].Runs[0].Text() != expected {
+			t.Errorf("item %d runs = %+v, want first run %q", i, items[i].Runs, expected)
 		}
 	}
 }
@@ -113,14 +116,15 @@ func TestAppendMarkdownOrderedList(t *testing.T) {
 	doc := New(PageA4, MarginsNormal).AppendMarkdown(`1. First
 2. Second`)
 	blocks := doc.Sections()[0].Blocks
-	if len(blocks) < 2 {
-		t.Fatalf("want at least 2 blocks, got %d", len(blocks))
+	if len(blocks) != 1 {
+		t.Fatalf("want 1 List block, got %d", len(blocks))
 	}
-	if got := blocks[0].(Paragraph).Runs()[0].Text(); got != "1. " {
-		t.Errorf("first marker = %q, want %q", got, "1. ")
+	list := blocks[0].(List)
+	if list.Style() != ListOrdered {
+		t.Errorf("want ListOrdered, got %v", list.Style())
 	}
-	if got := blocks[1].(Paragraph).Runs()[0].Text(); got != "2. " {
-		t.Errorf("second marker = %q, want %q", got, "2. ")
+	if got := list.Items(); len(got) != 2 {
+		t.Errorf("want 2 items, got %d", len(got))
 	}
 }
 

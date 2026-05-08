@@ -55,13 +55,20 @@ func TestTemplateRenderRangeOverSlice(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	blocks := doc.Sections()[0].Blocks
-	// Heading + 3 list-item paragraphs.
-	if len(blocks) != 4 {
-		t.Fatalf("want 4 blocks, got %d", len(blocks))
+	// Heading + a single List block carrying 3 items.
+	if len(blocks) != 2 {
+		t.Fatalf("want 2 blocks (heading + list), got %d", len(blocks))
+	}
+	list, ok := blocks[1].(List)
+	if !ok {
+		t.Fatalf("second block should be List, got %T", blocks[1])
+	}
+	items := list.Items()
+	if len(items) != 3 {
+		t.Fatalf("want 3 list items, got %d", len(items))
 	}
 	for i, expected := range []string{"Alpha", "Beta", "Gamma"} {
-		runs := blocks[i+1].(Paragraph).Runs()
-		text := strings.Join(runTexts(runs), "")
+		text := strings.Join(runTexts(items[i].Runs), "")
 		if !strings.Contains(text, expected) {
 			t.Errorf("item %d (%q) does not contain %q", i, text, expected)
 		}
