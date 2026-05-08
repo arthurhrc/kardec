@@ -25,7 +25,7 @@ func (e Engine) placeTextBlock(cur *pageCursor, flush func(), runs []kardec.Run,
 
 	applySpaceBefore(cur, flush, style.spaceBeforePt)
 
-	tokens := shapeRuns(runs, fonts, kardec.Pt(style.sizePt), style.color)
+	tokens := shapeRuns(runs, fonts, style, kardec.Pt(style.sizePt), style.color)
 	if len(tokens) == 0 {
 		cur.cursorY += style.spaceAfterPt
 		return nil
