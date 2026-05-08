@@ -72,11 +72,12 @@ func stampSectionChrome(
 
 // pageCursor tracks the geometry of the page currently being filled.
 type pageCursor struct {
-	setup     kardec.PageSetup
-	items     []PlacedItem
-	x0, y0    float64 // top-left of the content area (after margins)
-	x1, y1    float64 // bottom-right of the content area
-	cursorY   float64 // current Y position, top-left origin
+	setup    kardec.PageSetup
+	items    []PlacedItem
+	headings []HeadingMark
+	x0, y0   float64 // top-left of the content area (after margins)
+	x1, y1   float64 // bottom-right of the content area
+	cursorY  float64 // current Y position, top-left origin
 }
 
 // startPage builds a fresh cursor positioned at the top of the content
@@ -119,7 +120,18 @@ func (c *pageCursor) remainingHeight() float64 { return c.y1 - c.cursorY }
 
 // finish converts the cursor into a Page value.
 func (c *pageCursor) finish() Page {
-	return Page{Size: c.setup.Size, Items: c.items}
+	return Page{Size: c.setup.Size, Items: c.items, Headings: c.headings}
+}
+
+// headingTitle reconstructs the plain-text title of a Heading block by
+// concatenating the texts of its runs. Lossy for runs that carry rich
+// metadata, but the outline only needs a label.
+func headingTitle(h kardec.Heading) string {
+	var buf []byte
+	for _, r := range h.Runs() {
+		buf = append(buf, r.Text()...)
+	}
+	return string(buf)
 }
 
 // layoutSection lays out one section, possibly producing multiple pages.
@@ -149,6 +161,11 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 			}
 		case kardec.Heading:
 			style := styleFromKardec(doc.ResolveBlockStyle(v))
+			cur.headings = append(cur.headings, HeadingMark{
+				Level: v.Level(),
+				Title: headingTitle(v),
+				Y:     kardec.Pt(cur.cursorY),
+			})
 			if err := e.placeTextBlock(cur, flush, v.Runs(), style, fonts); err != nil {
 				return nil, err
 			}

@@ -5,11 +5,28 @@ package pdf
 // without circular imports — the renderer never sees blocks or styles, only
 // positioned glyph runs.
 type Document struct {
-	Title  string
-	Author string
-	Pages  []Page
-	Fonts  []EmbeddedFont
-	Images []EmbeddedImage
+	Title    string
+	Author   string
+	Pages    []Page
+	Fonts    []EmbeddedFont
+	Images   []EmbeddedImage
+	Outlines []OutlineEntry
+}
+
+// OutlineEntry is one bookmark in the PDF's `/Outlines` tree.
+// Children are indented one level under their parent in the reader's
+// sidebar. PageIndex is 0-based into Document.Pages; Y is the
+// destination's Y coordinate in PDF user space (bottom-left origin).
+//
+// Most documents derive these from heading blocks: an H1 becomes a
+// top-level entry; an H2 nests as a child; deeper headings continue
+// the chain. The renderer track shapes the tree before populating
+// Document.Outlines.
+type OutlineEntry struct {
+	Title     string
+	PageIndex int
+	Y         float64
+	Children  []OutlineEntry
 }
 
 // Page is one rendered page in PDF user space (1/72 inch). Width and Height
@@ -22,6 +39,19 @@ type Page struct {
 	Items         []TextItem
 	Images        []ImageDraw
 	Rects         []RectDraw
+	Links         []LinkAnnot
+}
+
+// LinkAnnot is one rectangular hyperlink area on a page. The
+// rectangle is in PDF user-space (bottom-left origin); the URI is
+// emitted unchanged as the action target. The writer does not
+// validate the URL — callers may pass anything Adobe Acrobat will
+// open. Internal links (intra-document targets) ship in v0.4 with
+// the outline track once anchors land.
+type LinkAnnot struct {
+	X, Y float64 // bottom-left of the clickable rectangle
+	W, H float64 // width and height in points
+	URI  string
 }
 
 // ImageDraw positions one previously-embedded image on a page. X and Y are

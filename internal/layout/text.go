@@ -106,6 +106,7 @@ func emitLine(cur *pageCursor, ln line, style blockStyle, isLastLine bool) {
 			Font:  t.font,
 			Size:  kardec.Pt(t.sizePt),
 			Color: t.color,
+			Link:  t.link,
 		})
 		x += t.width
 	}
@@ -143,6 +144,7 @@ func emitJustifiedLine(cur *pageCursor, ln line, style blockStyle, available flo
 			Font:  t.font,
 			Size:  kardec.Pt(t.sizePt),
 			Color: t.color,
+			Link:  t.link,
 		})
 		x += t.width
 	}

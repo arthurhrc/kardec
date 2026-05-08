@@ -8,6 +8,7 @@ type Run struct {
 	text     string
 	bold     bool
 	italic   bool
+	link     string // empty when this run is not a hyperlink
 	override styleOverride
 }
 
@@ -27,6 +28,18 @@ func BoldItalic(s string) Run { return Run{text: s, bold: true, italic: true} }
 func Colored(r Run, c Color) Run {
 	r.override.color = &c
 	return r
+}
+
+// Link returns a Run that, in addition to carrying the visible text,
+// becomes a clickable hyperlink in the rendered PDF. The url is
+// emitted as an external `/URI` action; relative URLs are passed
+// through unchanged so callers may target intra-document anchors via
+// "#anchor" once the outline track exposes them.
+//
+// The returned Run is plain text by default; callers may further
+// decorate it (e.g. wrap with Colored) before adding to a paragraph.
+func Link(text, url string) Run {
+	return Run{text: text, link: url}
 }
 
 // styleOverride captures the optional inline style fields a Run may carry.

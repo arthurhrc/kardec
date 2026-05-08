@@ -81,13 +81,15 @@ func (Writer) Write(w io.Writer, doc Document) error {
 		}
 		ow.writeStreamObject(streamID, dict, data)
 
+		annotIDs := emitLinkAnnots(ow, p)
 		pageBody := fmt.Sprintf(
 			"<< /Type /Page /Parent %s /MediaBox [0 0 %.4f %.4f] "+
-				"/Resources %s /Contents %s >>",
+				"/Resources %s /Contents %s%s >>",
 			ref(pagesID),
 			p.Width, p.Height,
 			resourcesDict(usedFonts, usedImages),
 			ref(streamID),
+			renderAnnotsArray(annotIDs),
 		)
 		pageIDs = append(pageIDs, ow.allocAndWrite(pageBody))
 	}
@@ -105,8 +107,19 @@ func (Writer) Write(w io.Writer, doc Document) error {
 	pagesBody := fmt.Sprintf("<< /Type /Pages /Kids %s /Count %d >>", kids.String(), len(pageIDs))
 	ow.writeObject(pagesID, pagesBody)
 
-	// Catalog last among the structural objects — it points at /Pages.
-	catalogBody := fmt.Sprintf("<< /Type /Catalog /Pages %s >>", ref(pagesID))
+	// Outlines come before the catalog so the catalog can reference
+	// the root outline ID. emitOutlines returns 0 when no entries
+	// exist, in which case we omit the /Outlines entry from the
+	// catalog and skip the /PageMode hint as well.
+	outlinesID := emitOutlines(ow, doc.Outlines, pageIDs)
+
+	// Catalog last among the structural objects — it points at /Pages
+	// and optionally at /Outlines.
+	catalogBody := fmt.Sprintf("<< /Type /Catalog /Pages %s", ref(pagesID))
+	if outlinesID > 0 {
+		catalogBody += fmt.Sprintf(" /Outlines %s /PageMode /UseOutlines", ref(outlinesID))
+	}
+	catalogBody += " >>"
 	ow.writeObject(catalogID, catalogBody)
 
 	// Info dict (optional; /Producer "Kardec" + Title/Author when set).

@@ -118,12 +118,13 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 		return pdf.Document{}, err
 	}
 
-	out := pdf.Document{Fonts: embedded, Images: images}
+	out := pdf.Document{Fonts: embedded, Images: images, Outlines: buildOutline(pages)}
 	for _, lp := range pages {
 		pdfPage := pdf.Page{
 			Width:  lp.Size.Width.Points(),
 			Height: lp.Size.Height.Points(),
 		}
+		linkRanges := newLinkRangeAccumulator()
 		for _, item := range lp.Items {
 			if item.Rect != nil {
 				w := item.Rect.Width.Points()
@@ -161,15 +162,26 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 					id = mapped
 				}
 			}
+			pdfX := item.X.Points()
+			pdfY := pdfPage.Height - item.Y.Points()
 			pdfPage.Items = append(pdfPage.Items, pdf.TextItem{
-				X:        item.X.Points(),
-				Y:        pdfPage.Height - item.Y.Points(),
+				X:        pdfX,
+				Y:        pdfY,
 				Text:     item.Text,
 				FontID:   id,
 				FontSize: item.Size.Points(),
 				Color:    pdf.Color{R: item.Color.R, G: item.Color.G, B: item.Color.B},
 			})
+			if item.Link != "" {
+				// Approximate the visible glyph extent by font size:
+				// width = len(text) × size × 0.55 keeps the click box
+				// generous without TTF-precise measurement.
+				w := float64(len(item.Text)) * item.Size.Points() * 0.55
+				h := item.Size.Points() * 1.2
+				linkRanges.add(item.Link, pdfX, pdfY-item.Size.Points()*0.2, w, h)
+			}
 		}
+		pdfPage.Links = linkRanges.flush()
 		out.Pages = append(out.Pages, pdfPage)
 	}
 	return out, nil

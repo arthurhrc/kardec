@@ -51,3 +51,7 @@ func (r Run) SizeOverride() (Length, bool) {
 	}
 	return *r.override.size, true
 }
+
+// Link returns the run's hyperlink target (its `url` argument when
+// constructed via Link), or the empty string when the run is plain.
+func (r Run) Link() string { return r.link }
