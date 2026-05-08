@@ -3,6 +3,8 @@ package kardec
 import (
 	"errors"
 	"io"
+
+	"github.com/arthurhrc/kardec/internal/typography"
 )
 
 // Document is the central builder a caller composes content onto. It holds
@@ -13,6 +15,8 @@ import (
 type Document struct {
 	sections []*Section
 	cur      *Section // pointer into sections; the section currently receiving blocks
+
+	fonts *typography.Registry // registry of registered + bundled font faces
 
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
@@ -35,10 +39,18 @@ func New(size PageSize, margins Margins) *Document {
 			Margins:     margins,
 		},
 	}
-	return &Document{
+	d := &Document{
 		sections: []*Section{first},
 		cur:      first,
+		fonts:    typography.NewRegistry(),
 	}
+	// Best-effort: register the bundled OFL families so MeasureText works
+	// out of the box. A failure here is captured in the deferred error
+	// chain so Render surfaces it instead of panicking.
+	if err := typography.LoadBuiltinFonts(d.fonts); err != nil {
+		d.err = err
+	}
+	return d
 }
 
 // Err returns the first error captured during builder usage, or nil. Render
