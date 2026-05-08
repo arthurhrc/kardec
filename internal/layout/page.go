@@ -14,20 +14,20 @@ type Page struct {
 }
 
 // PlacedItem is a positioned, fully styled fragment ready to be drawn.
-// v0.1 only carries text fragments; later versions add image and graphics
-// payloads via additional fields and a Kind discriminator.
+// A given PlacedItem is either a text fragment (Text + Font + Size +
+// Color set) or an image (Image non-nil); the renderer dispatches on
+// whether Image is nil.
 type PlacedItem struct {
 	// X and Y are the top-left coordinates of the item, in PDF points,
 	// relative to the page's top-left corner.
 	X, Y kardec.Length
 
-	// Text is the rendered string for this fragment. For non-text stub
-	// items (the v0.1 placeholders for tables and images) the field
-	// carries a "TODO ..." marker the renderer can recognise.
+	// Text is the rendered string for this fragment. Empty when the
+	// item is an image.
 	Text string
 
-	// Font is the resolved font handle used to draw Text. May be nil for
-	// stub items that don't carry shaped glyphs yet.
+	// Font is the resolved font handle used to draw Text. Nil when the
+	// item is an image or a stub.
 	Font Font
 
 	// Size is the point size at which Text should be rendered.
@@ -35,4 +35,18 @@ type PlacedItem struct {
 
 	// Color is the fill colour for the glyphs.
 	Color kardec.Color
+
+	// Image is non-nil when this PlacedItem represents a raster image
+	// drawn at (X, Y) with the dimensions stored on PlacedImage.
+	Image *PlacedImage
+}
+
+// PlacedImage carries the raster payload and final geometry the
+// renderer needs to embed an image. The Data slice is shared with the
+// originating Image block and must not be mutated.
+type PlacedImage struct {
+	Data   []byte
+	Format kardec.ImageFormat
+	Width  kardec.Length
+	Height kardec.Length
 }
