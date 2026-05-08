@@ -187,10 +187,24 @@ func (p *parser) parseScripts(base Expr) (Expr, error) {
 }
 
 // parseScriptArgument parses the argument of a _ or ^ operator. It is a
-// single atom or a brace group; bare commands and groups are accepted.
+// single atom or a brace group; brace groups are flattened so a single-child
+// group {n} resolves to the bare child for ergonomic AST shapes.
 func (p *parser) parseScriptArgument() (Expr, error) {
 	if p.cur.kind == tokEOF {
 		return nil, p.errorf(p.cur.offset, "missing script argument")
+	}
+	if p.cur.kind == tokLBrace {
+		openOffset := p.cur.offset
+		p.advance()
+		children, err := p.parseSequence(tokRBrace)
+		if err != nil {
+			return nil, err
+		}
+		if p.cur.kind != tokRBrace {
+			return nil, p.errorf(openOffset, "unbalanced '{' in script argument")
+		}
+		p.advance()
+		return flatten(children), nil
 	}
 	return p.parseAtom()
 }
