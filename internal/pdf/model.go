@@ -5,11 +5,28 @@ package pdf
 // without circular imports — the renderer never sees blocks or styles, only
 // positioned glyph runs.
 type Document struct {
-	Title  string
-	Author string
-	Pages  []Page
-	Fonts  []EmbeddedFont
-	Images []EmbeddedImage
+	Title    string
+	Author   string
+	Pages    []Page
+	Fonts    []EmbeddedFont
+	Images   []EmbeddedImage
+	Outlines []OutlineEntry
+}
+
+// OutlineEntry is one bookmark in the PDF's `/Outlines` tree.
+// Children are indented one level under their parent in the reader's
+// sidebar. PageIndex is 0-based into Document.Pages; Y is the
+// destination's Y coordinate in PDF user space (bottom-left origin).
+//
+// Most documents derive these from heading blocks: an H1 becomes a
+// top-level entry; an H2 nests as a child; deeper headings continue
+// the chain. The renderer track shapes the tree before populating
+// Document.Outlines.
+type OutlineEntry struct {
+	Title     string
+	PageIndex int
+	Y         float64
+	Children  []OutlineEntry
 }
 
 // Page is one rendered page in PDF user space (1/72 inch). Width and Height

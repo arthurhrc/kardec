@@ -9,8 +9,19 @@ import "github.com/arthurhrc/kardec"
 // top-left origin coordinate system; the PDF writer flips Y to PDF's
 // bottom-left convention at emit time.
 type Page struct {
-	Size  kardec.PageSize
-	Items []PlacedItem
+	Size     kardec.PageSize
+	Items    []PlacedItem
+	Headings []HeadingMark
+}
+
+// HeadingMark is a per-page record of a heading block that started on
+// this page. Render uses the slice to build the PDF outline (sidebar
+// bookmarks). Y is the heading's baseline in top-left-origin
+// coordinates; render flips to PDF user space at emit time.
+type HeadingMark struct {
+	Level int
+	Title string
+	Y     kardec.Length
 }
 
 // PlacedItem is a positioned, fully styled fragment ready to be drawn.
