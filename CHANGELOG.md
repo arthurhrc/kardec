@@ -7,6 +7,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Added
+
+- **Math typography subsystem.** New `typography.MathFont` interface
+  (`GlyphFor` / `Measure` / `AscentDescent`) plus a Latin Modern Math
+  implementation served via `typography.LatinModernMath`. The OTF
+  comes from the upstream `github.com/go-fonts/latin-modern/lmmath`
+  module — no shadow copy under `internal/typography/embedded/`.
+  A self-contained LaTeX-command → Unicode-rune fallback table covers
+  Greek (lower + upper), big operators (`\sum`, `\int`, `\prod`, ...),
+  relations (`\leq`, `\geq`, `\neq`, `\approx`, `\to`, ...), arrows,
+  and common binary operators, so the package stands on its own ahead
+  of the math-parser track landing its richer table. Public entry
+  point: `(*Document).MathFont() typography.MathFont`, lazy-loaded
+  and memoised per Document.
+
 ## [0.2.0] — 2026-05-07
 
 ### Added
