@@ -132,6 +132,11 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 			if err := e.placeImage(cur, flush, v); err != nil {
 				return nil, err
 			}
+		case kardec.Math:
+			mathStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
+			if err := e.placeMath(cur, flush, doc, v, mathStyle); err != nil {
+				return nil, err
+			}
 		case kardec.PageBreak:
 			flush()
 		case kardec.Spacer:
