@@ -15,6 +15,25 @@ the proprietary Microsoft / Apple defaults.
 Total payload is roughly 7 MB uncompressed; gzip-compressed object code
 adds a few MB to the final binary.
 
+## Math typography
+
+The `MathFont` interface (see `../math.go`) is served by **Latin Modern
+Math** — a GUST-OFL math companion to Latin Modern Roman that ships
+every Greek letter, big operator, and relation the math layout track
+needs. Its ~500 KB OTF is **not** stored in this directory: the bytes
+come from the upstream `github.com/go-fonts/latin-modern/lmmath` Go
+module via `lmmath.TTF` (an `//go:embed`-backed `[]byte`). That keeps
+the dependency graph honest — Kardec re-exports the upstream artifact
+rather than shadow-copying it — while still satisfying the "no disk
+I/O at runtime" constraint shared with the OFL families above.
+
+| Family            | Faces   | License  | Source                                                                                                       |
+|-------------------|---------|----------|--------------------------------------------------------------------------------------------------------------|
+| Latin Modern Math | Regular | GUST-OFL | https://www.gust.org.pl/projects/e-foundry/lm-math (vendored via `github.com/go-fonts/latin-modern/lmmath`)  |
+
+Total math-font payload: ~500 KB OTF, kept off the binary's own
+`embed.FS` and pulled instead from the upstream module.
+
 ## Naming convention
 
 Files MUST be named `<Family>-<Weight><Italic>.ttf`, e.g.

@@ -3,6 +3,7 @@ module github.com/arthurhrc/kardec
 go 1.26.3
 
 require (
+	github.com/go-fonts/latin-modern v0.3.3
 	github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e
 	github.com/yuin/goldmark v1.8.2
 )
@@ -17,7 +18,6 @@ require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/benoitkugler/textlayout v0.3.2 // indirect
 	github.com/benoitkugler/textprocessing v0.0.6 // indirect
-	github.com/go-fonts/latin-modern v0.3.3 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
