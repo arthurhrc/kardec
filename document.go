@@ -21,6 +21,11 @@ type Document struct {
 	styles map[string]Style     // named style table; pre-populated from BuiltinStyles
 	fonts  *typography.Registry // registry of registered + bundled font faces
 
+	// mathFont memoises the lazily loaded Latin Modern Math face served
+	// by Document.MathFont, so each AST atom resolved by the layout
+	// engine reuses a single parsed *canvas.Font.
+	mathFont typography.MathFont
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
 
