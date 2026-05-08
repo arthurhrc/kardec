@@ -28,10 +28,28 @@ import (
 //	/Im0 Do                 % paint the named XObject
 //	Q
 //
-// Images are drawn before text so text that overlaps an image lands on
-// top — the PDF renderer paints in op order.
+// Rect op sequence per draw:
+//
+//	q                       % save graphics state
+//	r g b rg                % nonstroking RGB fill color
+//	X Y W H re              % construct rectangle path
+//	f                       % fill
+//	Q
+//
+// Rects are drawn before images and images before text so glyphs
+// overlap rules / images cleanly — the PDF renderer paints in op order.
 func buildContentStream(page Page, fonts []*fontHandle, images []*imageHandle) []byte {
 	var buf bytes.Buffer
+
+	for _, r := range page.Rects {
+		fmt.Fprintf(&buf,
+			"q\n%.4f %.4f %.4f rg\n%.4f %.4f %.4f %.4f re\nf\nQ\n",
+			float64(r.Color.R)/255.0,
+			float64(r.Color.G)/255.0,
+			float64(r.Color.B)/255.0,
+			r.X, r.Y, r.W, r.H,
+		)
+	}
 
 	for _, im := range page.Images {
 		if im.ImageID < 0 || im.ImageID >= len(images) {

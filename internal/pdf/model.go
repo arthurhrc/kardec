@@ -21,6 +21,7 @@ type Page struct {
 	Width, Height float64
 	Items         []TextItem
 	Images        []ImageDraw
+	Rects         []RectDraw
 }
 
 // ImageDraw positions one previously-embedded image on a page. X and Y are
@@ -30,6 +31,20 @@ type ImageDraw struct {
 	X, Y    float64
 	W, H    float64
 	ImageID int
+}
+
+// RectDraw paints a filled rectangle on a page. X and Y are the
+// bottom-left of the rectangle in user space; W and H are its width and
+// height in points. The rectangle is filled (not stroked) with Color in
+// the device-RGB color space.
+//
+// Used by the math layout engine for fraction bars and square-root
+// overlines, and available for any other primitive that needs a thin
+// horizontal or vertical rule.
+type RectDraw struct {
+	X, Y  float64
+	W, H  float64
+	Color Color
 }
 
 // TextItem is one show-text operation. X and Y use PDF user space with

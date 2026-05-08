@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Rectangle primitive in the PDF writer.** `pdf.RectDraw` plus
+  content-stream `re`/`f` ops. Layout's `PlacedItem` gains a `Rect`
+  field carrying width/thickness/color; the renderer translates it
+  to a filled rectangle in PDF user space. Wired through math layout
+  so fraction bars and square-root overlines now appear in the
+  output PDF (previously a documented limitation in the v0.3 first
+  cut).
 - **LaTeX math subset.** New `Math` block plus `Document.Math(src)` and
   `Document.MathInline(src)`. Source is parsed from the LaTeX subset
   documented in `internal/math` (greek lowercase + uppercase, fractions
@@ -39,10 +46,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Limitations (intentional, lifted later)
 
-- **Fraction bars and square-root overlines are not yet rendered.**
-  The math layout engine produces `Box.Rules` for them, but the PDF
-  writer has no rectangle primitive yet — adding one is queued for
-  v0.3.x. Until then frac / sqrt show the glyphs without the bar.
 - **Math font embedding deferred.** Latin Modern Math ships as
   OpenType/CFF (sfnt header `OTTO`); the current writer only embeds
   TrueType (`0x00010000`). v0.3 routes math glyphs to the default body

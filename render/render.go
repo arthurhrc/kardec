@@ -110,6 +110,9 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 	used := collectUsedFontKeys(pages)
 	embedded, index, defaultID := assembleEmbeddedFonts(registry, used)
 
+	mathID, embeddedWithMath := appendMathFontIfUsed(embedded, pages)
+	embedded = embeddedWithMath
+
 	images, imageIndex, err := buildEmbeddedImages(pages)
 	if err != nil {
 		return pdf.Document{}, err
@@ -122,6 +125,18 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 			Height: lp.Size.Height.Points(),
 		}
 		for _, item := range lp.Items {
+			if item.Rect != nil {
+				w := item.Rect.Width.Points()
+				h := item.Rect.Thickness.Points()
+				pdfPage.Rects = append(pdfPage.Rects, pdf.RectDraw{
+					X:     item.X.Points(),
+					Y:     pdfPage.Height - item.Y.Points() - h,
+					W:     w,
+					H:     h,
+					Color: pdf.Color{R: item.Rect.Color.R, G: item.Rect.Color.G, B: item.Rect.Color.B},
+				})
+				continue
+			}
 			if item.Image != nil {
 				imgID, ok := imageIndex[item.Image]
 				if !ok {
@@ -139,7 +154,9 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 				continue
 			}
 			id := defaultID
-			if a, ok := item.Font.(*measureAdapter); ok {
+			if item.IsMath && mathID >= 0 {
+				id = mathID
+			} else if a, ok := item.Font.(*measureAdapter); ok {
 				if mapped, found := index[fontKey{family: a.family, bold: a.bold, italic: a.italic}]; found {
 					id = mapped
 				}

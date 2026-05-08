@@ -45,6 +45,21 @@ type PlacedItem struct {
 	// rather than the body font referenced by Font. The renderer
 	// detects the flag and routes the glyph to the math-font ID.
 	IsMath bool
+
+	// Rect is non-nil when this PlacedItem represents a filled
+	// rectangle drawn at (X, Y) with the dimensions and color stored
+	// on PlacedRect. Used by the math layout engine for fraction
+	// bars and square-root overlines.
+	Rect *PlacedRect
+}
+
+// PlacedRect carries the geometry and fill color for a rectangle
+// emitted into a Page's items. The renderer translates each PlacedRect
+// into a pdf.RectDraw at write time.
+type PlacedRect struct {
+	Width     kardec.Length
+	Thickness kardec.Length
+	Color     kardec.Color
 }
 
 // PlacedImage carries the raster payload and final geometry the
