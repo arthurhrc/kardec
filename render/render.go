@@ -79,7 +79,10 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 		return fmt.Errorf("render: layout: %w", err)
 	}
 
-	model := buildPDFModel(pages, registry)
+	model, err := buildPDFModel(pages, registry)
+	if err != nil {
+		return fmt.Errorf("render: build pdf model: %w", err)
+	}
 	if err := (pdf.Writer{}).Write(w, model); err != nil {
 		return fmt.Errorf("render: pdf write: %w", err)
 	}
@@ -103,17 +106,38 @@ type fontKey struct {
 // of the registry is left out so the resulting PDF stays close in size
 // to the v0.1 single-font baseline. Subsetting (trimming individual
 // glyphs within an embedded face) is a v0.3 feature.
-func buildPDFModel(pages []layout.Page, registry *typography.Registry) pdf.Document {
+func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Document, error) {
 	used := collectUsedFontKeys(pages)
 	embedded, index, defaultID := assembleEmbeddedFonts(registry, used)
 
-	out := pdf.Document{Fonts: embedded}
+	images, imageIndex, err := buildEmbeddedImages(pages)
+	if err != nil {
+		return pdf.Document{}, err
+	}
+
+	out := pdf.Document{Fonts: embedded, Images: images}
 	for _, lp := range pages {
 		pdfPage := pdf.Page{
 			Width:  lp.Size.Width.Points(),
 			Height: lp.Size.Height.Points(),
 		}
 		for _, item := range lp.Items {
+			if item.Image != nil {
+				imgID, ok := imageIndex[item.Image]
+				if !ok {
+					continue
+				}
+				w := item.Image.Width.Points()
+				h := item.Image.Height.Points()
+				pdfPage.Images = append(pdfPage.Images, pdf.ImageDraw{
+					X:       item.X.Points(),
+					Y:       pdfPage.Height - item.Y.Points() - h,
+					W:       w,
+					H:       h,
+					ImageID: imgID,
+				})
+				continue
+			}
 			id := defaultID
 			if a, ok := item.Font.(*measureAdapter); ok {
 				if mapped, found := index[fontKey{family: a.family, bold: a.bold, italic: a.italic}]; found {
@@ -131,7 +155,7 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) pdf.Docum
 		}
 		out.Pages = append(out.Pages, pdfPage)
 	}
-	return out
+	return out, nil
 }
 
 // collectUsedFontKeys walks every PlacedItem on every page and gathers
