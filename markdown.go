@@ -152,28 +152,35 @@ func makeRun(s string, bold, italic bool) Run {
 }
 
 // extractText concatenates the textual content of a subtree, used for
-// constructs that don't preserve formatting (code blocks).
+// constructs that don't preserve formatting (code blocks, code spans).
+//
+// goldmark exposes block-level lines via Node.Lines() but panics if
+// that method is called on inline nodes. This function dispatches on
+// the concrete type to avoid the trap: code blocks read from Lines,
+// inline subtrees recurse to their *ast.Text leaves.
 func extractText(node ast.Node, source []byte) string {
 	var buf []byte
-	var walk func(ast.Node)
-	walk = func(n ast.Node) {
-		if t, ok := n.(*ast.Text); ok {
-			buf = append(buf, t.Segment.Value(source)...)
-			return
+	switch n := node.(type) {
+	case *ast.FencedCodeBlock, *ast.CodeBlock:
+		_ = n
+		lines := node.Lines()
+		for i := 0; i < lines.Len(); i++ {
+			seg := lines.At(i)
+			buf = append(buf, seg.Value(source)...)
 		}
-		// Text segments held in code-block lines: iterate concrete lines.
-		if lines := n.Lines(); lines != nil && lines.Len() > 0 {
-			for i := 0; i < lines.Len(); i++ {
-				ln := lines.At(i)
-				buf = append(buf, ln.Value(source)...)
+	default:
+		var walk func(ast.Node)
+		walk = func(x ast.Node) {
+			if t, ok := x.(*ast.Text); ok {
+				buf = append(buf, t.Segment.Value(source)...)
+				return
 			}
-			return
+			for c := x.FirstChild(); c != nil; c = c.NextSibling() {
+				walk(c)
+			}
 		}
-		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			walk(c)
-		}
+		walk(node)
 	}
-	walk(node)
 	return string(buf)
 }
 
