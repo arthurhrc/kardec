@@ -60,17 +60,18 @@ That is the whole goal — nothing more. If you need pixel-perfect DOCX conversi
 
 | Version | Scope |
 |---------|-------|
-| v0.1 _(in progress)_ | Paragraphs, headings, page breaks, embedded fonts, Liberation Sans output |
-| v0.2 | Multi-face embedding (real bold / italic glyphs), tables, images |
-| v0.3 | Markdown input (`Document.AppendMarkdown`), templating |
-| v0.4 | Hyphenation, justified text refinements, multi-section page setups |
-| v1.0 | API freeze + comprehensive examples + ≥85 % test coverage |
+| **[0.1.0](CHANGELOG.md#010--2026-05-07)** _(current)_ | Paragraphs, headings, page breaks, style system, embedded fonts, Liberation Sans output |
+| 0.2 | Multi-face embedding (real bold / italic glyphs), tables, images |
+| 0.3 | Markdown input (`Document.AppendMarkdown`), templating |
+| 0.4 | Hyphenation, justified text refinements, multi-section page setups |
+| 1.0 | API freeze + comprehensive examples + ≥85 % test coverage |
 
-Roadmap detail and the open design questions live in [docs/RFC-001-dsl.md](docs/RFC-001-dsl.md).
+Full design spec: [docs/RFC-001-dsl.md](docs/RFC-001-dsl.md).
+Release notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Project layout
 
-```
+```text
 kardec/
 ├── doc.go, length.go, color.go, page.go    primitives (units, color, page setup)
 ├── style.go, run.go, block.go              the DSL surface
@@ -88,7 +89,8 @@ kardec/
 
 ```sh
 go test ./...
-go run ./examples/hello   # writes hello.pdf in the working directory
+go run ./examples/hello    # smallest end-to-end PDF (hello.pdf)
+go run ./examples/report   # multi-section showcase exercising DefineStyle (report.pdf)
 ```
 
 ## Contributing
@@ -97,6 +99,6 @@ Pull requests are welcome. The development workflow uses feature branches with `
 
 ## License
 
-MIT — see `LICENSE` (to be added).
+MIT — see [LICENSE](LICENSE).
 
 The bundled fonts are distributed under the SIL Open Font License 1.1; their notices live in [`internal/typography/embedded/README.md`](internal/typography/embedded/README.md).
