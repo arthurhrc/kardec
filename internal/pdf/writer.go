@@ -81,13 +81,15 @@ func (Writer) Write(w io.Writer, doc Document) error {
 		}
 		ow.writeStreamObject(streamID, dict, data)
 
+		annotIDs := emitLinkAnnots(ow, p)
 		pageBody := fmt.Sprintf(
 			"<< /Type /Page /Parent %s /MediaBox [0 0 %.4f %.4f] "+
-				"/Resources %s /Contents %s >>",
+				"/Resources %s /Contents %s%s >>",
 			ref(pagesID),
 			p.Width, p.Height,
 			resourcesDict(usedFonts, usedImages),
 			ref(streamID),
+			renderAnnotsArray(annotIDs),
 		)
 		pageIDs = append(pageIDs, ow.allocAndWrite(pageBody))
 	}
