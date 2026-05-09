@@ -305,6 +305,10 @@ func (e Engine) placeBlock(
 	case kardec.HorizontalRule:
 		e.placeHorizontalRule(cur, flush, v)
 		return nil
+	case kardec.Leader:
+		style := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
+		e.placeLeader(cur, flush, v, style, fonts)
+		return nil
 	case kardec.KeepTogether:
 		return e.placeKeepTogether(cur, flush, doc, sec, v, fonts, pages)
 	case kardec.PageBreak:
