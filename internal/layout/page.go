@@ -13,6 +13,14 @@ type Page struct {
 	Items    []PlacedItem
 	Headings []HeadingMark
 	Anchors  []AnchorMark
+
+	// Width and Height are the page's actual dimensions in points
+	// after orientation is applied. Landscape sections expose Width
+	// > Height here even though Size still reports the un-rotated
+	// PageSize. Renderers should consume these values when emitting
+	// /MediaBox so multi-section documents with mixed orientations
+	// land correct dimensions per page.
+	Width, Height kardec.Length
 }
 
 // AnchorMark records a named anchor at a specific Y on a page.

@@ -32,3 +32,51 @@ func (d *Document) Footer(runs ...Run) *Document {
 	d.cur.Footer = runs
 	return d
 }
+
+// NewSection starts a new section configured from the supplied page
+// size and margins. Subsequent block / header / footer calls land in
+// the new section; the previous section's blocks are frozen as-is.
+//
+// Use this to interleave landscape pages, tighter-margin appendices,
+// or a Letter-sized cover before the body switches to A4. Each
+// section carries its own Header / Footer; pass them right after
+// NewSection to override the defaults inherited from PageSetup.
+//
+// orientation defaults to Portrait — pass `Landscape` explicitly via
+// the returned PageSetup if a landscape break is wanted. The helper
+// below preserves the orientation of the current section so callers
+// who only want margin or page-size changes don't have to repeat it.
+func (d *Document) NewSection(size PageSize, margins Margins) *Document {
+	if d.err != nil {
+		return d
+	}
+	sec := &Section{
+		Setup: PageSetup{
+			Size:        size,
+			Orientation: d.cur.Setup.Orientation,
+			Margins:     margins,
+		},
+	}
+	d.sections = append(d.sections, sec)
+	d.cur = sec
+	return d
+}
+
+// NewSectionWithSetup is the explicit-setup counterpart to NewSection,
+// useful when the caller has a pre-built PageSetup (e.g. landscape
+// orientation) it wants applied verbatim.
+func (d *Document) NewSectionWithSetup(setup PageSetup) *Document {
+	if d.err != nil {
+		return d
+	}
+	sec := &Section{Setup: setup}
+	d.sections = append(d.sections, sec)
+	d.cur = sec
+	return d
+}
+
+// CurrentSection returns the section receiving subsequent block
+// calls. Read-only; useful for tests and integrations that need to
+// inspect Setup or attached Header / Footer values without going
+// through Sections().
+func (d *Document) CurrentSection() *Section { return d.cur }
