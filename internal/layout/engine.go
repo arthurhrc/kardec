@@ -134,33 +134,87 @@ func stampSectionChrome(
 }
 
 // pageCursor tracks the geometry of the page currently being filled.
+//
+// Multi-column layouts treat (x0, y0)–(x1, y1) as the bounds of the
+// *current* column rather than the page as a whole. columnIdx tracks
+// which column is active; pageX0 / pageX1 retain the full content
+// width so chrome (header/footer/section borders) and the post-pass
+// can still address the page-level coordinate space.
 type pageCursor struct {
 	setup        kardec.PageSetup
 	items        []PlacedItem
 	headings     []HeadingMark
 	anchors      []AnchorMark
 	footnoteRefs []int // 1-based numbers, in encounter order, deduped
-	x0, y0       float64 // top-left of the content area (after margins)
-	x1, y1       float64 // bottom-right of the content area
+	x0, y0       float64 // top-left of the active column
+	x1, y1       float64 // bottom-right of the active column
 	cursorY      float64 // current Y position, top-left origin
+
+	// Multi-column state. columns == 1 keeps single-column geometry
+	// (pageX0 == x0, pageX1 == x1).
+	columns      int
+	columnIdx    int     // 0-based index of the active column
+	columnGap    float64 // horizontal gap between columns
+	columnWidth  float64 // width of one column
+	pageX0, pageX1 float64 // full content area horizontals (margins applied)
 }
 
-// startPage builds a fresh cursor positioned at the top of the content
-// area for the section's page setup.
+// startPage builds a fresh cursor positioned at the top of the first
+// column for the section's page setup.
 func startPage(setup kardec.PageSetup) *pageCursor {
 	w, h := pageDimensions(setup)
 	left := float64(setup.Margins.Left)
 	top := float64(setup.Margins.Top)
 	right := w - float64(setup.Margins.Right)
 	bottom := h - float64(setup.Margins.Bottom)
-	return &pageCursor{
-		setup:   setup,
-		x0:      left,
-		y0:      top,
-		x1:      right,
-		y1:      bottom,
-		cursorY: top,
+
+	columns := setup.Columns
+	if columns < 1 {
+		columns = 1
 	}
+	columnGap := float64(setup.ColumnGap)
+	if columns > 1 && columnGap <= 0 {
+		columnGap = defaultColumnGapPt
+	}
+	contentWidth := right - left
+	columnWidth := contentWidth
+	if columns > 1 {
+		columnWidth = (contentWidth - float64(columns-1)*columnGap) / float64(columns)
+	}
+
+	return &pageCursor{
+		setup:       setup,
+		x0:          left,
+		y0:          top,
+		x1:          left + columnWidth,
+		y1:          bottom,
+		cursorY:     top,
+		columns:     columns,
+		columnIdx:   0,
+		columnGap:   columnGap,
+		columnWidth: columnWidth,
+		pageX0:      left,
+		pageX1:      right,
+	}
+}
+
+// defaultColumnGapPt is the gutter between columns when ColumnGap is
+// zero. ~12pt is the typographic norm for body-size text.
+const defaultColumnGapPt = 12.0
+
+// advanceColumn moves the cursor to the next column on the current
+// page, resetting cursorY to the top. Returns true when the move
+// succeeded; false when the cursor was already in the last column,
+// signalling the caller to flush and start a new page instead.
+func (c *pageCursor) advanceColumn() bool {
+	if c.columnIdx+1 >= c.columns {
+		return false
+	}
+	c.columnIdx++
+	c.x0 = c.pageX0 + float64(c.columnIdx)*(c.columnWidth+c.columnGap)
+	c.x1 = c.x0 + c.columnWidth
+	c.cursorY = c.y0
+	return true
 }
 
 // pageDimensions returns the (width, height) of a page after applying the
@@ -239,13 +293,24 @@ func headingTitle(h kardec.Heading) string {
 func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts FontProvider) ([]Page, error) {
 	var pages []Page
 	cur := startPage(sec.Setup)
-	flush := func() {
+	pageFlush := func() {
 		pages = append(pages, cur.finish())
 		*cur = *startPage(sec.Setup)
 	}
+	// Standard flush: advance to the next column when the current
+	// column ran out, otherwise finish the page and start fresh.
+	// Single-column layouts collapse to the page-flush behaviour
+	// because cur.advanceColumn always returns false when columns ==
+	// 1.
+	flush := func() {
+		if cur.advanceColumn() {
+			return
+		}
+		pageFlush()
+	}
 
 	for _, b := range sec.Blocks {
-		if err := e.placeBlock(cur, flush, doc, sec, b, fonts, &pages); err != nil {
+		if err := e.placeBlock(cur, flush, pageFlush, doc, sec, b, fonts, &pages); err != nil {
 			return nil, err
 		}
 	}
@@ -255,12 +320,19 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 
 // placeBlock dispatches a single block onto the current page. Extracted
 // from layoutSection so KeepTogether can reuse the same per-block
-// placement path for its inner children. The pages pointer lets the
+// placement path for its inner children.
+//
+// flush is the column-aware overflow flush: in a multi-column layout
+// it advances to the next column before falling back to a page break.
+// pageFlush forces a new page regardless of column position; it is
+// used for explicit PageBreak blocks so the user-facing semantics
+// stay "next page, not next column". The pages pointer lets the
 // keep-together rollback path snapshot and restore the page count
 // without exposing the slice header to other call sites.
 func (e Engine) placeBlock(
 	cur *pageCursor,
 	flush func(),
+	pageFlush func(),
 	doc *kardec.Document,
 	sec *kardec.Section,
 	b kardec.Block,
@@ -310,9 +382,9 @@ func (e Engine) placeBlock(
 		e.placeLeader(cur, flush, v, style, fonts)
 		return nil
 	case kardec.KeepTogether:
-		return e.placeKeepTogether(cur, flush, doc, sec, v, fonts, pages)
+		return e.placeKeepTogether(cur, flush, pageFlush, doc, sec, v, fonts, pages)
 	case kardec.PageBreak:
-		flush()
+		pageFlush()
 		return nil
 	case kardec.Spacer:
 		advance := float64(v.Height)
