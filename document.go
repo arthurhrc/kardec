@@ -52,8 +52,35 @@ type Document struct {
 	// than load arbitrary bytes off the filesystem.
 	markdownBaseDir string
 
+	// subsetFonts opts the renderer into glyf-table subsetting:
+	// every glyph not referenced by a PlacedItem is zeroed out
+	// before the FontFile2 stream is compressed. Off by default to
+	// preserve byte-equivalence with v0.4 outputs; turn it on for
+	// a 5-10x reduction in font payload at the cost of dropping
+	// the full glyph table from each embedded face.
+	subsetFonts bool
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
+
+// SubsetFonts toggles glyf-table subsetting for embedded fonts.
+// Default is off — calls without arguments turn it on for fluent
+// chaining; pass false to opt back out.
+func (d *Document) SubsetFonts(on ...bool) *Document {
+	if d.err != nil {
+		return d
+	}
+	if len(on) == 0 {
+		d.subsetFonts = true
+	} else {
+		d.subsetFonts = on[0]
+	}
+	return d
+}
+
+// FontSubsetEnabled reports whether the next render will subset
+// embedded fonts.
+func (d *Document) FontSubsetEnabled() bool { return d.subsetFonts }
 
 // SetMarkdownBaseDir configures the directory inline `![alt](path)`
 // links resolve against during AppendMarkdown. When unset, the
