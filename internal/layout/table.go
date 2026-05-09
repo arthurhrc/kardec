@@ -202,6 +202,7 @@ func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Co
 			Color: style.color,
 			Link:  t.link,
 		})
+		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width
 	}
 }

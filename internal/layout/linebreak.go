@@ -9,15 +9,16 @@ import (
 // gap. Whitespace tokens are collapsed at line boundaries; non-whitespace
 // tokens are never split (no hyphenation in v0.1).
 type token struct {
-	text      string
-	isSpace   bool
-	width     float64
-	font      Font
-	sizePt    float64
-	color     kardec.Color
-	ascentPt  float64
-	descentPt float64
-	link      string // copied from the originating Run; empty when plain
+	text        string
+	isSpace     bool
+	width       float64
+	font        Font
+	sizePt      float64
+	color       kardec.Color
+	ascentPt    float64
+	descentPt   float64
+	link        string // copied from the originating Run; empty when plain
+	footnoteRef int    // 1-based footnote number; 0 when not a footnote marker
 }
 
 // shapeRuns turns a slice of kardec.Run values into the flat token stream
@@ -45,15 +46,16 @@ func shapeRuns(runs []kardec.Run, fonts FontProvider, style blockStyle, defaultS
 		for _, piece := range splitKeepingSpaces(text) {
 			w, asc, desc := font.Measure(piece, size)
 			out = append(out, token{
-				text:      piece,
-				isSpace:   isAllSpace(piece),
-				width:     w,
-				font:      font,
-				sizePt:    size,
-				color:     color,
-				ascentPt:  asc,
-				descentPt: desc,
-				link:      r.Link(),
+				text:        piece,
+				isSpace:     isAllSpace(piece),
+				width:       w,
+				font:        font,
+				sizePt:      size,
+				color:       color,
+				ascentPt:    asc,
+				descentPt:   desc,
+				link:        r.Link(),
+				footnoteRef: r.FootnoteRef(),
 			})
 		}
 	}

@@ -46,12 +46,55 @@ func (e Engine) Layout(doc *kardec.Document, fonts FontProvider) ([]Page, error)
 				stampSectionChrome(&secPages[i], sec, chromeStyle, fonts, secIdx+1, len(pages)+i+1)
 			}
 		}
+		// Stamp footnotes for any page whose body referenced one.
+		// Resolved against doc.Footnotes by matching number.
+		footnoteStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleFooter))
+		for i := range secPages {
+			if len(secPages[i].FootnoteRefs) == 0 {
+				continue
+			}
+			refs := resolveFootnoteRefs(doc.Footnotes(), secPages[i].FootnoteRefs)
+			stampFootnotes(&secPages[i], sec, refs, footnoteStyle, fonts)
+		}
 		pages = append(pages, secPages...)
 	}
 	// Final pass: now that we know the grand page count, replace any
 	// {{totalPages}} placeholders left in header / footer items.
 	SubstituteTotalPages(pages, len(pages))
 	return pages, nil
+}
+
+// resolveFootnoteRefs maps the per-page footnote numbers back to the
+// matching FootnoteRef structs from the document. Numbers that do
+// not correspond to any registered footnote (a defensive guard, not
+// expected during normal flow) are skipped silently.
+func resolveFootnoteRefs(all []kardec.FootnoteRef, numbers []int) []kardec.FootnoteRef {
+	out := make([]kardec.FootnoteRef, 0, len(numbers))
+	for _, n := range numbers {
+		for _, ref := range all {
+			if ref.Number() == n {
+				out = append(out, ref)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// stampFootnotes paints the footnote chrome onto a laid-out page,
+// reusing the same pageCursor reconstruction trick as the header/
+// footer post-pass.
+func stampFootnotes(
+	page *Page,
+	sec *kardec.Section,
+	refs []kardec.FootnoteRef,
+	style blockStyle,
+	fonts FontProvider,
+) {
+	cur := startPage(sec.Setup)
+	cur.items = page.Items
+	emitFootnotesForPage(cur, refs, style, fonts)
+	page.Items = cur.items
 }
 
 // stampSectionChrome paints header / footer onto an already-laid-out
@@ -72,13 +115,14 @@ func stampSectionChrome(
 
 // pageCursor tracks the geometry of the page currently being filled.
 type pageCursor struct {
-	setup    kardec.PageSetup
-	items    []PlacedItem
-	headings []HeadingMark
-	anchors  []AnchorMark
-	x0, y0   float64 // top-left of the content area (after margins)
-	x1, y1   float64 // bottom-right of the content area
-	cursorY  float64 // current Y position, top-left origin
+	setup        kardec.PageSetup
+	items        []PlacedItem
+	headings     []HeadingMark
+	anchors      []AnchorMark
+	footnoteRefs []int // 1-based numbers, in encounter order, deduped
+	x0, y0       float64 // top-left of the content area (after margins)
+	x1, y1       float64 // bottom-right of the content area
+	cursorY      float64 // current Y position, top-left origin
 }
 
 // startPage builds a fresh cursor positioned at the top of the content
@@ -125,13 +169,30 @@ func (c *pageCursor) remainingHeight() float64 { return c.y1 - c.cursorY }
 func (c *pageCursor) finish() Page {
 	w, h := pageDimensions(c.setup)
 	return Page{
-		Size:     c.setup.Size,
-		Items:    c.items,
-		Headings: c.headings,
-		Anchors:  c.anchors,
-		Width:    kardec.Pt(w),
-		Height:   kardec.Pt(h),
+		Size:         c.setup.Size,
+		Items:        c.items,
+		Headings:     c.headings,
+		Anchors:      c.anchors,
+		FootnoteRefs: c.footnoteRefs,
+		Width:        kardec.Pt(w),
+		Height:       kardec.Pt(h),
 	}
+}
+
+// recordFootnoteRef registers a 1-based footnote number against the
+// current page, deduplicating against earlier appearances on the
+// same page (a footnote marker may shape into multiple tokens but
+// should only show once at the bottom of the page).
+func (c *pageCursor) recordFootnoteRef(n int) {
+	if n <= 0 {
+		return
+	}
+	for _, existing := range c.footnoteRefs {
+		if existing == n {
+			return
+		}
+	}
+	c.footnoteRefs = append(c.footnoteRefs, n)
 }
 
 // headingTitle reconstructs the plain-text title of a Heading block by
