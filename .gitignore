@@ -31,3 +31,9 @@ coverage.html
 /testdata/output/
 /examples/*/out/*.pdf
 /examples/*/*.pdf
+
+# CLI smoke-test artifacts
+out.pdf
+*.pdf
+!examples/**/*.pdf
+
