@@ -120,12 +120,16 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	// exist, in which case we omit the /Outlines entry from the
 	// catalog and skip the /PageMode hint as well.
 	outlinesID := emitOutlines(ow, doc.Outlines, pageIDs)
+	destsID := emitDestinations(ow, doc.Destinations, pageIDs)
 
 	// Catalog last among the structural objects — it points at /Pages
-	// and optionally at /Outlines.
+	// and optionally at /Outlines / /Dests.
 	catalogBody := fmt.Sprintf("<< /Type /Catalog /Pages %s", ref(pagesID))
 	if outlinesID > 0 {
 		catalogBody += fmt.Sprintf(" /Outlines %s /PageMode /UseOutlines", ref(outlinesID))
+	}
+	if destsID > 0 {
+		catalogBody += fmt.Sprintf(" /Dests %s", ref(destsID))
 	}
 	catalogBody += " >>"
 	ow.writeObject(catalogID, catalogBody)

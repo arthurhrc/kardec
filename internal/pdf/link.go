@@ -20,12 +20,25 @@ func emitLinkAnnots(ow *objectWriter, p Page) []int {
 	}
 	ids := make([]int, 0, len(p.Links))
 	for _, ln := range p.Links {
+		var action string
+		switch {
+		case ln.URI != "":
+			action = fmt.Sprintf("<< /Type /Action /S /URI /URI %s >>",
+				escapeLiteralString(ln.URI))
+		case ln.DestName != "":
+			// /GoTo with a name string resolves via the catalog's
+			// /Dests dictionary (PDF 12.3.2.3 Named Destinations).
+			action = fmt.Sprintf("<< /Type /Action /S /GoTo /D %s >>",
+				escapeLiteralString(ln.DestName))
+		default:
+			// Empty link annotation is degenerate; skip.
+			continue
+		}
 		body := fmt.Sprintf(
 			"<< /Type /Annot /Subtype /Link /Border [0 0 0] "+
-				"/Rect [%.4f %.4f %.4f %.4f] "+
-				"/A << /Type /Action /S /URI /URI %s >> >>",
+				"/Rect [%.4f %.4f %.4f %.4f] /A %s >>",
 			ln.X, ln.Y, ln.X+ln.W, ln.Y+ln.H,
-			escapeLiteralString(ln.URI),
+			action,
 		)
 		ids = append(ids, ow.allocAndWrite(body))
 	}

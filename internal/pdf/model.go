@@ -5,12 +5,23 @@ package pdf
 // without circular imports — the renderer never sees blocks or styles, only
 // positioned glyph runs.
 type Document struct {
-	Title    string
-	Author   string
-	Pages    []Page
-	Fonts    []EmbeddedFont
-	Images   []EmbeddedImage
-	Outlines []OutlineEntry
+	Title        string
+	Author       string
+	Pages        []Page
+	Fonts        []EmbeddedFont
+	Images       []EmbeddedImage
+	Outlines     []OutlineEntry
+	Destinations []NamedDestination
+}
+
+// NamedDestination is one entry in the PDF's /Dests dictionary. Name
+// is the lookup key (referenced from /GoTo actions); PageIndex is
+// 0-based into Document.Pages; Y is the destination's Y coordinate
+// in PDF user space (bottom-left origin).
+type NamedDestination struct {
+	Name      string
+	PageIndex int
+	Y         float64
 }
 
 // OutlineEntry is one bookmark in the PDF's `/Outlines` tree.
@@ -43,15 +54,16 @@ type Page struct {
 }
 
 // LinkAnnot is one rectangular hyperlink area on a page. The
-// rectangle is in PDF user-space (bottom-left origin); the URI is
-// emitted unchanged as the action target. The writer does not
-// validate the URL — callers may pass anything Adobe Acrobat will
-// open. Internal links (intra-document targets) ship in v0.4 with
-// the outline track once anchors land.
+// rectangle is in PDF user-space (bottom-left origin). When URI is
+// non-empty the link emits a /URI external action; when DestName is
+// non-empty it emits a /GoTo /D action targeting a named destination
+// from Document.Destinations. URI takes precedence if both are set —
+// callers should set exactly one.
 type LinkAnnot struct {
-	X, Y float64 // bottom-left of the clickable rectangle
-	W, H float64 // width and height in points
-	URI  string
+	X, Y     float64 // bottom-left of the clickable rectangle
+	W, H     float64 // width and height in points
+	URI      string  // external URL; mutually exclusive with DestName
+	DestName string  // named destination key; resolves through /Dests
 }
 
 // ImageDraw positions one previously-embedded image on a page. X and Y are
