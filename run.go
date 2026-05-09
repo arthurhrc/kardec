@@ -5,12 +5,14 @@ package kardec
 // via Text, Bold, Italic and similar helpers; do not instantiate the struct
 // directly so future fields stay backward-compatible.
 type Run struct {
-	text        string
-	bold        bool
-	italic      bool
-	link        string // empty when this run is not a hyperlink
-	footnoteRef int    // 1-based footnote number; 0 for non-footnote runs
-	override    styleOverride
+	text          string
+	bold          bool
+	italic        bool
+	underline     bool
+	strikethrough bool
+	link          string // empty when this run is not a hyperlink
+	footnoteRef   int    // 1-based footnote number; 0 for non-footnote runs
+	override      styleOverride
 }
 
 // Text returns a plain Run carrying no inline overrides.
@@ -24,6 +26,24 @@ func Italic(s string) Run { return Run{text: s, italic: true} }
 
 // BoldItalic returns a Run rendered in both bold weight and italic style.
 func BoldItalic(s string) Run { return Run{text: s, bold: true, italic: true} }
+
+// Underline returns a Run drawn with a thin line under its glyphs.
+// Compose with Bold / Italic via the Decorate helpers when more than
+// one inline attribute is needed.
+func Underline(s string) Run { return Run{text: s, underline: true} }
+
+// Strikethrough returns a Run drawn with a thin line through its
+// glyphs, the typographic convention for retracted text.
+func Strikethrough(s string) Run { return Run{text: s, strikethrough: true} }
+
+// WithUnderline returns a copy of r with the underline decoration set.
+// Lets callers stack decorations on a base run without re-typing the
+// text.
+func WithUnderline(r Run) Run { r.underline = true; return r }
+
+// WithStrikethrough returns a copy of r with the strikethrough
+// decoration set.
+func WithStrikethrough(r Run) Run { r.strikethrough = true; return r }
 
 // Colored wraps a Run, attaching an explicit color override.
 func Colored(r Run, c Color) Run {

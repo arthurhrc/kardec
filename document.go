@@ -435,6 +435,18 @@ func (d *Document) PageBreak() *Document { return d.append(PageBreak{}) }
 // Spacer appends vertical whitespace of the given height.
 func (d *Document) Spacer(h Length) *Document { return d.append(Spacer{Height: h}) }
 
+// HorizontalRule appends a horizontal divider line spanning the content
+// width. Calling without arguments produces the default (0.5pt gray
+// line, 6pt padding above and below); pass a populated HorizontalRule
+// to override thickness, color, or padding.
+func (d *Document) HorizontalRule(rule ...HorizontalRule) *Document {
+	var r HorizontalRule
+	if len(rule) > 0 {
+		r = rule[0]
+	}
+	return d.append(r)
+}
+
 // ErrRendererUnregistered is returned by Render / RenderTo / Bytes when no
 // rendering implementation has been wired in. Importing the public render
 // package — github.com/arthurhrc/kardec/render — installs the default

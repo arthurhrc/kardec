@@ -36,6 +36,13 @@ func (r Run) Bold() bool { return r.bold }
 // Italic reports whether the run carries the italic style flag.
 func (r Run) Italic() bool { return r.italic }
 
+// Underline reports whether the run carries the underline decoration.
+func (r Run) Underline() bool { return r.underline }
+
+// Strikethrough reports whether the run carries the strikethrough
+// decoration.
+func (r Run) Strikethrough() bool { return r.strikethrough }
+
 // ColorOverride returns the run's explicit color override, if any.
 func (r Run) ColorOverride() (Color, bool) {
 	if r.override.color == nil {

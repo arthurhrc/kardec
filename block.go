@@ -23,6 +23,7 @@ const (
 	kindList
 	kindAnchor
 	kindTOC
+	kindHorizontalRule
 )
 
 // Paragraph is a body-text block of one or more inline Runs.
@@ -92,6 +93,18 @@ type Spacer struct {
 }
 
 func (Spacer) blockKind() blockKind { return kindSpacer }
+
+// HorizontalRule is a thin filled line stretched across the content area,
+// used to separate sections of body text. Defaults to a 0.5pt gray line
+// with 6pt of vertical padding above and below; the zero value renders
+// without explicit configuration.
+type HorizontalRule struct {
+	Thickness Length // 0 means the layout default (0.5pt)
+	Color     Color  // zero value (black) means the layout default (gray)
+	Padding   Length // 0 means the layout default (6pt)
+}
+
+func (HorizontalRule) blockKind() blockKind { return kindHorizontalRule }
 
 // Alignment controls the horizontal arrangement of inline content within a
 // paragraph or table cell.

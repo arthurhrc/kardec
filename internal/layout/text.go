@@ -108,6 +108,7 @@ func emitLine(cur *pageCursor, ln line, style blockStyle, isLastLine bool) {
 			Color: t.color,
 			Link:  t.link,
 		})
+		emitDecorations(cur, t, x, baselineY)
 		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width
 	}
@@ -147,7 +148,54 @@ func emitJustifiedLine(cur *pageCursor, ln line, style blockStyle, available flo
 			Color: t.color,
 			Link:  t.link,
 		})
+		emitDecorations(cur, t, x, baselineY)
 		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width
+	}
+}
+
+// Decoration line geometry, expressed as fractions of the run's point
+// size. Underline sits just below the baseline; strikethrough crosses
+// the x-height. Thickness is a small fraction of size so the line
+// reads as a decoration rather than a divider.
+const (
+	underlineOffsetFrac     = 0.15
+	strikethroughOffsetFrac = -0.30
+	decorationThicknessFrac = 0.05
+)
+
+// emitDecorations emits zero, one, or two PlacedRect items beside the
+// text PlacedItem the caller already pushed. The x argument is the
+// left edge of the token's text in top-left-origin coordinates;
+// baselineY is the same Y the text PlacedItem carries.
+func emitDecorations(cur *pageCursor, t token, x, baselineY float64) {
+	if !t.underline && !t.strikethrough {
+		return
+	}
+	thickness := t.sizePt * decorationThicknessFrac
+	if thickness < 0.4 {
+		thickness = 0.4
+	}
+	if t.underline {
+		cur.items = append(cur.items, PlacedItem{
+			X: kardec.Pt(x),
+			Y: kardec.Pt(baselineY + t.sizePt*underlineOffsetFrac),
+			Rect: &PlacedRect{
+				Width:     kardec.Pt(t.width),
+				Thickness: kardec.Pt(thickness),
+				Color:     t.color,
+			},
+		})
+	}
+	if t.strikethrough {
+		cur.items = append(cur.items, PlacedItem{
+			X: kardec.Pt(x),
+			Y: kardec.Pt(baselineY + t.sizePt*strikethroughOffsetFrac),
+			Rect: &PlacedRect{
+				Width:     kardec.Pt(t.width),
+				Thickness: kardec.Pt(thickness),
+				Color:     t.color,
+			},
+		})
 	}
 }

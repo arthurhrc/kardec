@@ -7,6 +7,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Added
+
+- **`HorizontalRule` block.** A real divider primitive instead of a
+  `PageBreak` masquerading as one when Markdown ingests `---`. Defaults
+  to a 0.5pt gray line with 6pt of padding above and below; the public
+  struct exposes `Thickness`, `Color`, and `Padding` for explicit
+  overrides. Rendered as a thin `PlacedRect` so the PDF writer needs no
+  changes.
+- **Run decorations: `Underline`, `Strikethrough`.** New package-level
+  constructors and the `WithUnderline` / `WithStrikethrough` helpers
+  for stacking decorations onto an existing `Bold` / `Italic` run.
+  Layout emits a thin rect per decorated token: underline below the
+  baseline, strikethrough through the x-height. Thickness scales with
+  point size with a 0.4pt floor so 8pt body text still reads.
+
 ## [0.5.0] — 2026-05-08
 
 ### Added
