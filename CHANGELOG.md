@@ -474,6 +474,10 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.0
+[0.8.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.8.0
+[0.7.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.7.0
 [0.5.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.5.0
 [0.4.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.4.0
 [0.3.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.3.0
