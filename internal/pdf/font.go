@@ -40,8 +40,17 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 		psName = sanitizePSName(font.Name)
 	}
 
-	// 1. FontFile2 stream — embed full TTF (no subsetting in v0.1).
+	// 1. FontFile2 stream. When the caller supplied KeepGIDs the
+	// writer zeroes glyf data for every non-kept glyph before
+	// compressing — keeps file structure intact while shrinking the
+	// FlateDecode stream dramatically. Failures fall back to the
+	// full font so a malformed-but-renderable input still ships.
 	ttf := font.TTFData
+	if len(font.KeepGIDs) > 0 {
+		if subset, err := subsetTrueType(font.TTFData, font.KeepGIDs); err == nil {
+			ttf = subset
+		}
+	}
 	compressed := flateAlways(ttf)
 	streamID := ow.allocID()
 	streamDict := fmt.Sprintf(
