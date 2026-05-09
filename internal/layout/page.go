@@ -12,6 +12,16 @@ type Page struct {
 	Size     kardec.PageSize
 	Items    []PlacedItem
 	Headings []HeadingMark
+	Anchors  []AnchorMark
+}
+
+// AnchorMark records a named anchor at a specific Y on a page.
+// Render uses these to populate the PDF's named-destinations table so
+// `Link("text", "#name")` runs resolve to /GoTo /D actions targeting
+// the right page and Y.
+type AnchorMark struct {
+	Name string
+	Y    kardec.Length
 }
 
 // HeadingMark is a per-page record of a heading block that started on

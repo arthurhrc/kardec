@@ -75,6 +75,7 @@ type pageCursor struct {
 	setup    kardec.PageSetup
 	items    []PlacedItem
 	headings []HeadingMark
+	anchors  []AnchorMark
 	x0, y0   float64 // top-left of the content area (after margins)
 	x1, y1   float64 // bottom-right of the content area
 	cursorY  float64 // current Y position, top-left origin
@@ -120,7 +121,12 @@ func (c *pageCursor) remainingHeight() float64 { return c.y1 - c.cursorY }
 
 // finish converts the cursor into a Page value.
 func (c *pageCursor) finish() Page {
-	return Page{Size: c.setup.Size, Items: c.items, Headings: c.headings}
+	return Page{
+		Size:     c.setup.Size,
+		Items:    c.items,
+		Headings: c.headings,
+		Anchors:  c.anchors,
+	}
 }
 
 // headingTitle reconstructs the plain-text title of a Heading block by
@@ -187,6 +193,11 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 			if err := e.placeList(cur, flush, v, itemStyle, fonts); err != nil {
 				return nil, err
 			}
+		case kardec.Anchor:
+			cur.anchors = append(cur.anchors, AnchorMark{
+				Name: v.Name(),
+				Y:    kardec.Pt(cur.cursorY),
+			})
 		case kardec.PageBreak:
 			flush()
 		case kardec.Spacer:
