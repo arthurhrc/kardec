@@ -153,6 +153,7 @@ type TableBuilder struct {
 	borderStyle         TableBorderStyle
 	headerShading       *Color
 	alternateRowShading *Color
+	label               string
 	err                 error
 }
 
@@ -201,6 +202,16 @@ func (b *TableBuilder) AlternateRowShading(c Color) *TableBuilder {
 	return b
 }
 
+// Label tags the table with a cross-reference label. Build registers
+// the label, increments the table counter, and emits an invisible
+// anchor immediately before the table so doc.Ref(label) hyperlinks
+// resolve to its position in the rendered PDF. An empty label is
+// ignored.
+func (b *TableBuilder) Label(name string) *TableBuilder {
+	b.label = name
+	return b
+}
+
 // Row appends one row of cells. Each argument is the plain text for the
 // corresponding column; richer cell content goes through RowCells.
 func (b *TableBuilder) Row(cells ...string) *TableBuilder {
@@ -243,6 +254,10 @@ func (b *TableBuilder) Build() *Document {
 		borderStyle:         b.borderStyle,
 		headerShading:       b.headerShading,
 		alternateRowShading: b.alternateRowShading,
+	}
+	if b.label != "" {
+		b.doc.registerTableLabel(b.label)
+		b.doc.append(Anchor{name: RefAnchorName(b.label)})
 	}
 	return b.doc.append(tbl)
 }

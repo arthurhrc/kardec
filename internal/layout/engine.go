@@ -64,6 +64,7 @@ func (e Engine) Layout(doc *kardec.Document, fonts FontProvider) ([]Page, error)
 	// heading positions.
 	SubstituteTotalPages(pages, len(pages))
 	patchTOCsAcrossSections(pages, doc)
+	patchRefPagesAcrossSections(pages)
 	return pages, nil
 }
 

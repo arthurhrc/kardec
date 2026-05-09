@@ -85,9 +85,10 @@ func detectImageFormat(data []byte) (ImageFormat, error) {
 // caller commits it to the document via Build. Functional helpers
 // (Width / Height / Center / etc.) keep the builder fluent.
 type ImageBuilder struct {
-	doc *Document
-	img Image
-	err error
+	doc   *Document
+	img   Image
+	label string // optional cross-reference label set via Label(name)
+	err   error
 }
 
 // Image starts an ImageBuilder from an in-memory image payload. The
@@ -149,6 +150,16 @@ func (b *ImageBuilder) AlignRight() *ImageBuilder {
 	return b
 }
 
+// Label tags the image with a cross-reference label. Build will
+// register the label, increment the figure counter, and emit an
+// invisible anchor immediately before the image so doc.Ref(label)
+// hyperlinks resolve to its position in the rendered PDF. An empty
+// label is ignored.
+func (b *ImageBuilder) Label(name string) *ImageBuilder {
+	b.label = name
+	return b
+}
+
 // Build appends the image to the parent document and returns the
 // document so the caller can resume the top-level chain. Builder-side
 // errors (read failure, unrecognised format) are folded into the
@@ -162,6 +173,10 @@ func (b *ImageBuilder) Build() *Document {
 	}
 	if len(b.img.data) == 0 {
 		return b.doc.fail(errors.New("kardec: image with no data"))
+	}
+	if b.label != "" {
+		b.doc.registerFigureLabel(b.label)
+		b.doc.append(Anchor{name: RefAnchorName(b.label)})
 	}
 	return b.doc.append(b.img)
 }

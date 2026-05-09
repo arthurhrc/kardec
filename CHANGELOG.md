@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Auto figure / table numbering + cross-references.** New
+  `ImageBuilder.Label(name)` and `TableBuilder.Label(name)` opt a
+  block into the figure / table counter; counters are independent
+  and 1-based. `doc.Ref(label)` returns a Run resolving to the
+  canonical "Figure 3" / "Table 2" text with an internal hyperlink
+  to the auto-anchor placed before the labeled block.
+  `doc.RefPage(label)` returns a Run carrying a `{{refpage:label}}`
+  placeholder that the layout post-pass replaces with the page
+  number on which the matching anchor landed (mirrors the TOC's
+  `{{tocpage:hN}}` resolution). Unknown labels resolve to a visible
+  `[?ref:<label>]` / `?` so missing references stand out without
+  breaking layout.
 - **`KeepTogether` block.** New `doc.KeepTogether(blocks...)` and the
   package-level `kardec.NewKeepTogether(blocks...)` group bind a slice
   of inner blocks to a single page. Canonical use: a heading and the
