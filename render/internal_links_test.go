@@ -13,7 +13,7 @@ func TestRenderEmitsNamedDestinationForAnchor(t *testing.T) {
 		Heading(1, kardec.Text("Introduction")).
 		Paragraph(kardec.Text("body"))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestRenderExternalLinkStillUsesURI(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Paragraph(kardec.Link("docs", "https://example.com/docs"))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}

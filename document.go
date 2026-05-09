@@ -328,73 +328,105 @@ func (d *Document) Heading(level int, runs ...Run) *Document {
 	return d.append(Heading{level: level, runs: runs})
 }
 
-// Paragraph appends a body paragraph composed of inline runs.
-func (d *Document) Paragraph(runs ...Run) *Document {
-	return d.append(Paragraph{runs: runs})
-}
-
-// Builder pattern note
-// --------------------
-// The bare Paragraph / Heading methods above return *Document so existing
-// chains like doc.Heading(...).Paragraph(...).PageBreak() keep working
-// without changes. Style-aware fluent construction requires a different
-// return type, so AddParagraph / AddHeading expose dedicated builders that
-// commit back to the document via Done(). This split keeps the pre-style
-// builder backward compatible while still allowing
+// Paragraph appends a body paragraph composed of inline runs and returns
+// a *ParagraphRef the caller can use to layer style overrides on top of
+// the just-appended block. The ref embeds *Document so unrelated chained
+// methods (Heading, Image, etc.) keep working unchanged:
 //
-//     doc.AddParagraph(kardec.Text("Body")).WithStyle(myStyle).LineHeight(1.4).Done()
+//	doc.Paragraph(kardec.Text("body"))
+//	doc.Paragraph(kardec.Text("body")).WithStyle(myStyle).LineHeight(1.4)
+//	doc.Paragraph(kardec.Text("a")).Heading(2, kardec.Text("next"))
 //
-// to flow naturally.
-
-// ParagraphBuilder accumulates customization for a Paragraph and commits it
-// to the document on Done. It is intentionally not safe for concurrent use.
-type ParagraphBuilder struct {
-	doc *Document
-	p   Paragraph
+// The latter two forms used to require AddParagraph + Done; both are
+// now redundant on *ParagraphRef.
+func (d *Document) Paragraph(runs ...Run) *ParagraphRef {
+	if d.err != nil {
+		return &ParagraphRef{Document: d, blockIdx: -1}
+	}
+	d.cur.Blocks = append(d.cur.Blocks, Paragraph{runs: runs})
+	return &ParagraphRef{Document: d, blockIdx: len(d.cur.Blocks) - 1, sec: d.cur}
 }
 
-// AddParagraph starts a fluent Paragraph builder pre-loaded with the given
-// runs. Customize via WithStyle / WithNamedStyle / Justify / LineHeight,
-// then call Done to commit and rejoin the *Document chain.
-func (d *Document) AddParagraph(runs ...Run) *ParagraphBuilder {
-	return &ParagraphBuilder{doc: d, p: Paragraph{runs: runs}}
+// ParagraphRef is the return type of Document.Paragraph: a thin wrapper
+// over the just-appended Paragraph block plus the *Document the caller
+// continues to chain off of. The Document is embedded so doc methods
+// (Heading, Image, Table, ...) flow through field promotion without
+// the caller ever having to drop back to a *Document value.
+//
+// Style overrides on the ref mutate the appended block in place by
+// reading the interface entry from the section's slice, mutating, and
+// writing back. This keeps Block as a value type while still allowing
+// retroactive configuration of the most-recently-added paragraph.
+type ParagraphRef struct {
+	*Document
+	sec      *Section
+	blockIdx int
 }
 
-// WithStyle attaches an inline Style override.
-func (b *ParagraphBuilder) WithStyle(s Style) *ParagraphBuilder {
-	b.p = b.p.WithStyle(s)
-	return b
+// patch reads the appended Paragraph back from the slice, applies fn,
+// and writes the result. No-op when the document is in an error
+// state (blockIdx == -1).
+func (r *ParagraphRef) patch(fn func(*Paragraph)) *ParagraphRef {
+	if r == nil || r.blockIdx < 0 || r.sec == nil {
+		return r
+	}
+	p := r.sec.Blocks[r.blockIdx].(Paragraph)
+	fn(&p)
+	r.sec.Blocks[r.blockIdx] = p
+	return r
 }
 
-// WithNamedStyle selects a named style for resolution.
-func (b *ParagraphBuilder) WithNamedStyle(name string) *ParagraphBuilder {
-	b.p = b.p.WithNamedStyle(name)
-	return b
+// WithStyle attaches an inline Style override to the appended paragraph.
+func (r *ParagraphRef) WithStyle(s Style) *ParagraphRef {
+	return r.patch(func(p *Paragraph) {
+		p.style = s
+		p.hasStyle = true
+	})
 }
 
-// Justify shorthand for setting Alignment to AlignJustify.
-func (b *ParagraphBuilder) Justify() *ParagraphBuilder {
-	b.p.alignment = AlignJustify
-	return b
+// WithNamedStyle selects a named style for the appended paragraph.
+func (r *ParagraphRef) WithNamedStyle(name string) *ParagraphRef {
+	return r.patch(func(p *Paragraph) { p.styleName = name })
 }
 
-// Align sets the paragraph's horizontal alignment explicitly.
-func (b *ParagraphBuilder) Align(a Alignment) *ParagraphBuilder {
-	b.p.alignment = a
-	return b
+// Align sets the paragraph's horizontal alignment.
+func (r *ParagraphRef) Align(a Alignment) *ParagraphRef {
+	return r.patch(func(p *Paragraph) { p.alignment = a })
 }
 
-// LineHeight sets the paragraph's line-height multiplier.
-func (b *ParagraphBuilder) LineHeight(v float64) *ParagraphBuilder {
-	b.p.lineHeight = v
-	return b
+// Justify shortcut for AlignJustify.
+func (r *ParagraphRef) Justify() *ParagraphRef { return r.Align(AlignJustify) }
+
+// LineHeight sets the paragraph's line-height multiplier (e.g. 1.4 for
+// 140% leading). Zero clears the override and falls back to the
+// resolved style's lineHeight.
+func (r *ParagraphRef) LineHeight(v float64) *ParagraphRef {
+	return r.patch(func(p *Paragraph) { p.lineHeight = v })
 }
 
-// Done commits the accumulated Paragraph onto the document and returns the
-// underlying *Document so the caller can resume the top-level builder
-// chain.
-func (b *ParagraphBuilder) Done() *Document {
-	return b.doc.append(b.p)
+// Done returns the underlying *Document. Retained for source
+// compatibility with the deprecated AddParagraph chain — call sites
+// updated to the new ref API don't need it because the embedded
+// *Document is reachable directly.
+func (r *ParagraphRef) Done() *Document {
+	if r == nil {
+		return nil
+	}
+	return r.Document
+}
+
+// ParagraphBuilder is the legacy alias for *ParagraphRef.
+//
+// Deprecated: use the *ParagraphRef returned by Document.Paragraph.
+type ParagraphBuilder = ParagraphRef
+
+// AddParagraph is the legacy entry point.
+//
+// Deprecated: use Document.Paragraph, which now returns the same ref
+// type and exposes the same WithStyle / WithNamedStyle / Align /
+// Justify / LineHeight methods.
+func (d *Document) AddParagraph(runs ...Run) *ParagraphRef {
+	return d.Paragraph(runs...)
 }
 
 // HeadingBuilder is the fluent counterpart for Heading blocks.

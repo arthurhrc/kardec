@@ -14,7 +14,7 @@ func TestPDFAOptInEmitsConformanceMarkers(t *testing.T) {
 		SetCreationDate(time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)).
 		Heading(1, kardec.Text("Title")).
 		Paragraph(kardec.Text("body"))
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestPDFAOffByDefault(t *testing.T) {
 	if doc.PDFAEnabled() {
 		t.Errorf("PDFA must be off by default")
 	}
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestPDFADocumentIDStableAcrossRuns(t *testing.T) {
 			PDFA().
 			SetCreationDate(time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)).
 			Paragraph(kardec.Text("body"))
-		out, err := Bytes(doc)
+		out, err := Bytes(doc.Document)
 		if err != nil {
 			t.Fatalf("Bytes: %v", err)
 		}

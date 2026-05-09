@@ -14,7 +14,7 @@ import (
 func helloDoc() *kardec.Document {
 	return kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Heading(1, kardec.Text("hello")).
-		Paragraph(kardec.Text("body"))
+		Paragraph(kardec.Text("body")).Document
 }
 
 func TestWriteResponseSetsCorrectHeadersAndAttachment(t *testing.T) {

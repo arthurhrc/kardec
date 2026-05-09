@@ -8,7 +8,7 @@ import (
 
 func TestLayout_Underline_EmitsRectBelowBaseline(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		Paragraph(kardec.Underline("done"))
+		Paragraph(kardec.Underline("done")).Document
 
 	pages, err := NewEngine().Layout(doc, stubProvider{})
 	if err != nil {
@@ -41,7 +41,7 @@ func TestLayout_Underline_EmitsRectBelowBaseline(t *testing.T) {
 
 func TestLayout_Strikethrough_EmitsRectAboveBaseline(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		Paragraph(kardec.Strikethrough("retracted"))
+		Paragraph(kardec.Strikethrough("retracted")).Document
 
 	pages, err := NewEngine().Layout(doc, stubProvider{})
 	if err != nil {
@@ -71,7 +71,7 @@ func TestLayout_Strikethrough_EmitsRectAboveBaseline(t *testing.T) {
 
 func TestLayout_PlainRun_EmitsNoDecorationRect(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		Paragraph(kardec.Text("plain"))
+		Paragraph(kardec.Text("plain")).Document
 
 	pages, err := NewEngine().Layout(doc, stubProvider{})
 	if err != nil {

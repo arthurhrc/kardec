@@ -18,7 +18,7 @@ func TestRenderMultiSectionMixesPageSizes(t *testing.T) {
 		Heading(2, kardec.Text("Wide chart")).
 		Paragraph(kardec.Text("body"))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}

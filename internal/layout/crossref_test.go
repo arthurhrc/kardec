@@ -71,7 +71,7 @@ func TestCrossref_RefPagePlaceholderResolvesToAnchorPage(t *testing.T) {
 
 func TestCrossref_UnknownLabelLeavesQuestionMark(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		Paragraph(kardec.Text(kardec.RefPagePlaceholder + "ghost}}"))
+		Paragraph(kardec.Text(kardec.RefPagePlaceholder + "ghost}}")).Document
 
 	pages, err := NewEngine().Layout(doc, stubProvider{})
 	if err != nil {

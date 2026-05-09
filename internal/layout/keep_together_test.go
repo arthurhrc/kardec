@@ -90,7 +90,7 @@ func TestKeepTogether_OversizedGroupDegradesGracefully(t *testing.T) {
 	}
 	doc.KeepTogether(inner...)
 
-	pages, err := NewEngine().Layout(doc, stubProvider{})
+	pages, err := NewEngine().Layout(doc.Document, stubProvider{})
 	if err != nil {
 		t.Fatalf("layout: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestKeepTogether_EmptyGroupIsNoOp(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		KeepTogether().
 		Paragraph(kardec.Text("after"))
-	pages, err := NewEngine().Layout(doc, stubProvider{})
+	pages, err := NewEngine().Layout(doc.Document, stubProvider{})
 	if err != nil {
 		t.Fatalf("layout: %v", err)
 	}

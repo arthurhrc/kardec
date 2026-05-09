@@ -24,7 +24,7 @@ func TestLayoutEmitsHeaderTokensSubstituted(t *testing.T) {
 		Header(kardec.Text("Page {{page}} of {{totalPages}}")).
 		Paragraph(kardec.Text("body"))
 
-	pages, err := Layout(doc, chromeFontProvider{})
+	pages, err := Layout(doc.Document, chromeFontProvider{})
 	if err != nil {
 		t.Fatalf("Layout: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestLayoutEmitsFooterTokensSubstituted(t *testing.T) {
 		Footer(kardec.Text("Section {{section}} — {{date}}")).
 		Paragraph(kardec.Text("body"))
 
-	pages, err := Layout(doc, chromeFontProvider{})
+	pages, err := Layout(doc.Document, chromeFontProvider{})
 	if err != nil {
 		t.Fatalf("Layout: %v", err)
 	}

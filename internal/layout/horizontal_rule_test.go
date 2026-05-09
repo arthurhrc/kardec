@@ -10,7 +10,7 @@ func TestLayout_HorizontalRule_EmitsRectAcrossContentWidth(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Paragraph(kardec.Text("before")).
 		HorizontalRule().
-		Paragraph(kardec.Text("after"))
+		Paragraph(kardec.Text("after")).Document
 
 	pages, err := NewEngine().Layout(doc, stubProvider{})
 	if err != nil {
