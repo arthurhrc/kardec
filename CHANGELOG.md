@@ -9,6 +9,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **`SignatureBlock(name, role)` and `doc.Signature(name, role)`.** A
+  contract-shaped composite: thin horizontal rule, centered name
+  paragraph, and an optional italic role line below. Wrapped in
+  `KeepTogether` so the rule and the name never split across pages.
+  Empty role is supported and skips the second line.
 - **`Leader` block.** New `kardec.NewLeader(left, right)` and the
   `doc.Leader(left, right)` builder render a one-line "left ........
   right" row with a dotted fill between the two sides. Reuses the
