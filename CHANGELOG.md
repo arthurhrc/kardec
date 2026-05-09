@@ -7,7 +7,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
-## [0.8.0] — 2026-05-09
+## [0.8.0]
 
 ### Added
 
@@ -65,7 +65,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   TOC's dot-leader emitter for visual consistency. Canonical use
   cases: CV skills bars, financial line items, contract signatories.
 
-## [0.7.0] — 2026-05-09
+## [0.7.0]
 
 ### Added
 
@@ -121,7 +121,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   baseline, strikethrough through the x-height. Thickness scales with
   point size with a 0.4pt floor so 8pt body text still reads.
 
-## [0.5.0] — 2026-05-08
+## [0.5.0]
 
 ### Added
 
@@ -146,7 +146,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   single fluent call. Closes recommendation #5 from the strategic
   audit's "table stakes pending" list.
 
-## [0.4.0] — 2026-05-08
+## [0.4.0]
 
 ### Added
 
@@ -208,7 +208,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   `[pageRef /XYZ null y null]` array. Closes the "TOC linking to
   sections" use case the DX audit flagged.
 
-## [0.3.0] — 2026-05-08
+## [0.3.0]
 
 ### Added
 
@@ -306,7 +306,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   `∏`, `√`) fall back to the default font's glyph table. CFF support
   lands in v0.3.x.
 
-## [0.2.0] — 2026-05-07
+## [0.2.0]
 
 ### Added
 
@@ -366,7 +366,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
   block-style bold/italic flags through to `FontProvider.Resolve`,
   rather than always asking for the empty-string family.
 
-## [0.1.0] — 2026-05-07
+## [0.1.0]
 
 The first usable release. Kardec produces real PDFs (`%PDF-1.7`) from a
 fluent Go DSL with no container, no LibreOffice and no system-font
