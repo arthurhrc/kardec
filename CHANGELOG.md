@@ -9,6 +9,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **`ImageBuilder.Caption(text)` and `CaptionRuns(runs...)`.** Attach a
+  centered caption (using `StyleCaption`) below the image. When a label
+  is also set, Build prepends the canonical "Figure N: " marker so the
+  on-page label matches what `doc.Ref(label)` resolves to. Captioned
+  images automatically wrap in a `KeepTogether` group so the figure
+  and its caption never split across pages. Captionless, label-less
+  images keep emitting as a bare `Image` block, preserving v0.2 layout
+  behaviour.
 - **Auto figure / table numbering + cross-references.** New
   `ImageBuilder.Label(name)` and `TableBuilder.Label(name)` opt a
   block into the figure / table counter; counters are independent

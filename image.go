@@ -85,10 +85,11 @@ func detectImageFormat(data []byte) (ImageFormat, error) {
 // caller commits it to the document via Build. Functional helpers
 // (Width / Height / Center / etc.) keep the builder fluent.
 type ImageBuilder struct {
-	doc   *Document
-	img   Image
-	label string // optional cross-reference label set via Label(name)
-	err   error
+	doc     *Document
+	img     Image
+	label   string // optional cross-reference label set via Label(name)
+	caption []Run  // optional caption runs set via Caption / CaptionRuns
+	err     error
 }
 
 // Image starts an ImageBuilder from an in-memory image payload. The
@@ -160,10 +161,37 @@ func (b *ImageBuilder) Label(name string) *ImageBuilder {
 	return b
 }
 
+// Caption attaches a single-string caption that renders as a
+// centered paragraph immediately below the image. When the image
+// also carries a label, Build prefixes the caption with the
+// canonical "Figure N: " marker so the on-page label matches what
+// doc.Ref(label) resolves to.
+//
+// Callers needing rich runs (italics, bold) inside the caption use
+// CaptionRuns instead.
+func (b *ImageBuilder) Caption(text string) *ImageBuilder {
+	b.caption = []Run{Text(text)}
+	return b
+}
+
+// CaptionRuns is the rich-content variant of Caption: callers
+// supply a fully-styled run sequence and Build keeps the runs
+// intact, only prepending "Figure N: " when a label is also set.
+func (b *ImageBuilder) CaptionRuns(runs ...Run) *ImageBuilder {
+	b.caption = runs
+	return b
+}
+
 // Build appends the image to the parent document and returns the
 // document so the caller can resume the top-level chain. Builder-side
 // errors (read failure, unrecognised format) are folded into the
 // document's deferred error.
+//
+// When the image carries a caption (or a label), Build wraps the
+// anchor + image + caption sequence inside a KeepTogether group so
+// the figure and its caption never split across pages. Plain
+// captionless, label-less images still emit as a bare Image block
+// so existing layouts stay untouched.
 func (b *ImageBuilder) Build() *Document {
 	if b.doc.err != nil {
 		return b.doc
@@ -174,9 +202,35 @@ func (b *ImageBuilder) Build() *Document {
 	if len(b.img.data) == 0 {
 		return b.doc.fail(errors.New("kardec: image with no data"))
 	}
+	figureNumber := 0
 	if b.label != "" {
-		b.doc.registerFigureLabel(b.label)
-		b.doc.append(Anchor{name: RefAnchorName(b.label)})
+		figureNumber = b.doc.registerFigureLabel(b.label)
 	}
-	return b.doc.append(b.img)
+	if len(b.caption) == 0 {
+		// Plain image (with optional anchor) — preserve the v0.2
+		// emission order so existing tests + layouts are stable.
+		if b.label != "" {
+			b.doc.append(Anchor{name: RefAnchorName(b.label)})
+		}
+		return b.doc.append(b.img)
+	}
+
+	// Captioned image: bind anchor + image + caption together so a
+	// page break never separates the figure from its label.
+	captionRuns := b.caption
+	if figureNumber > 0 {
+		marker := "Figure " + itoaSmall(figureNumber) + ": "
+		captionRuns = append([]Run{Text(marker)}, captionRuns...)
+	}
+	captionPara := Paragraph{
+		runs:      captionRuns,
+		styleName: StyleCaption,
+		alignment: AlignCenter,
+	}
+	parts := make([]Block, 0, 3)
+	if b.label != "" {
+		parts = append(parts, Anchor{name: RefAnchorName(b.label)})
+	}
+	parts = append(parts, b.img, captionPara)
+	return b.doc.append(NewKeepTogether(parts...))
 }
