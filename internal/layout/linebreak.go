@@ -9,16 +9,18 @@ import (
 // gap. Whitespace tokens are collapsed at line boundaries; non-whitespace
 // tokens are never split (no hyphenation in v0.1).
 type token struct {
-	text        string
-	isSpace     bool
-	width       float64
-	font        Font
-	sizePt      float64
-	color       kardec.Color
-	ascentPt    float64
-	descentPt   float64
-	link        string // copied from the originating Run; empty when plain
-	footnoteRef int    // 1-based footnote number; 0 when not a footnote marker
+	text          string
+	isSpace       bool
+	width         float64
+	font          Font
+	sizePt        float64
+	color         kardec.Color
+	ascentPt      float64
+	descentPt     float64
+	link          string // copied from the originating Run; empty when plain
+	footnoteRef   int    // 1-based footnote number; 0 when not a footnote marker
+	underline     bool
+	strikethrough bool
 }
 
 // shapeRuns turns a slice of kardec.Run values into the flat token stream
@@ -46,16 +48,18 @@ func shapeRuns(runs []kardec.Run, fonts FontProvider, style blockStyle, defaultS
 		for _, piece := range splitKeepingSpaces(text) {
 			w, asc, desc := font.Measure(piece, size)
 			out = append(out, token{
-				text:        piece,
-				isSpace:     isAllSpace(piece),
-				width:       w,
-				font:        font,
-				sizePt:      size,
-				color:       color,
-				ascentPt:    asc,
-				descentPt:   desc,
-				link:        r.Link(),
-				footnoteRef: r.FootnoteRef(),
+				text:          piece,
+				isSpace:       isAllSpace(piece),
+				width:         w,
+				font:          font,
+				sizePt:        size,
+				color:         color,
+				ascentPt:      asc,
+				descentPt:     desc,
+				link:          r.Link(),
+				footnoteRef:   r.FootnoteRef(),
+				underline:     r.Underline(),
+				strikethrough: r.Strikethrough(),
 			})
 		}
 	}
@@ -113,27 +117,31 @@ func tryHyphenate(t token, remaining float64) (token, token, bool) {
 			continue
 		}
 		hToken := token{
-			text:        head + "-",
-			width:       headWidth + hyphenWidth,
-			font:        t.font,
-			sizePt:      t.sizePt,
-			color:       t.color,
-			ascentPt:    asc,
-			descentPt:   desc,
-			link:        t.link,
-			footnoteRef: t.footnoteRef,
+			text:          head + "-",
+			width:         headWidth + hyphenWidth,
+			font:          t.font,
+			sizePt:        t.sizePt,
+			color:         t.color,
+			ascentPt:      asc,
+			descentPt:     desc,
+			link:          t.link,
+			footnoteRef:   t.footnoteRef,
+			underline:     t.underline,
+			strikethrough: t.strikethrough,
 		}
 		tw, tasc, tdesc := t.font.Measure(tail, t.sizePt)
 		tToken := token{
-			text:        tail,
-			width:       tw,
-			font:        t.font,
-			sizePt:      t.sizePt,
-			color:       t.color,
-			ascentPt:    tasc,
-			descentPt:   tdesc,
-			link:        t.link,
-			footnoteRef: t.footnoteRef,
+			text:          tail,
+			width:         tw,
+			font:          t.font,
+			sizePt:        t.sizePt,
+			color:         t.color,
+			ascentPt:      tasc,
+			descentPt:     tdesc,
+			link:          t.link,
+			footnoteRef:   t.footnoteRef,
+			underline:     t.underline,
+			strikethrough: t.strikethrough,
 		}
 		return hToken, tToken, true
 	}
