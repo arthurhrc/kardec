@@ -79,6 +79,11 @@ func emitVerticalLine(cur *pageCursor, x, y, height float64) {
 // placeTableRow emits the items for a single row, paginating if needed.
 // On a forced flush, RepeatHeader causes row 0 to be reprinted at the top
 // of the new page before this row's content.
+//
+// Cells with Span > 1 absorb the next Span-1 column widths, so the row's
+// slice may be shorter than len(cols). The colIdx walker tracks how far
+// into the column array each cell sits; the next cell starts at the
+// column following the span boundary.
 func (e Engine) placeTableRow(
 	cur *pageCursor,
 	flush func(),
@@ -90,13 +95,13 @@ func (e Engine) placeTableRow(
 	tbl kardec.Table,
 	rowIdx int,
 ) {
-	cellLines := make([][]line, len(cols))
+	plan := planRowCells(row, cols, colWidths)
+
 	maxLines := 0
-	for i := range cols {
-		cellRuns := cellRunsAt(row, i)
-		tokens := shapeRuns(cellRuns, fonts, style, kardec.Pt(style.sizePt), style.color)
-		ls := breakLines(tokens, colWidths[i])
-		cellLines[i] = ls
+	for i, p := range plan {
+		tokens := shapeRuns(row.Cells[i].Runs, fonts, style, kardec.Pt(style.sizePt), style.color)
+		ls := breakLines(tokens, p.width)
+		plan[i].lines = ls
 		if len(ls) > maxLines {
 			maxLines = len(ls)
 		}
@@ -132,43 +137,96 @@ func (e Engine) placeTableRow(
 		}
 	}
 
-	// Borders: emit horizontal rule above this row when borders include
-	// horizontal lines, plus vertical rules when the full grid is
-	// requested. The bottom border of every row is drawn as the top
-	// border of the next; the table's outer bottom is added after the
-	// final row in placeTable's caller via emitFinalBottomBorder, but
-	// for v0.3 we emit a per-row bottom too so the table closes when
-	// it ends mid-page without an extra block.
 	bs := tbl.BorderStyle()
 	if bs == kardec.BordersHorizontal || bs == kardec.BordersAll {
 		emitHorizontalLine(cur, cur.x0, rowTop, totalWidth)
 	}
 	if bs == kardec.BordersAll {
-		x := cur.x0
-		emitVerticalLine(cur, x, rowTop, rowHeight)
-		for _, w := range colWidths {
-			x += w
-			emitVerticalLine(cur, x, rowTop, rowHeight)
+		// Verticals emit at every cell boundary (not every column
+		// boundary) so a spanned cell paints as one merged region.
+		emitVerticalLine(cur, cur.x0, rowTop, rowHeight)
+		for _, p := range plan {
+			emitVerticalLine(cur, cur.x0+p.x+p.width, rowTop, rowHeight)
 		}
 	}
 
-	// Emit each cell's lines at the appropriate column x. The column's
-	// alignment is applied inside the column's width budget.
-	x := cur.x0
-	for i, ls := range cellLines {
-		for li, ln := range ls {
+	for _, p := range plan {
+		col := mergedColumn(cols, p.colStart, p.span)
+		for li, ln := range p.lines {
 			lineY := rowTop + float64(li)*style.lineHeight*style.sizePt
-			emitTableCellLine(cur, ln, style, cols[i], x, colWidths[i], lineY)
+			emitTableCellLine(cur, ln, style, col, cur.x0+p.x, p.width, lineY)
 		}
-		x += colWidths[i]
 	}
 
 	cur.cursorY = rowTop + rowHeight
 
-	// Outer bottom border of the table — only on the last row.
 	if rowIdx == len(tbl.Rows())-1 && (bs == kardec.BordersHorizontal || bs == kardec.BordersAll) {
 		emitHorizontalLine(cur, cur.x0, cur.cursorY, totalWidth)
 	}
+}
+
+// rowCellPlan captures everything the row emitter needs to know about a
+// single visible cell: where it starts, how many columns it spans,
+// the resolved x and width, and (filled in by the line-break pass) the
+// broken lines themselves.
+type rowCellPlan struct {
+	colStart int
+	span     int
+	x        float64
+	width    float64
+	lines    []line
+}
+
+// planRowCells walks row.Cells and computes the column range and width
+// for each cell. Span clamps at the column boundary so a cell with
+// Span larger than the remaining columns simply absorbs what is left.
+// The returned x values are relative to the table's left edge (origin
+// 0); the caller adds cur.x0 when emitting glyphs.
+func planRowCells(row kardec.Row, cols []kardec.Column, widths []float64) []rowCellPlan {
+	plan := make([]rowCellPlan, 0, len(row.Cells))
+	xCursor := 0.0
+	colIdx := 0
+	for _, cell := range row.Cells {
+		if colIdx >= len(cols) {
+			break
+		}
+		span := cell.Span
+		if span < 1 {
+			span = 1
+		}
+		if colIdx+span > len(cols) {
+			span = len(cols) - colIdx
+		}
+		w := 0.0
+		for k := 0; k < span; k++ {
+			w += widths[colIdx+k]
+		}
+		plan = append(plan, rowCellPlan{
+			colStart: colIdx,
+			span:     span,
+			x:        xCursor,
+			width:    w,
+		})
+		xCursor += w
+		colIdx += span
+	}
+	return plan
+}
+
+// mergedColumn returns a synthetic Column carrying the alignment of
+// the first column the cell straddles. Spanned cells inherit the
+// alignment of their leftmost underlying column — the most common
+// expectation for merged headers ("Q1 vs Q2" centered above two
+// numeric columns means the user picks the leftmost as "header"
+// alignment).
+func mergedColumn(cols []kardec.Column, colStart, span int) kardec.Column {
+	if colStart >= len(cols) {
+		return kardec.Column{}
+	}
+	out := cols[colStart]
+	out.Width = 0
+	_ = span
+	return out
 }
 
 // emitTableCellLine emits one already-broken line for a single cell at

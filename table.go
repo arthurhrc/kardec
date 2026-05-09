@@ -107,6 +107,13 @@ type Row struct {
 // content can be supplied via the Cells helper.
 type Cell struct {
 	Runs []Run
+	// Span is the number of columns this cell occupies. 0 and 1 are
+	// equivalent (single column); values larger than the remaining
+	// columns are clamped at layout time. Cells consumed by a
+	// preceding span are simply absent from the row's slice — the
+	// layout engine advances the column index by Span as it walks
+	// the row.
+	Span int
 }
 
 // ColumnOption customises a Column when constructed through the Col
@@ -235,6 +242,21 @@ func (b *TableBuilder) RowCells(cells ...Cell) *TableBuilder {
 // Cells builds a Cell from the supplied runs — the rich-content
 // counterpart to the plain string accepted by Row.
 func Cells(runs ...Run) Cell { return Cell{Runs: runs} }
+
+// SpanCell builds a Cell that occupies span columns. The most common
+// use case is a merged header that labels a group of underlying
+// columns ("Q1 vs Q2" spanning two single-month columns).
+//
+// span values <= 1 collapse to a normal one-column cell. The next
+// span-1 cells in the row's slice should be omitted: layout absorbs
+// the column budget into this Cell's width and advances the column
+// pointer by span.
+func SpanCell(span int, runs ...Run) Cell {
+	if span < 1 {
+		span = 1
+	}
+	return Cell{Runs: runs, Span: span}
+}
 
 // Build appends the constructed Table to the parent document and
 // returns the document for chained subsequent calls. If the builder has

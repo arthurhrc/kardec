@@ -9,6 +9,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Table column groups (colspan).** New `kardec.SpanCell(span, runs...)`
+  builds a Cell that absorbs the next `span-1` column widths so a
+  single merged header can label a group of underlying columns.
+  Layout walks the row's Cell slice with a column cursor that
+  advances by Span; BordersAll vertical rules emit at cell
+  boundaries instead of column boundaries so spanned cells render
+  as one merged region. Span values larger than the remaining
+  columns are clamped at the table edge.
 - **Bibliography + numeric citations.** `doc.Cite(key)` returns a Run
   carrying `[N]` plus an internal hyperlink to the matching entry;
   numbers are assigned on first reference and reused on repeats.
