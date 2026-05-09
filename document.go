@@ -73,6 +73,13 @@ type Document struct {
 	figureCounter int
 	tableCounter  int
 
+	// clauseCounters tracks the per-level counter stack used by
+	// Document.Clause to compose hierarchical numbers (1, 1.1,
+	// 1.2, 2, 2.1, ...). Index 0 is the top level. Calling
+	// Clause(N) increments counters[N-1] and truncates anything
+	// deeper than N so the next call at N+1 starts at 1.
+	clauseCounters []int
+
 	// labels maps a user-supplied label (the "growth-2024" in
 	// LabeledFigure("growth-2024", img)) to the resolved kind plus
 	// number. Ref / RefPage consult this map to compose a cross-

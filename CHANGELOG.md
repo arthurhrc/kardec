@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **`Clause(level, runs...)` and `ClauseAt(number, runs...)`.** Auto-
+  numbered hierarchical clauses for legal / contract documents.
+  `Clause(level, ...)` increments the per-level counter and resets
+  any deeper levels (1, 1.1, 1.2, 2, 2.1, ...). `ClauseAt(label, ...)`
+  bypasses the auto-counter for explicit numbering schemes. Top-level
+  numbers carry a trailing dot (`1. Definitions`); deeper levels do
+  not (`1.2 Term`), matching Word's convention.
 - **`SignatureBlock(name, role)` and `doc.Signature(name, role)`.** A
   contract-shaped composite: thin horizontal rule, centered name
   paragraph, and an optional italic role line below. Wrapped in
