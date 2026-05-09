@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **`kardec/httpx` subpackage.** New `httpx.WriteResponse(w, doc,
+  filename)` and `WriteResponseInline` helpers wire a Kardec
+  Document into an `http.ResponseWriter` with the right
+  Content-Type, Content-Length, and RFC-6266-shaped
+  Content-Disposition. Pure consumer of the public render package;
+  importing it adds no behaviour to the rest of Kardec. Pass an
+  empty filename to omit the disposition header.
 - **`HorizontalRule` block.** A real divider primitive instead of a
   `PageBreak` masquerading as one when Markdown ingests `---`. Defaults
   to a 0.5pt gray line with 6pt of padding above and below; the public
