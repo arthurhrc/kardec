@@ -87,6 +87,59 @@ func splitKeepingSpaces(s string) []string {
 
 func isSpaceByte(b byte) bool { return b == ' ' || b == '\t' }
 
+// tryHyphenate looks for a word break that lets a prefix of t.text
+// (plus a trailing hyphen) fit within remaining points. Returns the
+// head token (with the hyphen appended) and the tail token (the
+// remainder of the word) when a viable split exists.
+func tryHyphenate(t token, remaining float64) (token, token, bool) {
+	if t.isSpace || t.text == "" || remaining <= 0 {
+		return token{}, token{}, false
+	}
+	breaks := hyphenBreakPoints(t.text)
+	if len(breaks) == 0 {
+		return token{}, token{}, false
+	}
+	// Width per character at this size — use Measure on a single
+	// rune to derive the average advance for the slicing math.
+	hyphenWidth, _, _ := t.font.Measure("-", t.sizePt)
+	// Walk from the rightmost candidate down so the line fills as
+	// much as possible before breaking.
+	for i := len(breaks) - 1; i >= 0; i-- {
+		b := breaks[i]
+		head := t.text[:b]
+		tail := t.text[b:]
+		headWidth, asc, desc := t.font.Measure(head, t.sizePt)
+		if headWidth+hyphenWidth > remaining {
+			continue
+		}
+		hToken := token{
+			text:        head + "-",
+			width:       headWidth + hyphenWidth,
+			font:        t.font,
+			sizePt:      t.sizePt,
+			color:       t.color,
+			ascentPt:    asc,
+			descentPt:   desc,
+			link:        t.link,
+			footnoteRef: t.footnoteRef,
+		}
+		tw, tasc, tdesc := t.font.Measure(tail, t.sizePt)
+		tToken := token{
+			text:        tail,
+			width:       tw,
+			font:        t.font,
+			sizePt:      t.sizePt,
+			color:       t.color,
+			ascentPt:    tasc,
+			descentPt:   tdesc,
+			link:        t.link,
+			footnoteRef: t.footnoteRef,
+		}
+		return hToken, tToken, true
+	}
+	return token{}, token{}, false
+}
+
 func isAllSpace(s string) bool {
 	if s == "" {
 		return false
@@ -131,14 +184,7 @@ func breakLines(tokens []token, available float64) []line {
 		cur = line{}
 	}
 
-	for _, t := range tokens {
-		if t.isSpace && len(cur.tokens) == 0 {
-			// Skip leading whitespace on a fresh line.
-			continue
-		}
-		if !t.isSpace && cur.width+t.width > available && len(cur.tokens) > 0 {
-			flush()
-		}
+	pushToken := func(t token) {
 		cur.tokens = append(cur.tokens, t)
 		cur.width += t.width
 		if t.ascentPt > cur.ascent {
@@ -147,6 +193,35 @@ func breakLines(tokens []token, available float64) []line {
 		if t.descentPt > cur.descent {
 			cur.descent = t.descentPt
 		}
+	}
+
+	for _, t := range tokens {
+		if t.isSpace && len(cur.tokens) == 0 {
+			// Skip leading whitespace on a fresh line.
+			continue
+		}
+		if !t.isSpace && cur.width+t.width > available {
+			// Try hyphenation before forcing the whole word onto a
+			// new line. If a prefix + soft hyphen fits in the
+			// remaining width — including when the line is empty
+			// and the word would otherwise overflow on its own —
+			// emit it, flush, and continue with the suffix. When
+			// the line already carries tokens, fall back to flush
+			// even if hyphenation declines, preserving the greedy
+			// "fit at least one token per line" invariant.
+			remaining := available - cur.width
+			if remaining <= 0 {
+				remaining = available
+			}
+			if head, tail, ok := tryHyphenate(t, remaining); ok {
+				pushToken(head)
+				flush()
+				t = tail
+			} else if len(cur.tokens) > 0 {
+				flush()
+			}
+		}
+		pushToken(t)
 	}
 	flush()
 	return lines
