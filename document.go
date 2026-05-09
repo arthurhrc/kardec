@@ -67,7 +67,36 @@ type Document struct {
 	// produced here is what Acrobat accepts as PDF/A.
 	pdfa bool
 
+	// figureCounter / tableCounter assign the auto-numbers behind
+	// LabeledFigure / LabeledTable. They are 1-based and never reset
+	// across sections.
+	figureCounter int
+	tableCounter  int
+
+	// labels maps a user-supplied label (the "growth-2024" in
+	// LabeledFigure("growth-2024", img)) to the resolved kind plus
+	// number. Ref / RefPage consult this map to compose a cross-
+	// reference run; layout's post-pass consults the engine's
+	// AnchorMark slice for the page-number side of the answer.
+	labels map[string]labelInfo
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
+}
+
+// labelKind discriminates between the cross-reference families.
+type labelKind uint8
+
+const (
+	labelFigure labelKind = iota + 1
+	labelTable
+)
+
+// labelInfo is the resolved metadata behind a single registered
+// label: which family it belongs to plus the auto-number assigned
+// at registration time.
+type labelInfo struct {
+	kind   labelKind
+	number int
 }
 
 // PDFA opts the document into PDF/A-2b conformance markers (XMP
