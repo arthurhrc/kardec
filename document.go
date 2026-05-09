@@ -46,8 +46,29 @@ type Document struct {
 	footnotes       []FootnoteRef
 	footnoteCounter int
 
+	// markdownBaseDir resolves relative image paths in source passed
+	// to AppendMarkdown. Empty (the default) keeps the bridge
+	// network- and disk-free: inline images stay a warning rather
+	// than load arbitrary bytes off the filesystem.
+	markdownBaseDir string
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
+
+// SetMarkdownBaseDir configures the directory inline `![alt](path)`
+// links resolve against during AppendMarkdown. When unset, the
+// bridge keeps its conservative default of warning + dropping the
+// image — the document never reaches the filesystem on its own.
+func (d *Document) SetMarkdownBaseDir(dir string) *Document {
+	if d.err != nil {
+		return d
+	}
+	d.markdownBaseDir = dir
+	return d
+}
+
+// MarkdownBaseDir returns the configured directory or "" when none.
+func (d *Document) MarkdownBaseDir() string { return d.markdownBaseDir }
 
 // Footnotes returns every footnote registered on the document in
 // declaration order. The slice is the document's own backing store;

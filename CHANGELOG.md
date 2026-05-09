@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Markdown image embed.** When a paragraph contains only a single
+  inline image, `AppendMarkdown` now produces a real `Image` block.
+  Callers must opt in via `Document.SetMarkdownBaseDir(dir)` so the
+  bridge knows which directory relative paths resolve against;
+  remote (`http://`, `https://`, `data:`) sources still warn and
+  drop, keeping the bridge network-free. Previously every
+  Markdown image was silently dropped with a warning.
 - **Word hyphenation.** New `internal/hyphenation` package returns
   candidate break points for English words using a heuristic
   combining known prefixes (`un-`, `re-`, `pre-`, `inter-`, ...) and
