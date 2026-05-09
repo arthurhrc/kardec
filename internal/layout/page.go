@@ -14,6 +14,12 @@ type Page struct {
 	Headings []HeadingMark
 	Anchors  []AnchorMark
 
+	// FootnoteRefs collects the 1-based footnote numbers whose
+	// in-text markers landed on this page, in encounter order. The
+	// engine consults Document.Footnotes to find the matching body
+	// text when emitting the per-page footnote chrome.
+	FootnoteRefs []int
+
 	// Width and Height are the page's actual dimensions in points
 	// after orientation is applied. Landscape sections expose Width
 	// > Height here even though Size still reports the un-rotated

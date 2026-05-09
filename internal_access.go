@@ -61,3 +61,9 @@ func (r Run) Link() string { return r.link }
 // already-walked Run children. End-user code should prefer the Link
 // constructor for new content.
 func (r *Run) SetLink(url string) { r.link = url }
+
+// FootnoteRef returns the 1-based footnote number this run belongs
+// to (its visible marker), or 0 when the run is not a footnote
+// reference. Layout uses the value to look up the matching body in
+// Document.Footnotes.
+func (r Run) FootnoteRef() int { return r.footnoteRef }

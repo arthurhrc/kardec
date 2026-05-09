@@ -108,6 +108,7 @@ func emitLine(cur *pageCursor, ln line, style blockStyle, isLastLine bool) {
 			Color: t.color,
 			Link:  t.link,
 		})
+		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width
 	}
 	cur.cursorY += style.lineHeight * style.sizePt
@@ -146,6 +147,7 @@ func emitJustifiedLine(cur *pageCursor, ln line, style blockStyle, available flo
 			Color: t.color,
 			Link:  t.link,
 		})
+		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width
 	}
 }
