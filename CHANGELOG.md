@@ -9,6 +9,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Table borders and shading.** New `TableBorderStyle`
+  (`BordersNone` / `BordersHorizontal` / `BordersAll`) plus
+  `TableBuilder.Borders`, `HeaderShading(color)` and
+  `AlternateRowShading(color)` setters. Layout emits the lines and
+  backgrounds as `PlacedItem.Rect` entries before the cell glyphs so
+  the renderer paints them under text. Reuses the rectangle primitive
+  already used by math fraction bars — no PDF-writer change needed.
+  `examples/report` adopts the new API.
 - **Internal links + anchors.** New `Document.Anchor(name)` block
   registers a named destination at the current flow position. A
   hyperlink whose URL begins with `"#"` (`kardec.Link("Chapter 2",
