@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-09
+
 ### Added
 
 - **`ImageBuilder.Caption(text)` and `CaptionRuns(runs...)`.** Attach a
