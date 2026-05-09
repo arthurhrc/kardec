@@ -87,6 +87,9 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 	if d.FontSubsetEnabled() {
 		applyFontSubset(model.Fonts, pages, fontIdx)
 	}
+	if d.PDFAEnabled() {
+		model.PDFA = true
+	}
 	writer := pdf.Writer{}
 	if t, ok := d.CreationDate(); ok {
 		fixed := t

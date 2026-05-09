@@ -122,8 +122,19 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	outlinesID := emitOutlines(ow, doc.Outlines, pageIDs)
 	destsID := emitDestinations(ow, doc.Destinations, pageIDs)
 
+	// Resolve the timestamp once so /Info /CreationDate, the XMP
+	// xmp:CreateDate and the trailer /ID all share the same value.
+	now := w_clockOrDefault(writerClock)
+
+	// Optional PDF/A metadata stream — emitted before the catalog
+	// so the catalog can reference it.
+	metadataID := 0
+	if doc.PDFA {
+		metadataID = emitPDFAMetadata(ow, doc, now)
+	}
+
 	// Catalog last among the structural objects — it points at /Pages
-	// and optionally at /Outlines / /Dests.
+	// and optionally at /Outlines / /Dests / /Metadata.
 	catalogBody := fmt.Sprintf("<< /Type /Catalog /Pages %s", ref(pagesID))
 	if outlinesID > 0 {
 		catalogBody += fmt.Sprintf(" /Outlines %s /PageMode /UseOutlines", ref(outlinesID))
@@ -131,12 +142,15 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	if destsID > 0 {
 		catalogBody += fmt.Sprintf(" /Dests %s", ref(destsID))
 	}
+	if metadataID > 0 {
+		catalogBody += fmt.Sprintf(" /Metadata %s", ref(metadataID))
+	}
 	catalogBody += " >>"
 	ow.writeObject(catalogID, catalogBody)
 
 	// Info dict (optional; /Producer "Kardec" + Title/Author when set).
 	infoID := ow.allocID()
-	infoBody := buildInfoDict(doc, w_clockOrDefault(writerClock))
+	infoBody := buildInfoDict(doc, now)
 	ow.writeObject(infoID, infoBody)
 
 	// Final emission: header, body, xref, trailer, startxref.
@@ -147,7 +161,12 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	if _, err := ow.writeTo(w); err != nil {
 		return err
 	}
-	if err := writeXrefAndTrailer(w, ow.offsets, int64(len(pdfHeader)), ow.nextID, catalogID, infoID); err != nil {
+	var idPair [2]string
+	if doc.PDFA {
+		idA, idB := stableDocumentID(doc, now)
+		idPair = [2]string{idA, idB}
+	}
+	if err := writeXrefAndTrailer(w, ow.offsets, int64(len(pdfHeader)), ow.nextID, catalogID, infoID, idPair); err != nil {
 		return err
 	}
 	if err := writeStartxref(w, xrefOffset); err != nil {

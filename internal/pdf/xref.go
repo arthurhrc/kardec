@@ -20,7 +20,7 @@ import (
 // The xref table is written as a single subsection covering object IDs
 // 0..nextID-1. Object 0 is the conventional "free" head of the free list
 // with generation 65535.
-func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, nextID, root, info int) error {
+func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, nextID, root, info int, idPair [2]string) error {
 	var b strings.Builder
 	b.WriteString("xref\n")
 	fmt.Fprintf(&b, "0 %d\n", nextID)
@@ -42,12 +42,18 @@ func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, ne
 	}
 
 	// Trailer: /Size = highest ID + 1 (i.e. nextID), /Root = catalog,
-	// optional /Info. ID array is omitted in v0.1 — Acrobat/Chrome accept
-	// trailers without one.
+	// optional /Info, optional /ID. The /ID array is required by
+	// PDF/A-2 and recommended by every other PDF flavor — it is two
+	// 16-byte hex strings, the first identifying the original
+	// document and the second the current revision (we make the
+	// pair identical for first-revision output).
 	b.WriteString("trailer\n<<")
 	fmt.Fprintf(&b, " /Size %d /Root %s", nextID, ref(root))
 	if info > 0 {
 		fmt.Fprintf(&b, " /Info %s", ref(info))
+	}
+	if idPair[0] != "" {
+		fmt.Fprintf(&b, " /ID [<%s><%s>]", idPair[0], idPair[1])
 	}
 	b.WriteString(" >>\n")
 

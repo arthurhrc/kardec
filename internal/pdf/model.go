@@ -12,6 +12,12 @@ type Document struct {
 	Images       []EmbeddedImage
 	Outlines     []OutlineEntry
 	Destinations []NamedDestination
+	// PDFA, when true, makes the writer emit XMP metadata declaring
+	// PDF/A-2b conformance, attach a /Metadata catalog entry, and
+	// write a stable /ID array in the trailer. Strict PDF/A
+	// validators additionally require an OutputIntent with an
+	// embedded sRGB ICC profile — that lands in v0.6.
+	PDFA bool
 }
 
 // NamedDestination is one entry in the PDF's /Dests dictionary. Name
