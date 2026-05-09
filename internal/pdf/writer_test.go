@@ -219,7 +219,7 @@ func verifyXrefOffsets(t *testing.T, pdf []byte) {
 			t.Errorf("xref entry %d offset %d out of file bounds (len=%d)", i, off, len(pdf))
 			continue
 		}
-		header := pdf[off : min(off+24, int64(len(pdf)))]
+		header := pdf[off:min(off+24, int64(len(pdf)))]
 		want := fmt.Sprintf("%d 0 obj", i)
 		if !bytes.HasPrefix(header, []byte(want)) {
 			t.Errorf("xref entry %d points at %q, expected %q", i, string(header), want)

@@ -51,9 +51,9 @@ func NewHeading(level int, runs ...Run) Heading {
 // Paragraph is a body-text block of one or more inline Runs.
 type Paragraph struct {
 	runs       []Run
-	styleName  string  // optional named style; "" defers to block kind default
-	style      Style   // optional explicit override; merged on top of styleName
-	hasStyle   bool    // true if style was set explicitly via WithStyle
+	styleName  string // optional named style; "" defers to block kind default
+	style      Style  // optional explicit override; merged on top of styleName
+	hasStyle   bool   // true if style was set explicitly via WithStyle
 	alignment  Alignment
 	lineHeight float64 // 0 means "use style default"
 }

@@ -74,7 +74,6 @@ func TestRenderPropagatesBuilderError(t *testing.T) {
 	}
 }
 
-
 func TestErrPropagationStopsFurtherAppends(t *testing.T) {
 	doc := New(PageA4, MarginsNormal)
 	doc.fail(errors.New("synthetic"))

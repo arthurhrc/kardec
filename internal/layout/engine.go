@@ -145,17 +145,17 @@ type pageCursor struct {
 	items        []PlacedItem
 	headings     []HeadingMark
 	anchors      []AnchorMark
-	footnoteRefs []int // 1-based numbers, in encounter order, deduped
+	footnoteRefs []int   // 1-based numbers, in encounter order, deduped
 	x0, y0       float64 // top-left of the active column
 	x1, y1       float64 // bottom-right of the active column
 	cursorY      float64 // current Y position, top-left origin
 
 	// Multi-column state. columns == 1 keeps single-column geometry
 	// (pageX0 == x0, pageX1 == x1).
-	columns      int
-	columnIdx    int     // 0-based index of the active column
-	columnGap    float64 // horizontal gap between columns
-	columnWidth  float64 // width of one column
+	columns        int
+	columnIdx      int     // 0-based index of the active column
+	columnGap      float64 // horizontal gap between columns
+	columnWidth    float64 // width of one column
 	pageX0, pageX1 float64 // full content area horizontals (margins applied)
 }
 

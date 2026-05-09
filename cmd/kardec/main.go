@@ -166,4 +166,3 @@ func renderTemplate(tplPath, dataPath, output string) error {
 	}
 	return doc.Render(output)
 }
-

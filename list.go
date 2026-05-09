@@ -18,8 +18,8 @@ const (
 // layout engine indents nested lists and rotates the bullet shape so
 // the level is visually obvious.
 type List struct {
-	style    ListStyle
-	items    []ListItem
+	style ListStyle
+	items []ListItem
 }
 
 // blockKind implements Block.

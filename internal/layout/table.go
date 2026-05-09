@@ -377,4 +377,3 @@ func cellRunsAt(row kardec.Row, i int) []kardec.Run {
 	}
 	return row.Cells[i].Runs
 }
-

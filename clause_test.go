@@ -53,11 +53,11 @@ func TestClauseAutoNumberingNested(t *testing.T) {
 
 func TestClauseLevelsAreClampedAndDeepReset(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		Clause(0, kardec.Text("clamped")).             // becomes level 1
-		Clause(2, kardec.Text("first sub")).           // 1.1
-		Clause(3, kardec.Text("deeper sub")).          // 1.1.1
-		Clause(2, kardec.Text("back up to two")).      // 1.2 — depth 3 should reset
-		Clause(3, kardec.Text("new deeper sub"))       // 1.2.1
+		Clause(0, kardec.Text("clamped")).        // becomes level 1
+		Clause(2, kardec.Text("first sub")).      // 1.1
+		Clause(3, kardec.Text("deeper sub")).     // 1.1.1
+		Clause(2, kardec.Text("back up to two")). // 1.2 — depth 3 should reset
+		Clause(3, kardec.Text("new deeper sub"))  // 1.2.1
 
 	blocks := doc.Sections()[0].Blocks
 	wants := []string{"1.", "1.1", "1.1.1", "1.2", "1.2.1"}
