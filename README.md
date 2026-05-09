@@ -62,8 +62,9 @@ That is the whole goal — nothing more. If you need pixel-perfect DOCX conversi
 |---------|-------|
 | 0.1.0 | Paragraphs, headings, page breaks, style system, embedded fonts, Liberation Sans output |
 | 0.2.0 | Multi-face embedding (real bold / italic glyphs), real tables, raster images, Markdown ingest with GFM tables, Markdown templating |
-| **[0.3.0](CHANGELOG.md#030--2026-05-08)** _(current)_ | LaTeX math subset (`\frac`, `\sqrt`, `\sum`, `\int`, greek), real lists, section header/footer + page tokens, hyperlinks + PDF outline, byte-reproducible output, `Document.Warnings()` |
-| 0.4 | TTF subsetting, hyphenation, full Knuth–Plass, multi-section page setups, table borders/shading, OTF/CFF font embedding |
+| 0.3.0 | LaTeX math subset (`\frac`, `\sqrt`, `\sum`, `\int`, greek), real lists, section header/footer + page tokens, hyperlinks + PDF outline, byte-reproducible output, `Document.Warnings()` |
+| **[0.4.0](CHANGELOG.md#040--2026-05-08)** _(current)_ | Internal links + anchors, table borders + shading, multi-section page setups, footnotes, auto table of contents, heuristic word hyphenation, Markdown image embed |
+| 0.5 | TTF subsetting, OTF/CFF font embedding (lifts the math-glyph fallback), full Knuth–Plass, Liang hyphenation patterns |
 | 1.0 | API freeze + comprehensive examples + ≥85 % test coverage |
 
 Full design spec: [docs/RFC-001-dsl.md](docs/RFC-001-dsl.md).
