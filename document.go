@@ -486,6 +486,22 @@ func (d *Document) HorizontalRule(rule ...HorizontalRule) *Document {
 	return d.append(r)
 }
 
+// Anchor appends a named destination at the current flow position.
+// The name is matched against the "#<name>" target of internal Link
+// runs — see Link / SetLink — and is also exposed in the PDF's named
+// destinations table so external tools can jump directly via URL
+// fragments.
+//
+// Names should be ASCII identifiers without spaces; the writer does
+// not escape them. An empty name is a no-op so callers can guard
+// programmatic anchor generation without special-casing.
+func (d *Document) Anchor(name string) *Document {
+	if d.err != nil || name == "" {
+		return d
+	}
+	return d.append(Anchor{name: name})
+}
+
 // ErrRendererUnregistered is returned by Render / RenderTo / Bytes when no
 // rendering implementation has been wired in. Importing the public render
 // package — github.com/arthurhrc/kardec/render — installs the default
