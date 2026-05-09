@@ -7,6 +7,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.9.1]
+
+### Changed
+
+- **`gofmt -s` clean across the tree.** Apply Go's
+  simplification pass to all 21 files that carried column-aligned
+  struct fields and inline comments gofmt would normalise; rephrase
+  the RFC 6266 reference in `httpx/contentDisposition` to dodge Go
+  1.19+ doc-comment canonicalisation of `''` into `”`. Single
+  source of truth for code formatting now matches the goreportcard
+  scoring rule, so the gofmt sub-score moves from 86% to 100%.
+  Pure cosmetic; zero behavioural change.
+
 ## [0.9.0]
 
 ### Added
@@ -474,7 +487,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.1
 [0.9.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.0
 [0.8.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.8.0
 [0.7.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.7.0
