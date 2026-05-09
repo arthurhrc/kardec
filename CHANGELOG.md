@@ -7,6 +7,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Added
+
+- **Internal links + anchors.** New `Document.Anchor(name)` block
+  registers a named destination at the current flow position. A
+  hyperlink whose URL begins with `"#"` (`kardec.Link("Chapter 2",
+  "#chapter-2")`) now emits a `/GoTo /D` action targeting that
+  destination instead of an external `/URI`. PDF catalogs gain a
+  `/Dests` dictionary mapping each anchor name to a
+  `[pageRef /XYZ null y null]` array. Closes the "TOC linking to
+  sections" use case the DX audit flagged.
+
 ## [0.3.0] — 2026-05-08
 
 ### Added
