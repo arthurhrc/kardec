@@ -92,9 +92,10 @@ func writeWithDisposition(w http.ResponseWriter, d *kardec.Document, filename st
 
 // contentDisposition formats the Content-Disposition header value.
 // RFC 6266 says the filename should be quoted; non-ASCII filenames
-// would also use the `filename*=UTF-8''<percent-encoded>` form, but
-// the ASCII path covers the overwhelming majority of report names.
-// Quotes inside the filename are stripped to keep the header valid.
+// would also use the extended `filename*=` form (RFC 6266 §4.2),
+// but the ASCII path covers the overwhelming majority of report
+// names. Quotes inside the filename are stripped to keep the
+// header valid.
 func contentDisposition(disp Disposition, filename string) string {
 	prefix := "attachment"
 	if disp == Inline {
