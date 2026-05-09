@@ -80,9 +80,12 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 		return fmt.Errorf("render: layout: %w", err)
 	}
 
-	model, err := buildPDFModel(pages, registry)
+	model, fontIdx, err := buildPDFModel(pages, registry)
 	if err != nil {
 		return fmt.Errorf("render: build pdf model: %w", err)
+	}
+	if d.FontSubsetEnabled() {
+		applyFontSubset(model.Fonts, pages, fontIdx)
 	}
 	writer := pdf.Writer{}
 	if t, ok := d.CreationDate(); ok {
@@ -112,7 +115,7 @@ type fontKey struct {
 // of the registry is left out so the resulting PDF stays close in size
 // to the v0.1 single-font baseline. Subsetting (trimming individual
 // glyphs within an embedded face) is a v0.3 feature.
-func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Document, error) {
+func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Document, map[fontKey]int, error) {
 	used := collectUsedFontKeys(pages)
 	embedded, index, defaultID := assembleEmbeddedFonts(registry, used)
 
@@ -121,7 +124,7 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 
 	images, imageIndex, err := buildEmbeddedImages(pages)
 	if err != nil {
-		return pdf.Document{}, err
+		return pdf.Document{}, nil, err
 	}
 
 	out := pdf.Document{
@@ -195,7 +198,7 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 		pdfPage.Links = linkRanges.flush()
 		out.Pages = append(out.Pages, pdfPage)
 	}
-	return out, nil
+	return out, index, nil
 }
 
 // collectUsedFontKeys walks every PlacedItem on every page and gathers

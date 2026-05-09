@@ -112,14 +112,17 @@ type Color struct {
 	R, G, B uint8
 }
 
-// EmbeddedFont carries a font's display name and its raw TrueType bytes.
-// The writer embeds the full TTF as a FontFile2 stream — no subsetting in
-// v0.1. The size penalty (often 100–500 KB per font) is accepted for
-// simplicity; subsetting is planned for v0.2 once a glyph-coverage pass
-// runs over each Document.
+// EmbeddedFont carries a font's display name and its raw TrueType
+// bytes. KeepGIDs (when non-nil) opts the writer into glyf-table
+// subsetting: every glyph not in the set is zeroed out before
+// embedding so the FontFile2 stream compresses to a fraction of
+// the full TTF. nil keeps the legacy "embed the entire font"
+// behaviour, which is still the safer choice for documents that
+// register a font without a known glyph-usage profile.
 type EmbeddedFont struct {
-	Name    string
-	TTFData []byte
+	Name     string
+	TTFData  []byte
+	KeepGIDs map[uint16]bool
 }
 
 // ImageEncoding selects how an EmbeddedImage is written into the PDF.

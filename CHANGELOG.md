@@ -7,6 +7,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Added
+
+- **Font subsetting (opt-in).** `Document.SubsetFonts()` enables a
+  glyf-table zero-out pass: every glyph not actually referenced by
+  the document is wiped from the embedded TTF before the FontFile2
+  stream is FlateDecode-compressed. Composite glyphs are recursively
+  expanded so accented characters keep their components. Real
+  documents drop ~70 % of their PDF size in measured tests
+  (433 KB → 126 KB on a one-paragraph hello). The structural tables
+  (cmap, loca, hmtx, maxp.numGlyphs) stay intact so the writer
+  contract does not change. Off by default — turning it on is a
+  single fluent call. Closes recommendation #5 from the strategic
+  audit's "table stakes pending" list.
+
 ## [0.4.0] — 2026-05-08
 
 ### Added
