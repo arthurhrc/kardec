@@ -9,6 +9,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Multi-section page setups.** New `Document.NewSection(size,
+  margins)` / `NewSectionWithSetup(setup)` start a new section that
+  receives subsequent block / header / footer calls. Each section
+  carries its own PageSetup, Header and Footer, so a document may
+  interleave a portrait cover, landscape charts and tighter-margin
+  appendices in the same `*Document`. `layout.Page` now exposes
+  orientation-applied `Width` / `Height` so the renderer emits
+  per-page `/MediaBox` values that reflect each section's
+  orientation; `render/destinations.go` and `render/outline.go`
+  read those fields too so anchors and outline destinations resolve
+  through the correct page geometry.
 - **Table borders and shading.** New `TableBorderStyle`
   (`BordersNone` / `BordersHorizontal` / `BordersAll`) plus
   `TableBuilder.Borders`, `HeaderShading(color)` and

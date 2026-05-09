@@ -18,7 +18,7 @@ import (
 func buildDestinations(pages []layout.Page) []pdf.NamedDestination {
 	var out []pdf.NamedDestination
 	for pageIdx, p := range pages {
-		pageHeight := p.Size.Height.Points()
+		pageHeight := p.Height.Points()
 		for _, a := range p.Anchors {
 			if a.Name == "" {
 				continue

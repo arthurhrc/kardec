@@ -132,8 +132,8 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 	}
 	for _, lp := range pages {
 		pdfPage := pdf.Page{
-			Width:  lp.Size.Width.Points(),
-			Height: lp.Size.Height.Points(),
+			Width:  lp.Width.Points(),
+			Height: lp.Height.Points(),
 		}
 		linkRanges := newLinkRangeAccumulator()
 		for _, item := range lp.Items {

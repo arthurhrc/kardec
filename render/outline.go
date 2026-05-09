@@ -25,7 +25,7 @@ func buildOutline(pages []layout.Page) []pdf.OutlineEntry {
 	stack := []frame{{level: 0, entries: &root}}
 
 	for pageIdx, p := range pages {
-		pageHeight := p.Size.Height.Points()
+		pageHeight := p.Height.Points()
 		for _, h := range p.Headings {
 			entry := pdf.OutlineEntry{
 				Title:     h.Title,

@@ -119,13 +119,18 @@ func (c *pageCursor) availableWidth() float64 { return c.x1 - c.x0 }
 // cursor.
 func (c *pageCursor) remainingHeight() float64 { return c.y1 - c.cursorY }
 
-// finish converts the cursor into a Page value.
+// finish converts the cursor into a Page value. Width/Height capture
+// the orientation-applied dimensions so renderers don't need to look
+// at Setup.Orientation themselves.
 func (c *pageCursor) finish() Page {
+	w, h := pageDimensions(c.setup)
 	return Page{
 		Size:     c.setup.Size,
 		Items:    c.items,
 		Headings: c.headings,
 		Anchors:  c.anchors,
+		Width:    kardec.Pt(w),
+		Height:   kardec.Pt(h),
 	}
 }
 
