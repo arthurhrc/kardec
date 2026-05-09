@@ -48,6 +48,10 @@ func (d *Document) appendMarkdownNode(node ast.Node, source []byte) {
 	case *ast.Heading:
 		d.Heading(n.Level, runsFromInline(d, n, source)...)
 	case *ast.Paragraph:
+		if img, only := imageOnlyParagraph(n); only {
+			d.appendMarkdownImage(img)
+			return
+		}
 		d.Paragraph(runsFromInline(d, n, source)...)
 	case *ast.ThematicBreak:
 		d.PageBreak()
@@ -362,5 +366,78 @@ func extractText(node ast.Node, source []byte) string {
 		walk(node)
 	}
 	return string(buf)
+}
+
+// imageOnlyParagraph reports whether p contains exactly one inline
+// child and that child is an Image. Markdown traditionally renders
+// `![alt](src)` on its own line as a block-level image even though
+// goldmark wraps it in a Paragraph; this helper recovers the user
+// intent so the Document gets a real Image block rather than a
+// dropped inline.
+func imageOnlyParagraph(p *ast.Paragraph) (*ast.Image, bool) {
+	first := p.FirstChild()
+	if first == nil || first.NextSibling() != nil {
+		return nil, false
+	}
+	img, ok := first.(*ast.Image)
+	return img, ok
+}
+
+// appendMarkdownImage attempts to load the file referenced by an
+// inline image and append the resulting Image block. URLs the
+// bridge will not fetch (anything that is not a relative path or a
+// `file://` URL) drop with a warning. Files that fail to read also
+// drop with a warning so the document still renders.
+func (d *Document) appendMarkdownImage(img *ast.Image) {
+	url := string(img.Destination)
+	if url == "" {
+		d.warn("AppendMarkdown: image with empty destination dropped")
+		return
+	}
+	path := localImagePath(url)
+	if path == "" {
+		d.warn("AppendMarkdown: remote image " + url + " not fetched (bridge does not perform network I/O)")
+		return
+	}
+	if d.markdownBaseDir == "" {
+		d.warn("AppendMarkdown: relative image " + path + " skipped (Document.SetMarkdownBaseDir not configured)")
+		return
+	}
+	full := joinPath(d.markdownBaseDir, path)
+	d.ImageFile(full).Build()
+}
+
+// localImagePath returns the on-disk path component of a Markdown
+// image destination, or "" when the destination references a
+// remote resource (http://, https://, data:, etc.). file:// URLs
+// strip the scheme; bare paths pass through.
+func localImagePath(url string) string {
+	switch {
+	case hasPrefix(url, "file://"):
+		return url[len("file://"):]
+	case hasPrefix(url, "http://"), hasPrefix(url, "https://"), hasPrefix(url, "data:"):
+		return ""
+	}
+	return url
+}
+
+// hasPrefix is a small inline replacement for strings.HasPrefix to
+// keep markdown.go's import list unchanged.
+func hasPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+// joinPath stitches a base directory and a relative path with a
+// platform-agnostic separator. Avoids depending on path/filepath
+// for one tiny use site so the package surface stays minimal.
+func joinPath(base, rel string) string {
+	if base == "" {
+		return rel
+	}
+	last := base[len(base)-1]
+	if last == '/' || last == '\\' {
+		return base + rel
+	}
+	return base + string('/') + rel
 }
 
