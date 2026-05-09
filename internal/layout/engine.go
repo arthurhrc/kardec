@@ -244,68 +244,83 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 	}
 
 	for _, b := range sec.Blocks {
-		switch v := b.(type) {
-		case kardec.Paragraph:
-			style := styleFromKardec(doc.ResolveBlockStyle(v))
-			if err := e.placeTextBlock(cur, flush, v.Runs(), style, fonts); err != nil {
-				return nil, err
-			}
-		case kardec.Heading:
-			style := styleFromKardec(doc.ResolveBlockStyle(v))
-			cur.headings = append(cur.headings, HeadingMark{
-				Level: v.Level(),
-				Title: headingTitle(v),
-				Y:     kardec.Pt(cur.cursorY),
-			})
-			if err := e.placeTextBlock(cur, flush, v.Runs(), style, fonts); err != nil {
-				return nil, err
-			}
-		case kardec.Table:
-			cellStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableCell))
-			headerStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableHeader))
-			e.placeTable(cur, flush, v, headerStyle, cellStyle, fonts)
-		case kardec.Image:
-			if err := e.placeImage(cur, flush, v); err != nil {
-				return nil, err
-			}
-		case kardec.Math:
-			mathStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
-			if err := e.placeMath(cur, flush, doc, v, mathStyle); err != nil {
-				return nil, err
-			}
-		case kardec.List:
-			itemStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleListItem))
-			if err := e.placeList(cur, flush, v, itemStyle, fonts); err != nil {
-				return nil, err
-			}
-		case kardec.Anchor:
-			cur.anchors = append(cur.anchors, AnchorMark{
-				Name: v.Name(),
-				Y:    kardec.Pt(cur.cursorY),
-			})
-		case kardec.TableOfContents:
-			tocStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
-			e.placeTOC(cur, flush, doc, v, tocStyle, fonts)
-		case kardec.HorizontalRule:
-			e.placeHorizontalRule(cur, flush, v)
-		case kardec.PageBreak:
-			flush()
-		case kardec.Spacer:
-			advance := float64(v.Height)
-			if cur.cursorY+advance > cur.y1 {
-				flush()
-				continue
-			}
-			cur.cursorY += advance
-		default:
-			// Unknown block kinds (Image, future v0.3): emit a stub
-			// placeholder so the renderer track sees something
-			// recognisable and reserves plausible vertical space.
-			placeStub(cur, flush, b, fonts)
+		if err := e.placeBlock(cur, flush, doc, sec, b, fonts, &pages); err != nil {
+			return nil, err
 		}
 	}
 	pages = append(pages, cur.finish())
 	return pages, nil
+}
+
+// placeBlock dispatches a single block onto the current page. Extracted
+// from layoutSection so KeepTogether can reuse the same per-block
+// placement path for its inner children. The pages pointer lets the
+// keep-together rollback path snapshot and restore the page count
+// without exposing the slice header to other call sites.
+func (e Engine) placeBlock(
+	cur *pageCursor,
+	flush func(),
+	doc *kardec.Document,
+	sec *kardec.Section,
+	b kardec.Block,
+	fonts FontProvider,
+	pages *[]Page,
+) error {
+	switch v := b.(type) {
+	case kardec.Paragraph:
+		style := styleFromKardec(doc.ResolveBlockStyle(v))
+		return e.placeTextBlock(cur, flush, v.Runs(), style, fonts)
+	case kardec.Heading:
+		style := styleFromKardec(doc.ResolveBlockStyle(v))
+		cur.headings = append(cur.headings, HeadingMark{
+			Level: v.Level(),
+			Title: headingTitle(v),
+			Y:     kardec.Pt(cur.cursorY),
+		})
+		return e.placeTextBlock(cur, flush, v.Runs(), style, fonts)
+	case kardec.Table:
+		cellStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableCell))
+		headerStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableHeader))
+		e.placeTable(cur, flush, v, headerStyle, cellStyle, fonts)
+		return nil
+	case kardec.Image:
+		return e.placeImage(cur, flush, v)
+	case kardec.Math:
+		mathStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
+		return e.placeMath(cur, flush, doc, v, mathStyle)
+	case kardec.List:
+		itemStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleListItem))
+		return e.placeList(cur, flush, v, itemStyle, fonts)
+	case kardec.Anchor:
+		cur.anchors = append(cur.anchors, AnchorMark{
+			Name: v.Name(),
+			Y:    kardec.Pt(cur.cursorY),
+		})
+		return nil
+	case kardec.TableOfContents:
+		tocStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
+		e.placeTOC(cur, flush, doc, v, tocStyle, fonts)
+		return nil
+	case kardec.HorizontalRule:
+		e.placeHorizontalRule(cur, flush, v)
+		return nil
+	case kardec.KeepTogether:
+		return e.placeKeepTogether(cur, flush, doc, sec, v, fonts, pages)
+	case kardec.PageBreak:
+		flush()
+		return nil
+	case kardec.Spacer:
+		advance := float64(v.Height)
+		if cur.cursorY+advance > cur.y1 {
+			flush()
+			return nil
+		}
+		cur.cursorY += advance
+		return nil
+	default:
+		placeStub(cur, flush, b, fonts)
+		return nil
+	}
 }
 
 // placeStub emits a debug placeholder for not-yet-implemented block kinds.

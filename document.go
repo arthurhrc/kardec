@@ -435,6 +435,16 @@ func (d *Document) PageBreak() *Document { return d.append(PageBreak{}) }
 // Spacer appends vertical whitespace of the given height.
 func (d *Document) Spacer(h Length) *Document { return d.append(Spacer{Height: h}) }
 
+// KeepTogether appends a group of inner blocks bound to the same page.
+// The engine guarantees the supplied blocks land on the same page, or
+// flushes once and starts the group on a fresh page when the current
+// remaining space cannot hold them. Groups taller than a full page
+// overflow naturally onto further pages — KeepTogether does not loop
+// trying to find a page tall enough for an oversized group.
+func (d *Document) KeepTogether(blocks ...Block) *Document {
+	return d.append(NewKeepTogether(blocks...))
+}
+
 // HorizontalRule appends a horizontal divider line spanning the content
 // width. Calling without arguments produces the default (0.5pt gray
 // line, 6pt padding above and below); pass a populated HorizontalRule

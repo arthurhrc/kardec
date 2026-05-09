@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **`KeepTogether` block.** New `doc.KeepTogether(blocks...)` and the
+  package-level `kardec.NewKeepTogether(blocks...)` group bind a slice
+  of inner blocks to a single page. Canonical use: a heading and the
+  first paragraph after it never split across pages. The engine uses a
+  speculative-place + rollback strategy: snapshot the page state,
+  attempt placement, and if a flush fired during the attempt, roll
+  back, flush the original page, then re-place on the fresh one.
+  Groups that exceed a single page degrade gracefully — they overflow
+  naturally instead of looping.
+- **Standalone `NewParagraph` / `NewHeading` constructors.** Build a
+  Paragraph or Heading without going through the Document chain, the
+  ergonomic prerequisite for supplying blocks to `KeepTogether`.
 - **`kardec/httpx` subpackage.** New `httpx.WriteResponse(w, doc,
   filename)` and `WriteResponseInline` helpers wire a Kardec
   Document into an `http.ResponseWriter` with the right
