@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Runnable godoc `Example` functions.** New `example_test.go`,
+  `httpx/example_test.go`, and `render/example_test.go` cover the
+  high-traffic entry points (`New`, `NewWithSetup`, `Paragraph`,
+  `Heading`, `Table`, `AppendMarkdown`, `Cite`, `Clause`,
+  `KeepTogether`, `Leader`, `SignatureBlock`, `Ref`,
+  `httpx.WriteResponse`, `render.Bytes`, `render.ToFile`). Examples
+  show up on `pkg.go.dev` next to the symbol they document; the
+  runnable `ExampleBytes` asserts the `%PDF-1.7` magic header so
+  the doc-side compile checks doubly verify that the renderer
+  produces real bytes.
 - **`cmd/kardec` CLI.** `go install github.com/arthurhrc/kardec/cmd/kardec`
   ships a one-binary front-end. `kardec render input.md -o out.pdf`
   renders any CommonMark+GFM source through `AppendMarkdown`;
