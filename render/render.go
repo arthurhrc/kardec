@@ -124,7 +124,12 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 		return pdf.Document{}, err
 	}
 
-	out := pdf.Document{Fonts: embedded, Images: images, Outlines: buildOutline(pages)}
+	out := pdf.Document{
+		Fonts:        embedded,
+		Images:       images,
+		Outlines:     buildOutline(pages),
+		Destinations: buildDestinations(pages),
+	}
 	for _, lp := range pages {
 		pdfPage := pdf.Page{
 			Width:  lp.Size.Width.Points(),

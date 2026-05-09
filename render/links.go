@@ -22,15 +22,15 @@ func newLinkRangeAccumulator() *linkRangeAccumulator {
 
 // add registers a single text fragment with its bounding box and
 // hyperlink target. Consecutive fragments sharing the same target on
-// the same vertical band are merged.
-func (a *linkRangeAccumulator) add(uri string, x, y, w, h float64) {
-	if a.pending != nil && a.pending.URI == uri && sameLine(a.pending, y, h) {
-		// Extend the pending range to encompass the new fragment.
+// the same vertical band are merged. Targets starting with "#" route
+// to a /GoTo action via DestName; all others land as /URI.
+func (a *linkRangeAccumulator) add(target string, x, y, w, h float64) {
+	uri, dest := splitLinkTarget(target)
+	if a.pending != nil && a.pending.URI == uri && a.pending.DestName == dest && sameLine(a.pending, y, h) {
 		right := x + w
 		newRight := maxF(a.pending.X+a.pending.W, right)
 		a.pending.X = minF(a.pending.X, x)
 		a.pending.W = newRight - a.pending.X
-		// Vertical: keep the union of the two bands.
 		topOld := a.pending.Y + a.pending.H
 		topNew := y + h
 		a.pending.Y = minF(a.pending.Y, y)
@@ -40,7 +40,18 @@ func (a *linkRangeAccumulator) add(uri string, x, y, w, h float64) {
 	if a.pending != nil {
 		a.finished = append(a.finished, *a.pending)
 	}
-	a.pending = &pdf.LinkAnnot{X: x, Y: y, W: w, H: h, URI: uri}
+	a.pending = &pdf.LinkAnnot{X: x, Y: y, W: w, H: h, URI: uri, DestName: dest}
+}
+
+// splitLinkTarget classifies a Run.Link payload as either an external
+// URI or an internal named destination. Targets starting with "#"
+// drop the prefix and become destination names; everything else is
+// treated as an external URI.
+func splitLinkTarget(target string) (uri, dest string) {
+	if len(target) >= 2 && target[0] == '#' {
+		return "", target[1:]
+	}
+	return target, ""
 }
 
 // flush returns every collected range, including the pending one,
