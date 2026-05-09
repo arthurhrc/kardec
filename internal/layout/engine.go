@@ -59,9 +59,28 @@ func (e Engine) Layout(doc *kardec.Document, fonts FontProvider) ([]Page, error)
 		pages = append(pages, secPages...)
 	}
 	// Final pass: now that we know the grand page count, replace any
-	// {{totalPages}} placeholders left in header / footer items.
+	// {{totalPages}} placeholders left in header / footer items, and
+	// patch TOC page-number placeholders against the laid-out
+	// heading positions.
 	SubstituteTotalPages(pages, len(pages))
+	patchTOCsAcrossSections(pages, doc)
 	return pages, nil
+}
+
+// patchTOCsAcrossSections walks every TOC block the document
+// declared and patches the corresponding `{{tocpage:hN}}` markers
+// on the laid-out pages. Multiple TOCs with different maxLevel
+// values are tolerated — each receives its own pass.
+func patchTOCsAcrossSections(pages []Page, doc *kardec.Document) {
+	for _, sec := range doc.Sections() {
+		for _, b := range sec.Blocks {
+			toc, ok := b.(kardec.TableOfContents)
+			if !ok {
+				continue
+			}
+			patchTOCPlaceholders(pages, doc, toc.MaxLevel())
+		}
+	}
 }
 
 // resolveFootnoteRefs maps the per-page footnote numbers back to the
@@ -264,6 +283,9 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 				Name: v.Name(),
 				Y:    kardec.Pt(cur.cursorY),
 			})
+		case kardec.TableOfContents:
+			tocStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
+			e.placeTOC(cur, flush, doc, v, tocStyle, fonts)
 		case kardec.PageBreak:
 			flush()
 		case kardec.Spacer:
