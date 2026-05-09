@@ -79,21 +79,45 @@ go run ./examples/math        # LaTeX math subset (\frac, \sqrt, \sum, \int, gre
 
 ## Features
 
-- Headings, paragraphs, lists, tables (borders + shading), images (JPEG / PNG),
-  page breaks, spacers
-- Style system with inheritance and per-block overrides
-- Section headers and footers with `{{page}}` / `{{totalPages}}` / `{{section}}` / `{{date}}` tokens
+Document structure
+
+- Headings, paragraphs, lists, tables (borders + shading + colspan), images (JPEG / PNG),
+  page breaks, spacers, horizontal rules
+- `KeepTogether(blocks...)` binds groups to a single page
+- Two-column section layout via `PageSetup.Columns`
+- Multi-section page setups (mix portrait, landscape, custom margins)
+
+Inline content
+
+- Run decorations: `Bold`, `Italic`, `Underline`, `Strikethrough`, colored, sized
 - Hyperlinks, named anchors, automatic PDF outline (sidebar bookmarks)
-- Footnotes with auto-numbering or custom markers
-- Auto table of contents resolved in a post-pass
 - LaTeX math subset (`\frac`, `\sqrt`, `\sum`, `\int`, greek)
 - CommonMark + GFM ingest with Markdown image embed
-- `text/template` companion for per-record generation
-- Multi-section page setups (mix portrait, landscape, custom margins)
+
+Cross-references and references
+
+- Auto figure / table numbering with `Label(name)` + `doc.Ref(label)` / `doc.RefPage(label)`
+- Numeric citations: `doc.Cite(key)` + `doc.Bibliography(entries...)`
+- Auto table of contents resolved in a post-pass
+- Footnotes with auto-numbering or custom markers
+- `Leader(left, right)` dotted rows; `SignatureBlock(name, role)` for contracts
+- `Clause(level, runs...)` hierarchical numbering for legal documents
+
+Styling and layout
+
+- Style system with inheritance and per-block overrides
+- Section headers and footers with `{{page}}` / `{{totalPages}}` / `{{section}}` / `{{date}}` tokens
+- Decimal-point column alignment for currency / measurement tables
+- `Image.Caption(...)` auto-prefixed with the figure marker, kept-together with its image
+- Heuristic English word hyphenation
+
+Output
+
 - Byte-reproducible output via `Document.SetCreationDate(t)`
 - Optional TTF font subsetting (~70 % size reduction)
 - Optional PDF/A-2b conformance markers (lite)
-- Heuristic English word hyphenation
+- `kardec/httpx.WriteResponse` helper for `net/http` handlers
+- `text/template` companion for per-record generation
 
 ## Status
 
@@ -103,7 +127,9 @@ go run ./examples/math        # LaTeX math subset (\frac, \sqrt, \sum, \int, gre
 | 0.2.0 | Multi-face fonts, tables, images, Markdown, templating |
 | 0.3.0 | Math subset, lists, headers/footers, hyperlinks + outline, byte-reproducible output |
 | 0.4.0 | Anchors, table borders, multi-section, footnotes, auto-TOC, hyphenation, Markdown images |
-| 0.5.0 (current) | TTF font subsetting, PDF/A-2b lite |
+| 0.5.0 | TTF font subsetting, PDF/A-2b lite |
+| 0.7.0 | HorizontalRule, run decorations, KeepTogether, cross-references, image captions, `kardec/httpx` |
+| 0.8.0 (current) | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
