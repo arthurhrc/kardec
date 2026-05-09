@@ -7,8 +7,13 @@
 //
 // # Quick start
 //
+//	import (
+//	    "github.com/arthurhrc/kardec"
+//	    _ "github.com/arthurhrc/kardec/render"
+//	)
+//
 //	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal)
-//	doc.Heading(1, "Monthly Report")
+//	doc.Heading(1, kardec.Text("Monthly Report"))
 //	doc.Paragraph(kardec.Text("Sales grew "), kardec.Bold("12%"), kardec.Text(" this quarter."))
 //	if err := doc.Render("report.pdf"); err != nil {
 //	    log.Fatal(err)
