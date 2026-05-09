@@ -24,7 +24,28 @@ const (
 	kindAnchor
 	kindTOC
 	kindHorizontalRule
+	kindKeepTogether
 )
+
+// NewParagraph constructs a standalone Paragraph block. Callers that
+// build blocks outside the fluent Document chain — most commonly when
+// supplying children to KeepTogether — use this. WithStyle and
+// WithNamedStyle compose on the returned value.
+func NewParagraph(runs ...Run) Paragraph {
+	return Paragraph{runs: runs}
+}
+
+// NewHeading constructs a standalone Heading block at the given level.
+// Levels are clamped to the 1..6 range to mirror HTML conventions.
+func NewHeading(level int, runs ...Run) Heading {
+	if level < 1 {
+		level = 1
+	}
+	if level > 6 {
+		level = 6
+	}
+	return Heading{level: level, runs: runs}
+}
 
 // Paragraph is a body-text block of one or more inline Runs.
 type Paragraph struct {
