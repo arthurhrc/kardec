@@ -39,8 +39,20 @@ type Document struct {
 	// log them or fail their CI on non-empty output.
 	warnings []string
 
+	// footnotes carries every FootnoteRef the document has registered
+	// via the Footnote helper, in declaration order. Layout looks up
+	// the matching body when a Run with a non-zero FootnoteRef is
+	// emitted on a page.
+	footnotes       []FootnoteRef
+	footnoteCounter int
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
+
+// Footnotes returns every footnote registered on the document in
+// declaration order. The slice is the document's own backing store;
+// callers must not mutate it.
+func (d *Document) Footnotes() []FootnoteRef { return d.footnotes }
 
 // Section couples a PageSetup with the ordered list of blocks that flow
 // inside it. Most documents use a single Section; multi-section support

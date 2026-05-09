@@ -5,11 +5,12 @@ package kardec
 // via Text, Bold, Italic and similar helpers; do not instantiate the struct
 // directly so future fields stay backward-compatible.
 type Run struct {
-	text     string
-	bold     bool
-	italic   bool
-	link     string // empty when this run is not a hyperlink
-	override styleOverride
+	text        string
+	bold        bool
+	italic      bool
+	link        string // empty when this run is not a hyperlink
+	footnoteRef int    // 1-based footnote number; 0 for non-footnote runs
+	override    styleOverride
 }
 
 // Text returns a plain Run carrying no inline overrides.
