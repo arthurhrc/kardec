@@ -75,14 +75,14 @@ var symbolTable = map[string]SymbolInfo{
 	"\\Gamma":   {0x0393, CategoryGreek},
 	"\\Delta":   {0x0394, CategoryGreek},
 	"\\Theta":   {0x0398, CategoryGreek},
-	"\\Lambda": {0x039B, CategoryGreek},
+	"\\Lambda":  {0x039B, CategoryGreek},
 	"\\Xi":      {0x039E, CategoryGreek},
 	"\\Pi":      {0x03A0, CategoryGreek},
-	"\\Sigma":  {0x03A3, CategoryGreek},
+	"\\Sigma":   {0x03A3, CategoryGreek},
 	"\\Upsilon": {0x03A5, CategoryGreek},
 	"\\Phi":     {0x03A6, CategoryGreek},
 	"\\Psi":     {0x03A8, CategoryGreek},
-	"\\Omega":  {0x03A9, CategoryGreek},
+	"\\Omega":   {0x03A9, CategoryGreek},
 
 	// Big operators (used as the head of a BigOp node).
 	"\\sum":  {0x2211, CategoryBigOp},
@@ -90,23 +90,23 @@ var symbolTable = map[string]SymbolInfo{
 	"\\prod": {0x220F, CategoryBigOp},
 
 	// Binary operators with a dedicated glyph.
-	"\\pm":     {0x00B1, CategoryBinaryOp},
-	"\\mp":     {0x2213, CategoryBinaryOp},
-	"\\cdot":   {0x22C5, CategoryBinaryOp},
-	"\\times":  {0x00D7, CategoryBinaryOp},
+	"\\pm":    {0x00B1, CategoryBinaryOp},
+	"\\mp":    {0x2213, CategoryBinaryOp},
+	"\\cdot":  {0x22C5, CategoryBinaryOp},
+	"\\times": {0x00D7, CategoryBinaryOp},
 
 	// Relational operators.
-	"\\leq":     {0x2264, CategoryRelation},
-	"\\geq":     {0x2265, CategoryRelation},
-	"\\neq":     {0x2260, CategoryRelation},
-	"\\approx":  {0x2248, CategoryRelation},
-	"\\to":      {0x2192, CategoryRelation},
+	"\\leq":        {0x2264, CategoryRelation},
+	"\\geq":        {0x2265, CategoryRelation},
+	"\\neq":        {0x2260, CategoryRelation},
+	"\\approx":     {0x2248, CategoryRelation},
+	"\\to":         {0x2192, CategoryRelation},
 	"\\rightarrow": {0x2192, CategoryRelation},
 	"\\leftarrow":  {0x2190, CategoryRelation},
 
 	// Miscellaneous symbols.
-	"\\infty":    {0x221E, CategorySymbol},
-	"\\partial":  {0x2202, CategorySymbol},
+	"\\infty":   {0x221E, CategorySymbol},
+	"\\partial": {0x2202, CategorySymbol},
 }
 
 // LookupSymbol returns the canonical SymbolInfo for the given LaTeX command,

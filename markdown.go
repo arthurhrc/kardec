@@ -440,4 +440,3 @@ func joinPath(base, rel string) string {
 	}
 	return base + string('/') + rel
 }
-

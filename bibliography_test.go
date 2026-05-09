@@ -34,7 +34,7 @@ func TestBibliographyEmitsHeadingAndEntriesInCitationOrder(t *testing.T) {
 	b := doc.Cite("B")
 	a := doc.Cite("A")
 	doc.Paragraph(b, a). // citation order: B, A
-		Bibliography(
+				Bibliography(
 			kardec.BibEntry{Key: "A", Author: "Adams, A.", Title: "Alpha", Year: 2001},
 			kardec.BibEntry{Key: "B", Author: "Brown, B.", Title: "Beta", Year: 2002},
 		)

@@ -48,8 +48,8 @@ func layoutSubSup(s SubSup, font Font, sizePt float64, display bool) Box {
 	parentDepth := base.Depth
 
 	scriptX := base.Width
-	subTopOffset := 0.0   // Y of subscript top edge, relative to parent baseline
-	supTopOffset := 0.0   // Y of superscript top edge, relative to parent baseline
+	subTopOffset := 0.0 // Y of subscript top edge, relative to parent baseline
+	supTopOffset := 0.0 // Y of superscript top edge, relative to parent baseline
 
 	if hasSup {
 		// Superscript baseline sits superscriptShift × sizePt above the

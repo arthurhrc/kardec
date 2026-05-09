@@ -33,12 +33,12 @@ func (stubFont) AscentDescent(_ Glyph, sizePt float64) (float64, float64) {
 // lives in internal/math.
 type stubAtom struct{ s string }
 
-func (stubAtom) Kind() ExprKind  { return KindAtom }
+func (stubAtom) Kind() ExprKind   { return KindAtom }
 func (a stubAtom) Symbol() string { return a.s }
 
 type stubOp struct{ s string }
 
-func (stubOp) Kind() ExprKind  { return KindOp }
+func (stubOp) Kind() ExprKind   { return KindOp }
 func (o stubOp) Symbol() string { return o.s }
 
 type stubNumber struct{ v string }
@@ -53,12 +53,12 @@ func (i stubIdentifier) Name() string { return i.n }
 
 type stubGroup struct{ kids []Expr }
 
-func (stubGroup) Kind() ExprKind        { return KindGroup }
-func (g stubGroup) Children() []Expr    { return g.kids }
+func (stubGroup) Kind() ExprKind     { return KindGroup }
+func (g stubGroup) Children() []Expr { return g.kids }
 
 type stubFrac struct{ num, den Expr }
 
-func (stubFrac) Kind() ExprKind     { return KindFrac }
+func (stubFrac) Kind() ExprKind      { return KindFrac }
 func (f stubFrac) Numerator() Expr   { return f.num }
 func (f stubFrac) Denominator() Expr { return f.den }
 
@@ -75,7 +75,7 @@ func (s stubSubSup) Sub() Expr    { return s.sub }
 func (s stubSubSup) Sup() Expr    { return s.sup }
 
 type stubBigOp struct {
-	sym         string
+	sym                string
 	lower, upper, body Expr
 }
 

@@ -128,7 +128,7 @@ func (a subSupAdapter) Sub() mathlayout.Expr    { return a.sub }
 func (a subSupAdapter) Sup() mathlayout.Expr    { return a.sup }
 
 type bigOpAdapter struct {
-	symbol            string
+	symbol             string
 	lower, upper, body mathlayout.Expr
 }
 

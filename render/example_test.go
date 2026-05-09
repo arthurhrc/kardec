@@ -33,6 +33,6 @@ func ExampleBytes() {
 func ExampleToFile() {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Paragraph(kardec.Text("Hello, file."))
-	_ = doc       // build steps
+	_ = doc           // build steps
 	_ = render.ToFile // render.ToFile(doc.Document, "out.pdf")
 }

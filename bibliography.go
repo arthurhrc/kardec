@@ -150,10 +150,10 @@ func (d *Document) appendBibEntry(num int, e BibEntry) {
 func formatBibEntryBody(e BibEntry) string {
 	parts := []string{}
 	if e.Author != "" {
-		parts = append(parts, e.Author + ".")
+		parts = append(parts, e.Author+".")
 	}
 	if e.Title != "" {
-		parts = append(parts, e.Title + ".")
+		parts = append(parts, e.Title+".")
 	}
 	journal := e.Journal
 	if e.Volume != "" {

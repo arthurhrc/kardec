@@ -73,7 +73,7 @@ func main() {
 	doc.Heading(2, kardec.Text("1 — Executive summary"))
 	doc.Paragraph(
 		kardec.Text("Kardec turns a fluent Go DSL into a PDF that reads like a document. "),
-		kardec.Text("It is style-driven: ",),
+		kardec.Text("It is style-driven: "),
 		kardec.Bold("DefineStyle"),
 		kardec.Text(" entries propagate through resolution and are honored by the layout engine, "),
 		kardec.Text("which is what produces the corporate blue you see in this section's heading."),

@@ -134,12 +134,12 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 // set; the rest stay zero.
 func computeFontFlags(m *ttfMetrics) int {
 	const (
-		fixedPitch = 1 << 0
-		serif      = 1 << 1
-		symbolic   = 1 << 2
+		fixedPitch  = 1 << 0
+		serif       = 1 << 1
+		symbolic    = 1 << 2
 		nonsymbolic = 1 << 5
-		italic     = 1 << 6
-		forceBold  = 1 << 18
+		italic      = 1 << 6
+		forceBold   = 1 << 18
 	)
 	flags := nonsymbolic // WinAnsiEncoding implies the font is treated as nonsymbolic.
 	if m.IsFixedPitch {

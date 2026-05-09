@@ -19,8 +19,8 @@ type ttfMetrics struct {
 	XMax       int16
 	YMax       int16
 
-	Ascent  int16 // OS/2 sTypoAscender (preferred) or hhea ascent
-	Descent int16 // OS/2 sTypoDescender (preferred) or hhea descent
+	Ascent    int16 // OS/2 sTypoAscender (preferred) or hhea ascent
+	Descent   int16 // OS/2 sTypoDescender (preferred) or hhea descent
 	CapHeight int16 // OS/2 sCapHeight (0 if absent)
 
 	ItalicAngle  float64 // post.italicAngle, fixed16.16
@@ -106,9 +106,9 @@ func parseTTF(data []byte) (*ttfMetrics, error) {
 	// OS/2 takes precedence for typographic ascent/descent on Windows;
 	// some TTFs disagree between hhea and OS/2 and Acrobat trusts OS/2.
 	if os2, ok := tables["OS/2"]; ok && len(os2) >= 78 {
-		m.Ascent = int16(binary.BigEndian.Uint16(os2[68:70]))   // sTypoAscender
-		m.Descent = int16(binary.BigEndian.Uint16(os2[70:72]))  // sTypoDescender
-		if len(os2) >= 90 {                                     // version >= 2 carries sCapHeight at offset 88
+		m.Ascent = int16(binary.BigEndian.Uint16(os2[68:70]))  // sTypoAscender
+		m.Descent = int16(binary.BigEndian.Uint16(os2[70:72])) // sTypoDescender
+		if len(os2) >= 90 {                                    // version >= 2 carries sCapHeight at offset 88
 			m.CapHeight = int16(binary.BigEndian.Uint16(os2[88:90]))
 		}
 		fsSelection := binary.BigEndian.Uint16(os2[62:64])

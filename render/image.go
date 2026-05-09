@@ -17,7 +17,7 @@ import (
 // once. The map key is the address of the PlacedImage's payload header,
 // which the layout engine reuses across PlacedItem instances.
 type imageEntry struct {
-	id    int           // index into pdf.Document.Images
+	id    int // index into pdf.Document.Images
 	embed pdf.EmbeddedImage
 }
 
