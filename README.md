@@ -42,6 +42,15 @@ Go 1.22+. The blank import `_ "github.com/arthurhrc/kardec/render"` wires
 
 ## Why Kardec
 
+Allan Kardec (1804-1869) was a French educator who took a body of
+scattered oral traditions and codified them into a structured written
+doctrine. The library does the equivalent for documents: a program
+assembles a flowing structure through a fluent Go API, and Kardec
+freezes it into a portable PDF that opens identically on every reader.
+The name is a nod to the act of codification.
+
+What that buys you in practice:
+
 - Flowing prose, headings, footnotes, tables, math, lists. Not a grid.
 - Single static binary. Liberation Sans / Serif, Carlito and JetBrains Mono ship inside (~7 MB, OFL).
 - Byte-reproducible output: same input plus a fixed clock, identical PDFs.
