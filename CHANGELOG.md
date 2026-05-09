@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.9.0]
+
 ### Added
 
 - **Render benchmarks.** New `render/bench_test.go` ships
