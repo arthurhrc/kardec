@@ -215,4 +215,11 @@ const (
 	AlignCenter
 	AlignRight
 	AlignJustify
+	// AlignDecimal aligns content on the decimal point. Only
+	// meaningful inside table cells driven by AlignDecimalCol; using
+	// it on a Paragraph degrades to AlignRight at layout time. Cells
+	// without a "." pivot in their text fall back to right alignment
+	// so an integer mixed in with decimals still rests at the same
+	// vertical baseline as the dotted neighbours.
+	AlignDecimal
 )

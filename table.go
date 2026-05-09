@@ -149,6 +149,16 @@ func AlignCenterCol() ColumnOption { return func(c *Column) { c.Alignment = Alig
 // or numeric data.
 func AlignRightCol() ColumnOption { return func(c *Column) { c.Alignment = AlignRight } }
 
+// AlignDecimalCol aligns numeric cells on the decimal point. The
+// integer part (everything up to the first ".") is right-aligned
+// against a pivot positioned at 60% of the column width; the
+// fractional part flows from the pivot. Cells without a "." pivot
+// fall back to right alignment so an integer row matches the column
+// of digits formed by the dotted neighbours. Recommended for
+// currency or measurement columns where the eye benefits from a
+// shared pivot.
+func AlignDecimalCol() ColumnOption { return func(c *Column) { c.Alignment = AlignDecimal } }
+
 // TableBuilder accumulates column descriptors, rows and rendering hints
 // before the Table block is appended to the parent document. Build
 // returns the document so callers can resume the top-level chain.

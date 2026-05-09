@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Decimal-point column alignment.** New `kardec.AlignDecimalCol()`
+  ColumnOption + `kardec.AlignDecimal` Alignment value. Layout splits
+  each cell on the first `.` and right-aligns the integer part
+  against a pivot positioned at 60% of the column width; cells
+  without a `.` fall back to right alignment so an integer row sits
+  at the same pivot as its dotted neighbours. Currency and
+  measurement columns now read at a glance.
 - **Table column groups (colspan).** New `kardec.SpanCell(span, runs...)`
   builds a Cell that absorbs the next `span-1` column widths so a
   single merged header can label a group of underlying columns.
