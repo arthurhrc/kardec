@@ -129,7 +129,8 @@ Output
 | 0.4.0 | Anchors, table borders, multi-section, footnotes, auto-TOC, hyphenation, Markdown images |
 | 0.5.0 | TTF font subsetting, PDF/A-2b lite |
 | 0.7.0 | HorizontalRule, run decorations, KeepTogether, cross-references, image captions, `kardec/httpx` |
-| 0.8.0 (current) | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
+| 0.8.0 | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
+| 0.9.1 (current) | Paragraph + AddParagraph unified, `cmd/kardec` CLI, runnable godoc Examples, render benchmarks, `gofmt -s` clean |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
