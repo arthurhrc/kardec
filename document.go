@@ -193,13 +193,19 @@ type Section struct {
 // New creates an empty Document with a single Section configured from the
 // supplied page size and margins. Default orientation is Portrait.
 func New(size PageSize, margins Margins) *Document {
-	first := &Section{
-		Setup: PageSetup{
-			Size:        size,
-			Orientation: Portrait,
-			Margins:     margins,
-		},
-	}
+	return NewWithSetup(PageSetup{
+		Size:        size,
+		Orientation: Portrait,
+		Margins:     margins,
+	})
+}
+
+// NewWithSetup is the explicit-PageSetup form of New. Pass a fully
+// populated PageSetup to set the orientation, column count or
+// inter-column gap from the start; everything else is identical to
+// New, including the bundled-font registration.
+func NewWithSetup(setup PageSetup) *Document {
+	first := &Section{Setup: setup}
 	d := &Document{
 		sections: []*Section{first},
 		cur:      first,

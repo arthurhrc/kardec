@@ -59,4 +59,16 @@ type PageSetup struct {
 	Size        PageSize
 	Orientation Orientation
 	Margins     Margins
+
+	// Columns sets the number of vertical columns that body content
+	// flows through. 0 and 1 are equivalent (single-column, the
+	// default). 2 produces the canonical two-column résumé / academic
+	// paper layout. Headers, footers, and section chrome ignore the
+	// column setting — they always span the full content width.
+	Columns int
+
+	// ColumnGap is the horizontal gap between columns. Zero means the
+	// engine default (12pt — about 0.4 of a 1-em em-square at body
+	// size). Ignored when Columns <= 1.
+	ColumnGap Length
 }

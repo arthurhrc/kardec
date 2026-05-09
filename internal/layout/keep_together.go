@@ -21,6 +21,7 @@ import "github.com/arthurhrc/kardec"
 func (e Engine) placeKeepTogether(
 	cur *pageCursor,
 	flush func(),
+	pageFlush func(),
 	doc *kardec.Document,
 	sec *kardec.Section,
 	group kardec.KeepTogether,
@@ -40,7 +41,7 @@ func (e Engine) placeKeepTogether(
 	}
 
 	for _, b := range blocks {
-		if err := e.placeBlock(cur, wrapped, doc, sec, b, fonts, pages); err != nil {
+		if err := e.placeBlock(cur, wrapped, pageFlush, doc, sec, b, fonts, pages); err != nil {
 			return err
 		}
 	}
@@ -48,14 +49,15 @@ func (e Engine) placeKeepTogether(
 		return nil
 	}
 
-	// Group spilled across a flush. Roll back, flush the original page,
-	// and re-place using the real flush so an oversized group can
-	// overflow naturally (no second wrapping = no second rollback).
+	// Group spilled across a flush. Roll back, flush the original
+	// column/page, and re-place using the real flush so an oversized
+	// group can overflow naturally (no second wrapping = no second
+	// rollback).
 	restoreCursor(cur, snap)
 	*pages = (*pages)[:snap.pageCount]
 	flush()
 	for _, b := range blocks {
-		if err := e.placeBlock(cur, flush, doc, sec, b, fonts, pages); err != nil {
+		if err := e.placeBlock(cur, flush, pageFlush, doc, sec, b, fonts, pages); err != nil {
 			return err
 		}
 	}

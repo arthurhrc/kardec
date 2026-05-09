@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Two-column section layout.** New `PageSetup.Columns` and
+  `PageSetup.ColumnGap` fields. Body content flows top-to-bottom in
+  the first column, advances to the next column on overflow, and
+  flushes the page only after the last column fills. `PageBreak`
+  still forces a new page (not the next column). Header / footer /
+  section chrome continue to span the full content width — the
+  column setting affects only the body. New `kardec.NewWithSetup`
+  constructor accepts a fully-populated `PageSetup` so the multi-
+  column layout works from the first section without going through
+  `NewSectionWithSetup`. Default gap is 12pt when not specified.
 - **Decimal-point column alignment.** New `kardec.AlignDecimalCol()`
   ColumnOption + `kardec.AlignDecimal` Alignment value. Layout splits
   each cell on the first `.` and right-aligns the integer part
