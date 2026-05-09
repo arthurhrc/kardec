@@ -7,6 +7,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Added
+
+- **`cmd/kardec` CLI.** `go install github.com/arthurhrc/kardec/cmd/kardec`
+  ships a one-binary front-end. `kardec render input.md -o out.pdf`
+  renders any CommonMark+GFM source through `AppendMarkdown`;
+  `kardec render -t tpl.md -d data.json -o out.pdf` executes a Go
+  text/template against a JSON data file before rendering. The flag
+  parser tolerates flags before *or* after the positional input, so
+  the canonical form reads naturally either way.
+
 ### Changed
 
 - **`Document.Paragraph` now returns `*ParagraphRef`.** The single
