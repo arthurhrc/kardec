@@ -4,9 +4,30 @@ Synthesis of three independent audits run against the v0.5.0 surface:
 API completeness, README/docs voice, release engineering. The plan
 below is what stands between today and a v1.0 freeze.
 
+## Why "Kardec"
+
+Allan Kardec (1804-1869) was a French educator who took a body of
+scattered oral traditions and codified them into a structured written
+doctrine. Whatever one makes of the subject matter, the work itself
+was an act of structuring: turning loose, transient material into a
+coherent, portable record.
+
+The library does the equivalent for documents. A program assembles a
+flowing structure (headings, paragraphs, tables, citations) through a
+fluent Go API, and Kardec freezes that structure into a portable PDF
+that opens identically on every reader. The name is a nod to the act
+of codification, nothing more.
+
 ## Version progression
 
-### v0.6 — finish the v0.5 deferrals
+### v0.6 — close the v0.5 deferrals and lock the API shape
+
+The two strands that need to land before v0.7 introduces frozen
+primitives: finishing what v0.5 deferred, and renaming everything
+that would otherwise be the #1 reviewer complaint on `pkg.go.dev`
+once frozen.
+
+**Deferrals from v0.5:**
 
 - **OTF / CFF font embedding** via Type 0 + CIDFontType0 + Identity-H.
   Lifts the math-glyph fallback so Latin Modern Math actually renders
@@ -21,7 +42,7 @@ below is what stands between today and a v1.0 freeze.
 - **Knuth-Plass total-fit line breaker** behind a feature flag while
   the greedy default keeps shipping.
 
-### v0.6.1 — idiomatic API sweep
+**Idiomatic API sweep:**
 
 - `Document.PDFA(on ...bool)` → `EnablePDFA()` / `DisablePDFA()`.
   Variadic-bool is unidiomatic Go; will be the #1 reviewer complaint
