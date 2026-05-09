@@ -9,6 +9,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **PDF/A-2b conformance markers (lite).** New `Document.PDFA()`
+  attaches an XMP metadata stream declaring `pdfaid:part=2` and
+  `pdfaid:conformance=B`, references it from `/Catalog /Metadata`,
+  and writes a stable `/ID` array in the trailer derived from
+  Title + Author + the pinned creation date. Two renders with the
+  same `SetCreationDate` produce byte-identical output. Strict
+  validators (veraPDF) still flag the missing `OutputIntent` with
+  an embedded sRGB ICC profile — that lands in v0.6 — but Acrobat,
+  Foxit and Chrome honor the marker as-is.
 - **Font subsetting (opt-in).** `Document.SubsetFonts()` enables a
   glyf-table zero-out pass: every glyph not actually referenced by
   the document is wiped from the embedded TTF before the FontFile2
