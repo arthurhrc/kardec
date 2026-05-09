@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Word hyphenation.** New `internal/hyphenation` package returns
+  candidate break points for English words using a heuristic
+  combining known prefixes (`un-`, `re-`, `pre-`, `inter-`, ...) and
+  the vowel-consonant-consonant-vowel rule. The line breaker now
+  tries hyphenation when a word would otherwise overflow, emitting
+  a soft-hyphen split that fits the remaining line. Knuth-Liang
+  pattern data is a v0.5 swap — the public surface stays the same.
 - **Auto table of contents.** New
   `Document.TableOfContents(maxLevel)` reserves space for one entry
   per heading and patches the page numbers in a post-pass once the
