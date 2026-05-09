@@ -47,7 +47,7 @@ func TestRenderDifferentClockProducesDifferentBytes(t *testing.T) {
 		doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 			SetCreationDate(at).
 			Paragraph(kardec.Text("body"))
-		out, err := Bytes(doc)
+		out, err := Bytes(doc.Document)
 		if err != nil {
 			t.Fatalf("Bytes: %v", err)
 		}
@@ -69,7 +69,7 @@ func TestCreationDateFlowsIntoInfoDict(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		SetCreationDate(at).
 		Paragraph(kardec.Text("body"))
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}

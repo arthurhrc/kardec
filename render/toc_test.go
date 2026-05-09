@@ -18,7 +18,7 @@ func TestRenderTOCEmitsTitlesAndPageNumbers(t *testing.T) {
 		Heading(1, kardec.Text("Methods")).
 		Paragraph(kardec.Text("body"))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestRenderTOCMaxLevelExcludesDeeper(t *testing.T) {
 		Heading(2, kardec.Text("Sub-topic")).
 		Paragraph(kardec.Text("body"))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}

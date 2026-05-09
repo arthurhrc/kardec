@@ -55,7 +55,7 @@ func TestMultiColumn_PageBreakForcesNewPageNotNextColumn(t *testing.T) {
 		PageBreak().
 		Paragraph(kardec.Text("page-two"))
 
-	pages, err := NewEngine().Layout(doc, stubProvider{})
+	pages, err := NewEngine().Layout(doc.Document, stubProvider{})
 	if err != nil {
 		t.Fatalf("layout: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestMultiColumn_SingleColumnDefaultIsUnchanged(t *testing.T) {
 	doc := kardec.NewWithSetup(setup).
 		Paragraph(kardec.Text("only column"))
 
-	pages, err := NewEngine().Layout(doc, stubProvider{})
+	pages, err := NewEngine().Layout(doc.Document, stubProvider{})
 	if err != nil {
 		t.Fatalf("layout: %v", err)
 	}

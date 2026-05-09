@@ -14,7 +14,7 @@ func TestRenderEmitsLinkAnnotForExplicitLinkRun(t *testing.T) {
 			kardec.Link("Kardec", "https://github.com/arthurhrc/kardec"),
 			kardec.Text(" on GitHub."),
 		)
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestRenderEmitsOutlineForHeadings(t *testing.T) {
 		Heading(2, kardec.Text("Inner")).
 		Paragraph(kardec.Text("more"))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}

@@ -23,7 +23,7 @@ func TestBytesProducesValidPDF17(t *testing.T) {
 		Heading(1, kardec.Text("Hello, Kardec")).
 		Paragraph(kardec.Text("Sales grew 12% this quarter."))
 
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestEmbeddedFontFlows(t *testing.T) {
 	// and a blank page.
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Paragraph(kardec.Text("Quick brown fox."))
-	out, err := Bytes(doc)
+	out, err := Bytes(doc.Document)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}

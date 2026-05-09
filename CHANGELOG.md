@@ -7,6 +7,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Changed
+
+- **`Document.Paragraph` now returns `*ParagraphRef`.** The single
+  builder unifies the bare `Paragraph(...)` chain and the deprecated
+  `AddParagraph(...)` builder. The ref embeds `*Document` so chained
+  doc methods (`Heading`, `Image`, etc.) keep flowing without `Done()`.
+  Style overrides — `WithStyle`, `WithNamedStyle`, `Align`, `Justify`,
+  `LineHeight` — mutate the just-appended paragraph in place. Callers
+  that previously passed the chain return value into a function
+  expecting `*Document` (e.g. `render.Bytes(doc)`) need to use
+  `doc.Document` once.
+
+### Deprecated
+
+- **`Document.AddParagraph` and `ParagraphBuilder`.** Use
+  `Document.Paragraph` and the unified `*ParagraphRef`; the symbols
+  remain as a one-line alias / forwarder for source compatibility
+  through the v0.x line and will be removed at v1.0.
+
 ## [0.8.0]
 
 ### Added
