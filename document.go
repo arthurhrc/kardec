@@ -60,8 +60,39 @@ type Document struct {
 	// the full glyph table from each embedded face.
 	subsetFonts bool
 
+	// pdfa toggles PDF/A-2b compliance markers — XMP metadata
+	// stream, /Metadata catalog entry, /ID in trailer. Strict
+	// validators still need an OutputIntent with an embedded
+	// sRGB ICC profile (deferred to v0.6); the lite output
+	// produced here is what Acrobat accepts as PDF/A.
+	pdfa bool
+
 	err error // first error encountered during builder usage; surfaced by Err and Render
 }
+
+// PDFA opts the document into PDF/A-2b conformance markers (XMP
+// metadata + /ID + /Metadata catalog entry). Default off; calling
+// with no arguments turns it on for fluent chaining.
+//
+// "Lite" caveat: without an OutputIntent referencing an embedded
+// sRGB ICC profile (a v0.6 feature) the document is not strictly
+// PDF/A-2b — the markers are present but veraPDF flags the
+// missing OutputIntent. Most consumer readers (Acrobat, Foxit,
+// Chrome) honor the marker regardless.
+func (d *Document) PDFA(on ...bool) *Document {
+	if d.err != nil {
+		return d
+	}
+	if len(on) == 0 {
+		d.pdfa = true
+	} else {
+		d.pdfa = on[0]
+	}
+	return d
+}
+
+// PDFAEnabled reports whether PDF/A markers will be emitted.
+func (d *Document) PDFAEnabled() bool { return d.pdfa }
 
 // SubsetFonts toggles glyf-table subsetting for embedded fonts.
 // Default is off — calls without arguments turn it on for fluent
