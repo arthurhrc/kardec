@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-08
+
 ### Added
 
 - **PDF/A-2b conformance markers (lite).** New `Document.PDFA()`
@@ -310,6 +312,7 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
+[0.5.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.5.0
 [0.4.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.4.0
 [0.3.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.3.0
 [0.2.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.2.0
