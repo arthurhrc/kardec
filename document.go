@@ -80,6 +80,13 @@ type Document struct {
 	// deeper than N so the next call at N+1 starts at 1.
 	clauseCounters []int
 
+	// citationOrder records the BibEntry keys in the order they were
+	// first cited. citations maps a key to its 1-based citation
+	// number. Cite consults / mutates both; Bibliography uses
+	// citationOrder to emit entries in citation order.
+	citationOrder []string
+	citations     map[string]int
+
 	// labels maps a user-supplied label (the "growth-2024" in
 	// LabeledFigure("growth-2024", img)) to the resolved kind plus
 	// number. Ref / RefPage consult this map to compose a cross-
