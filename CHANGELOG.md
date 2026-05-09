@@ -9,14 +9,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Auto table of contents.** New
+  `Document.TableOfContents(maxLevel)` reserves space for one entry
+  per heading and patches the page numbers in a post-pass once the
+  document is fully laid out. Each entry shows the title, a dotted
+  leader, and the resolved page number; nesting indents with depth.
+  `maxLevel=0` indexes every heading; pass 1 / 2 / 3 to cap depth.
 - **Footnotes.** New `kardec.Footnote(doc, body)` and
   `kardec.FootnoteWithMarker(doc, marker, runs...)` helpers register
   a numbered footnote whose marker shows inline and whose body
   surfaces at the bottom of the page where the marker landed. The
   layout engine tracks markers per page and stamps a thin separator
-  + the footnote text into the chrome area beneath the body. Custom
-  markers (`*`, `†`, etc.) bypass the auto-numbered decimals.
-  `Document.Footnotes()` exposes the registered set for
+  followed by the footnote text into the chrome area beneath the
+  body. Custom markers (`*`, `†`, etc.) bypass the auto-numbered
+  decimals. `Document.Footnotes()` exposes the registered set for
   introspection. Closes the audit DX recommendation that named
   footnotes as a top-3 missing primitive for "real documents".
 - **Multi-section page setups.** New `Document.NewSection(size,
