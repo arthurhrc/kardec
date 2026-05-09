@@ -286,6 +286,8 @@ func (e Engine) layoutSection(doc *kardec.Document, sec *kardec.Section, fonts F
 		case kardec.TableOfContents:
 			tocStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))
 			e.placeTOC(cur, flush, doc, v, tocStyle, fonts)
+		case kardec.HorizontalRule:
+			e.placeHorizontalRule(cur, flush, v)
 		case kardec.PageBreak:
 			flush()
 		case kardec.Spacer:
