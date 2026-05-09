@@ -22,6 +22,7 @@ const (
 	kindMath
 	kindList
 	kindAnchor
+	kindTOC
 )
 
 // Paragraph is a body-text block of one or more inline Runs.
