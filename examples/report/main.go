@@ -99,6 +99,9 @@ func main() {
 			kardec.Col("Faces", kardec.Width(0.20), kardec.AlignRightCol()),
 		).
 		RepeatHeader().
+		Borders(kardec.BordersHorizontal).
+		HeaderShading(kardec.HexColor("#E7EFF7")).
+		AlternateRowShading(kardec.HexColor("#F8F8F8")).
 		Row("Family", "Role", "Faces").
 		Row("Liberation Sans", "Default sans (Arial-equivalent)", "4").
 		Row("Liberation Serif", "Default serif (Times-equivalent)", "4").

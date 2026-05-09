@@ -10,8 +10,9 @@ import (
 // page is flushed and the row continues at the top of the next page; if
 // RepeatHeader is set, row 0 is reprinted before resuming.
 //
-// v0.2 scope: text cells with greedy line breaking. No borders, no shading,
-// no alternating row colors — those are v0.3.
+// Borders / shading / alternate-row coloring all opt-in via the matching
+// kardec.Table flags. They are emitted as PlacedItem.Rect entries before
+// the cell glyphs so the renderer paints them under the text.
 func (e Engine) placeTable(cur *pageCursor, flush func(), tbl kardec.Table, headerStyle, cellStyle blockStyle, fonts FontProvider) {
 	cols := tbl.Columns()
 	if len(cols) == 0 {
@@ -30,6 +31,49 @@ func (e Engine) placeTable(cur *pageCursor, flush func(), tbl kardec.Table, head
 		e.placeTableRow(cur, flush, cols, colWidths, row, style, fonts, tbl, rowIdx)
 	}
 	cur.cursorY += cellStyle.spaceAfterPt
+}
+
+// emitRowShading paints a background rectangle covering the row's
+// horizontal extent. Called before cell text emission so the renderer
+// paints the rectangle under the glyphs.
+func emitRowShading(cur *pageCursor, x, y, width, height float64, color kardec.Color) {
+	cur.items = append(cur.items, PlacedItem{
+		X: kardec.Pt(x),
+		Y: kardec.Pt(y),
+		Rect: &PlacedRect{
+			Width:     kardec.Pt(width),
+			Thickness: kardec.Pt(height),
+			Color:     color,
+		},
+	})
+}
+
+// emitHorizontalLine paints a 1-pt-tall rectangle simulating a thin
+// horizontal rule. Width is the line's horizontal extent.
+func emitHorizontalLine(cur *pageCursor, x, y, width float64) {
+	cur.items = append(cur.items, PlacedItem{
+		X: kardec.Pt(x),
+		Y: kardec.Pt(y),
+		Rect: &PlacedRect{
+			Width:     kardec.Pt(width),
+			Thickness: kardec.Pt(0.6),
+			Color:     kardec.Color{R: 80, G: 80, B: 80},
+		},
+	})
+}
+
+// emitVerticalLine paints a 1-pt-wide rectangle simulating a thin
+// vertical rule. Height is the line's vertical extent.
+func emitVerticalLine(cur *pageCursor, x, y, height float64) {
+	cur.items = append(cur.items, PlacedItem{
+		X: kardec.Pt(x),
+		Y: kardec.Pt(y),
+		Rect: &PlacedRect{
+			Width:     kardec.Pt(0.6),
+			Thickness: kardec.Pt(height),
+			Color:     kardec.Color{R: 80, G: 80, B: 80},
+		},
+	})
 }
 
 // placeTableRow emits the items for a single row, paginating if needed.
@@ -71,10 +115,46 @@ func (e Engine) placeTableRow(
 		}
 	}
 
+	rowTop := cur.cursorY
+	totalWidth := 0.0
+	for _, w := range colWidths {
+		totalWidth += w
+	}
+
+	// Shading lands under the cell text — emit before glyphs.
+	if rowIdx == 0 {
+		if c, ok := tbl.HeaderShading(); ok {
+			emitRowShading(cur, cur.x0, rowTop, totalWidth, rowHeight, c)
+		}
+	} else if rowIdx%2 == 1 {
+		if c, ok := tbl.AlternateRowShading(); ok {
+			emitRowShading(cur, cur.x0, rowTop, totalWidth, rowHeight, c)
+		}
+	}
+
+	// Borders: emit horizontal rule above this row when borders include
+	// horizontal lines, plus vertical rules when the full grid is
+	// requested. The bottom border of every row is drawn as the top
+	// border of the next; the table's outer bottom is added after the
+	// final row in placeTable's caller via emitFinalBottomBorder, but
+	// for v0.3 we emit a per-row bottom too so the table closes when
+	// it ends mid-page without an extra block.
+	bs := tbl.BorderStyle()
+	if bs == kardec.BordersHorizontal || bs == kardec.BordersAll {
+		emitHorizontalLine(cur, cur.x0, rowTop, totalWidth)
+	}
+	if bs == kardec.BordersAll {
+		x := cur.x0
+		emitVerticalLine(cur, x, rowTop, rowHeight)
+		for _, w := range colWidths {
+			x += w
+			emitVerticalLine(cur, x, rowTop, rowHeight)
+		}
+	}
+
 	// Emit each cell's lines at the appropriate column x. The column's
 	// alignment is applied inside the column's width budget.
 	x := cur.x0
-	rowTop := cur.cursorY
 	for i, ls := range cellLines {
 		for li, ln := range ls {
 			lineY := rowTop + float64(li)*style.lineHeight*style.sizePt
@@ -82,7 +162,13 @@ func (e Engine) placeTableRow(
 		}
 		x += colWidths[i]
 	}
+
 	cur.cursorY = rowTop + rowHeight
+
+	// Outer bottom border of the table — only on the last row.
+	if rowIdx == len(tbl.Rows())-1 && (bs == kardec.BordersHorizontal || bs == kardec.BordersAll) {
+		emitHorizontalLine(cur, cur.x0, cur.cursorY, totalWidth)
+	}
 }
 
 // emitTableCellLine emits one already-broken line for a single cell at

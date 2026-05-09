@@ -7,14 +7,38 @@ import "errors"
 // then surfaces this through Render / Bytes.
 var errEmptyTable = errors.New("kardec: table requires at least one column")
 
+// TableBorderStyle selects which lines the layout engine draws around
+// and between table cells. The default zero value (BordersNone) keeps
+// tables visually quiet — useful when the surrounding document
+// already separates rows through whitespace.
+type TableBorderStyle uint8
+
+const (
+	// BordersNone draws no lines. Cells flow as text blocks.
+	BordersNone TableBorderStyle = iota
+	// BordersHorizontal draws only the rules between rows plus the
+	// outer top and bottom borders. Common for typographically clean
+	// tables (no vertical dividers).
+	BordersHorizontal
+	// BordersAll draws a full grid: outer rectangle plus every row
+	// and column boundary. Closest analogue to Word's "All Borders".
+	BordersAll
+)
+
 // Table is a block of tabular data composed of column descriptors and
-// rows of cells. Each cell is a slice of inline Runs, so callers can mix
-// styled fragments inside a single cell ("R$ ", Bold("1.000")). v0.2
-// renders cells as plain text blocks; row borders and shading are v0.3.
+// rows of cells. Each cell is a slice of inline Runs, so callers can
+// mix styled fragments inside a single cell ("R$ ", Bold("1.000")).
+//
+// Borders, header shading and alternate-row shading are all opt-in via
+// the matching TableBuilder setters. The defaults produce the same
+// visually quiet table v0.2 shipped.
 type Table struct {
-	columns      []Column
-	rows         []Row
-	repeatHeader bool // when true, the first row is reprinted on each page break
+	columns             []Column
+	rows                []Row
+	repeatHeader        bool // when true, the first row is reprinted on each page break
+	borderStyle         TableBorderStyle
+	headerShading       *Color // non-nil paints a background rectangle behind row 0
+	alternateRowShading *Color // non-nil paints behind every other body row (1, 3, 5, ...)
 }
 
 // blockKind implements Block. The layout engine dispatches on this kind
@@ -33,6 +57,30 @@ func (t Table) Rows() []Row { return t.rows }
 // top of every page the table spans. Only meaningful for tables wider
 // than one page in height.
 func (t Table) RepeatHeader() bool { return t.repeatHeader }
+
+// BorderStyle returns the table's selected border configuration.
+func (t Table) BorderStyle() TableBorderStyle { return t.borderStyle }
+
+// HeaderShading returns the row-0 background color and a flag
+// indicating whether one was set. Layout reads this to emit a
+// shading rectangle behind the header row before placing text.
+func (t Table) HeaderShading() (Color, bool) {
+	if t.headerShading == nil {
+		return Color{}, false
+	}
+	return *t.headerShading, true
+}
+
+// AlternateRowShading returns the alternate-row background color and
+// a flag indicating whether one was set. The body rows at odd indices
+// (1, 3, 5, ...) receive the shading; the header row is never shaded
+// through this knob, even when AlternateRowShading is set.
+func (t Table) AlternateRowShading() (Color, bool) {
+	if t.alternateRowShading == nil {
+		return Color{}, false
+	}
+	return *t.alternateRowShading, true
+}
 
 // Column describes a single table column: its visible header, target
 // width and horizontal alignment for the contained cells.
@@ -98,11 +146,14 @@ func AlignRightCol() ColumnOption { return func(c *Column) { c.Alignment = Align
 // before the Table block is appended to the parent document. Build
 // returns the document so callers can resume the top-level chain.
 type TableBuilder struct {
-	doc          *Document
-	columns      []Column
-	rows         []Row
-	repeatHeader bool
-	err          error
+	doc                 *Document
+	columns             []Column
+	rows                []Row
+	repeatHeader        bool
+	borderStyle         TableBorderStyle
+	headerShading       *Color
+	alternateRowShading *Color
+	err                 error
 }
 
 // Table starts a new TableBuilder anchored to the document. The Table
@@ -121,6 +172,32 @@ func (b *TableBuilder) Columns(cols ...Column) *TableBuilder {
 // engine reprints on every page the table spans.
 func (b *TableBuilder) RepeatHeader() *TableBuilder {
 	b.repeatHeader = true
+	return b
+}
+
+// Borders selects the table's border configuration. The default zero
+// value (BordersNone) leaves cells without lines; BordersHorizontal
+// draws between rows plus top/bottom; BordersAll draws a full grid.
+func (b *TableBuilder) Borders(style TableBorderStyle) *TableBuilder {
+	b.borderStyle = style
+	return b
+}
+
+// HeaderShading paints a colored rectangle behind the table's first
+// row before the cell text is placed. Pair with RepeatHeader to keep
+// the highlight visible on every continuation page.
+func (b *TableBuilder) HeaderShading(c Color) *TableBuilder {
+	color := c
+	b.headerShading = &color
+	return b
+}
+
+// AlternateRowShading paints a colored rectangle behind every other
+// body row (indices 1, 3, 5, ...). The header row is never shaded by
+// this knob — set HeaderShading separately if both are wanted.
+func (b *TableBuilder) AlternateRowShading(c Color) *TableBuilder {
+	color := c
+	b.alternateRowShading = &color
 	return b
 }
 
@@ -160,9 +237,12 @@ func (b *TableBuilder) Build() *Document {
 		return b.doc.fail(errEmptyTable)
 	}
 	tbl := Table{
-		columns:      b.columns,
-		rows:         b.rows,
-		repeatHeader: b.repeatHeader,
+		columns:             b.columns,
+		rows:                b.rows,
+		repeatHeader:        b.repeatHeader,
+		borderStyle:         b.borderStyle,
+		headerShading:       b.headerShading,
+		alternateRowShading: b.alternateRowShading,
 	}
 	return b.doc.append(tbl)
 }
