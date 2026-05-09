@@ -9,6 +9,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Bibliography + numeric citations.** `doc.Cite(key)` returns a Run
+  carrying `[N]` plus an internal hyperlink to the matching entry;
+  numbers are assigned on first reference and reused on repeats.
+  `doc.Bibliography(entries...)` emits a "References" heading plus
+  one paragraph per entry, sorted in citation order with uncited
+  entries appended at the end. Each entry is preceded by a
+  `kardec-bib-<N>` anchor so Cite's link resolves correctly.
+  `BibEntry` carries Author / Title / Year / Journal / Volume /
+  Pages / URL — empty fields drop out of the rendered line.
+  `Document.CitedKeys()` reports citation order so callers can
+  audit which entries went unreferenced.
 - **`Clause(level, runs...)` and `ClauseAt(number, runs...)`.** Auto-
   numbered hierarchical clauses for legal / contract documents.
   `Clause(level, ...)` increments the per-level counter and resets
