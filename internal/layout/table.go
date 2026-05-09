@@ -233,6 +233,8 @@ func mergedColumn(cols []kardec.Column, colStart, span int) kardec.Column {
 // (x, y). Alignment within the cell is honoured: AlignCenter and
 // AlignRight shift x; AlignJustify falls back to left within a cell
 // (justified table cells look awkward and rarely match user intent).
+// AlignDecimal aligns the integer-part / fractional-part split of
+// numeric content on a fixed pivot inside the cell.
 func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Column, cellX, cellWidth, baselineY float64) {
 	extra := cellWidth - ln.width
 	if extra < 0 {
@@ -244,6 +246,8 @@ func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Co
 		startX += extra / 2
 	case kardec.AlignRight:
 		startX += extra
+	case kardec.AlignDecimal:
+		startX = cellX + decimalAlignOffset(ln, cellWidth)
 	}
 	x := startX
 	for _, t := range ln.tokens {
@@ -263,6 +267,72 @@ func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Co
 		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width
 	}
+}
+
+// decimalPivotFraction is the proportion of cell width allocated to
+// the integer side of the decimal pivot. 0.6 keeps three digits +
+// thousands separators reasonably visible while still leaving room
+// for a fractional part and an optional trailing unit ("R$ 1,234.56").
+const decimalPivotFraction = 0.6
+
+// decimalAlignOffset returns the x offset (relative to cellX) that
+// places the line so that its decimal point lands at the pivot.
+// Cells whose text contains no "." fall back to right alignment so
+// an integer mixed in with dotted neighbours still rests at the
+// shared pivot.
+func decimalAlignOffset(ln line, cellWidth float64) float64 {
+	pivot := cellWidth * decimalPivotFraction
+	intWidth, hasDot := integerPartWidth(ln)
+	if !hasDot {
+		// No decimal point — behave like AlignRight so integer rows
+		// land at the same pivot as their dotted siblings.
+		extra := cellWidth - ln.width
+		if extra < 0 {
+			extra = 0
+		}
+		return extra
+	}
+	offset := pivot - intWidth
+	if offset < 0 {
+		offset = 0
+	}
+	if offset+ln.width > cellWidth {
+		offset = cellWidth - ln.width
+		if offset < 0 {
+			offset = 0
+		}
+	}
+	return offset
+}
+
+// integerPartWidth sums the widths of tokens up to (but not
+// including) the first token that begins with ".". When no token
+// carries a dot, the second return is false so the caller can fall
+// back to right alignment.
+func integerPartWidth(ln line) (float64, bool) {
+	var w float64
+	for _, t := range ln.tokens {
+		if dotPos := indexByte(t.text, '.'); dotPos >= 0 {
+			// Add the width of the integer prefix within this
+			// token plus everything before it.
+			prefix := t.text[:dotPos]
+			pw, _, _ := t.font.Measure(prefix, t.sizePt)
+			return w + pw, true
+		}
+		w += t.width
+	}
+	return 0, false
+}
+
+// indexByte returns the first index of c in s, or -1.
+// Inlined to keep this file out of the strings dependency graph.
+func indexByte(s string, c byte) int {
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			return i
+		}
+	}
+	return -1
 }
 
 // computeColumnWidths converts the column descriptors into concrete
