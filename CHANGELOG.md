@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ### Added
 
+- **Render benchmarks.** New `render/bench_test.go` ships
+  `BenchmarkRenderHello` (single-paragraph baseline),
+  `BenchmarkRender100PageReport` (4000-paragraph multi-page sweep),
+  `BenchmarkRenderTable100Rows` (table layout cost), and
+  `BenchmarkRenderMarkdownIngest` (goldmark + layout end-to-end).
+  All four use `b.ReportAllocs()` so allocation regressions
+  surface in `benchstat`.
 - **Runnable godoc `Example` functions.** New `example_test.go`,
   `httpx/example_test.go`, and `render/example_test.go` cover the
   high-traffic entry points (`New`, `NewWithSetup`, `Paragraph`,
