@@ -486,6 +486,13 @@ func (d *Document) HorizontalRule(rule ...HorizontalRule) *Document {
 	return d.append(r)
 }
 
+// Leader appends a left-and-right block with a dotted fill between
+// the two sides. Convenience wrapper over NewLeader for fluent
+// chaining: doc.Leader([]Run{Text("Skill")}, []Run{Text("80%")}).
+func (d *Document) Leader(left, right []Run) *Document {
+	return d.append(NewLeader(left, right))
+}
+
 // Anchor appends a named destination at the current flow position.
 // The name is matched against the "#<name>" target of internal Link
 // runs — see Link / SetLink — and is also exposed in the PDF's named

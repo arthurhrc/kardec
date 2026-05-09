@@ -7,6 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+### Added
+
+- **`Leader` block.** New `kardec.NewLeader(left, right)` and the
+  `doc.Leader(left, right)` builder render a one-line "left ........
+  right" row with a dotted fill between the two sides. Reuses the
+  TOC's dot-leader emitter for visual consistency. Canonical use
+  cases: CV skills bars, financial line items, contract signatories.
+
 ## [0.7.0] — 2026-05-09
 
 ### Added

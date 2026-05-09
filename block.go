@@ -25,6 +25,7 @@ const (
 	kindTOC
 	kindHorizontalRule
 	kindKeepTogether
+	kindLeader
 )
 
 // NewParagraph constructs a standalone Paragraph block. Callers that
@@ -145,6 +146,35 @@ func (Anchor) blockKind() blockKind { return kindAnchor }
 // Name returns the anchor's identifier. Read-only access for layout
 // and renderer integrations.
 func (a Anchor) Name() string { return a.name }
+
+// Leader is a one-line block that places left runs at the left margin
+// and right runs at the right margin, filling the gap with a row of
+// dots. The canonical use case is a "Skill........80%" or
+// "Senator (R-CA)......$1,200,000" row in a CV / financial layout.
+//
+// Construct via NewLeader; the type's fields stay unexported so future
+// versions can add fill characters or alignment knobs without breaking
+// callers. The block resolves its style through StyleDefault unless a
+// named or explicit style is attached on top via WithStyle.
+type Leader struct {
+	left  []Run
+	right []Run
+}
+
+// NewLeader returns a Leader block with the given left and right run
+// sequences. Pass either side empty for a one-sided dotted line.
+func NewLeader(left, right []Run) Leader {
+	return Leader{left: left, right: right}
+}
+
+func (Leader) blockKind() blockKind { return kindLeader }
+
+// Left returns the left-aligned runs of the leader. Read-only access
+// for layout integrations.
+func (l Leader) Left() []Run { return l.left }
+
+// Right returns the right-aligned runs of the leader.
+func (l Leader) Right() []Run { return l.right }
 
 // KeepTogether wraps a slice of inner blocks so the layout engine
 // guarantees they all land on the same page. The canonical use case
