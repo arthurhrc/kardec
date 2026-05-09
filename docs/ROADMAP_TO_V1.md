@@ -4,20 +4,6 @@ Synthesis of three independent audits run against the v0.5.0 surface:
 API completeness, README/docs voice, release engineering. The plan
 below is what stands between today and a v1.0 freeze.
 
-## Why "Kardec"
-
-Allan Kardec (1804-1869) was a French educator who took a body of
-scattered oral traditions and codified them into a structured written
-doctrine. Whatever one makes of the subject matter, the work itself
-was an act of structuring: turning loose, transient material into a
-coherent, portable record.
-
-The library does the equivalent for documents. A program assembles a
-flowing structure (headings, paragraphs, tables, citations) through a
-fluent Go API, and Kardec freezes that structure into a portable PDF
-that opens identically on every reader. The name is a nod to the act
-of codification, nothing more.
-
 ## Version progression
 
 ### v0.6 — close the v0.5 deferrals and lock the API shape
