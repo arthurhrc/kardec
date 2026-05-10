@@ -45,8 +45,14 @@ func TestInlineMathParseFailureDropsRunSilently(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
-	if !bytes.Contains(out, []byte("before")) || !bytes.Contains(out, []byte("after")) {
-		t.Errorf("paragraph should still render the surrounding prose; got %q", out[:200])
+	// Body text is hex glyph IDs (Identity-H) post-v0.22 so we
+	// can't grep for the literal words. Verify instead that the
+	// paragraph emitted at least 2 Tj ops (the surrounding text
+	// fragments) — a parse-failure that dropped the entire
+	// paragraph would leave 0.
+	tjCount := bytes.Count(out, []byte(" Tj"))
+	if tjCount < 2 {
+		t.Errorf("paragraph should still render surrounding prose (≥ 2 Tj ops), got %d", tjCount)
 	}
 }
 

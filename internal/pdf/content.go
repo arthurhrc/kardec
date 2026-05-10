@@ -84,17 +84,10 @@ func buildContentStream(page Page, fonts []*fontHandle, images []*imageHandle) [
 		g := float64(it.Color.G) / 255.0
 		b := float64(it.Color.B) / 255.0
 
-		// Encoding is font-specific: simple TrueType uses single-byte
-		// WinAnsi escaped literals, Type 0 / CIDFontType0 (CFF math
-		// fonts) uses 2-byte hex glyph IDs in angle brackets.
-		var operand string
-		switch fh.Kind {
-		case fontKindCFF:
-			operand = encodeCFFHex([]rune(it.Text), fh.Metrics)
-		default:
-			encoded := encodeWinAnsi([]rune(it.Text))
-			operand = escapeLiteralString(string(encoded))
-		}
+		// Both TrueType and CFF embed paths produce Type 0 /
+		// Identity-H composite fonts (post-v0.22), so the content
+		// stream emits two-byte hex glyph IDs uniformly.
+		operand := encodeCFFHex([]rune(it.Text), fh.Metrics)
 
 		fmt.Fprintf(&buf,
 			"q\n%.4f %.4f %.4f rg\nBT\n/%s %.4f Tf\n%.4f %.4f Td\n%s Tj\nET\nQ\n",
