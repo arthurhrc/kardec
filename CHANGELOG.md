@@ -7,6 +7,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.13.0]
+
+### Added
+
+- **ToUnicode CMap** on every embedded font. Each TTF /Font dict
+  now references a `/ToUnicode` stream mapping the WinAnsi byte
+  range back to Unicode codepoints, so text extraction (copy/
+  paste, find-in-page, accessibility tooling) preserves fidelity
+  for ligatures, smart quotes, em dashes, the euro sign, and the
+  whole 0x80-0xFF range. Format follows PDF 1.7 §9.10.3 + Adobe
+  Tech Note #5411 with chunked `beginbfchar` blocks. Closes the
+  PDF/A-2u promise that lit up in the v1.0 readiness recap.
+
+### Deferred
+
+- **Encryption + permissions (RC4-128 + AES-128)** stays scheduled
+  for v0.13.x as a dedicated release. The Standard Security Handler
+  in PDF 7.6 needs ~600-900 LoC of careful key-derivation + per-
+  stream content wrapping that benefits from undivided attention.
+  Confidential-document users wait one more minor cycle; the lite
+  output continues to be what every consumer reader accepts today.
+
 ## [0.12.0]
 
 ### Added
@@ -623,7 +645,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.13.0
 [0.12.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.12.0
 [0.11.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.11.0
 [0.10.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.10.0
