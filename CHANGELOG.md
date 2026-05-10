@@ -7,6 +7,51 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.24.0]
+
+### Added
+
+- **PDF/UA strict structure tree.** Tagged documents now emit a
+  full hierarchical structure tree that strict validators
+  (veraPDF, PAC) accept:
+  - **`Table` > `TR` > `TD` / `TH`** nesting. Tagged tables
+    produce one `Table` container with one `TR` child per row,
+    each row carrying one `TD` (body) or `TH` (header) child per
+    cell. Replaces the v0.23 flat-by-cell tagging.
+  - **`Sect` groupings around H1 boundaries.** Every H1 starts a
+    new `Sect` container that absorbs the following blocks
+    (P, H2-H6, Figure, Table) until the next H1. Screen readers
+    walking the tree can collapse / expand entire chapters.
+- **`StructBlock.Children` model.** The flat `pdf.StructBlock`
+  gains `Children []StructBlock` and a recursive emit path.
+  Inner blocks (Table, TR, Sect) carry only `Children` — no
+  MCID. Leaves carry the Item / Image ranges they own. Pre-order
+  traversal assigns IDs and MCIDs, so the per-page ParentTree
+  keeps resolving correctly.
+- **Layout cell metadata.** `pageCursor` gains `curTableID`,
+  `curRowIdx`, `curColIdx` markers that flow on every PlacedItem
+  emitted inside a table cell. The render adapter folds
+  consecutive cells with the same `TableID` into a `Table`
+  container, splitting them into TR rows by `RowIdx`.
+
+### Tests
+
+`render/strict_struct_test.go` asserts:
+- `/S /Table` = 1, `/S /TR` = 2, `/S /TH` = 2, `/S /TD` = 2 for
+  a 2-row, 2-col tagged table.
+- `/S /Sect` = 2 for a tagged document with two H1s.
+- Untagged output stays leak-free (no `/Table`, `/TR`, `/TH`,
+  `/TD`, `/Sect` in the byte stream).
+
+### Notes
+
+Sect groupings are per-page (not yet cross-page). Within a page,
+H1 boundaries open / close Sect containers; multi-page chapters
+appear as separate Sect containers per spanned page. The
+cross-page model lands once the writer surfaces document-level
+StructBlock state through the page-emission loop — queued as
+v0.24.x.
+
 ## [0.23.0]
 
 ### Added
