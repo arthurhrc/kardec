@@ -62,7 +62,7 @@ func BenchmarkRenderTable100Rows(b *testing.B) {
 				kardec.Col("Q1", kardec.WithAlignment(kardec.AlignDecimal)),
 				kardec.Col("Q2", kardec.WithAlignment(kardec.AlignDecimal)),
 			).
-			Borders(kardec.BordersAll).
+			Borders(kardec.TableBordersAll).
 			RepeatHeader().
 			Row("Region", "Q1", "Q2")
 		for r := 0; r < 100; r++ {

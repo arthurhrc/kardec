@@ -39,7 +39,7 @@ func TestPlaceTableHorizontalBordersEmitsLines(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal)
 	doc.Table().
 		Columns(kardec.Col("A"), kardec.Col("B")).
-		Borders(kardec.BordersHorizontal).
+		Borders(kardec.TableBordersHorizontal).
 		Row("a1", "b1").
 		Row("a2", "b2").
 		Build()
@@ -58,7 +58,7 @@ func TestPlaceTableAllBordersEmitsGrid(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal)
 	doc.Table().
 		Columns(kardec.Col("A"), kardec.Col("B"), kardec.Col("C")).
-		Borders(kardec.BordersAll).
+		Borders(kardec.TableBordersAll).
 		Row("a", "b", "c").
 		Build()
 

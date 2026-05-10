@@ -14,16 +14,32 @@ var errEmptyTable = errors.New("kardec: table requires at least one column")
 type TableBorderStyle uint8
 
 const (
-	// BordersNone draws no lines. Cells flow as text blocks.
-	BordersNone TableBorderStyle = iota
-	// BordersHorizontal draws only the rules between rows plus the
-	// outer top and bottom borders. Common for typographically clean
-	// tables (no vertical dividers).
-	BordersHorizontal
-	// BordersAll draws a full grid: outer rectangle plus every row
-	// and column boundary. Closest analogue to Word's "All Borders".
-	BordersAll
+	// TableBordersNone draws no lines. Cells flow as text blocks.
+	TableBordersNone TableBorderStyle = iota
+	// TableBordersHorizontal draws only the rules between rows plus
+	// the outer top and bottom borders. Common for typographically
+	// clean tables (no vertical dividers).
+	TableBordersHorizontal
+	// TableBordersAll draws a full grid: outer rectangle plus every
+	// row and column boundary. Closest analogue to Word's "All
+	// Borders".
+	TableBordersAll
 )
+
+// BordersNone is the legacy alias for TableBordersNone.
+//
+// Deprecated: use TableBordersNone. Removed at v1.0.
+const BordersNone = TableBordersNone
+
+// BordersHorizontal is the legacy alias for TableBordersHorizontal.
+//
+// Deprecated: use TableBordersHorizontal. Removed at v1.0.
+const BordersHorizontal = TableBordersHorizontal
+
+// BordersAll is the legacy alias for TableBordersAll.
+//
+// Deprecated: use TableBordersAll. Removed at v1.0.
+const BordersAll = TableBordersAll
 
 // Table is a block of tabular data composed of column descriptors and
 // rows of cells. Each cell is a slice of inline Runs, so callers can
