@@ -88,6 +88,12 @@ type Document struct {
 	// Document.SetEncryption.
 	encryption *encryptionConfig
 
+	// tagged opts the document into PDF/UA-1 lite tagging. taggedLang
+	// is the BCP-47 language code emitted to the catalog's /Lang
+	// entry. Set via Document.SetTagged.
+	tagged     bool
+	taggedLang string
+
 	// figureCounter / tableCounter assign the auto-numbers behind
 	// LabeledFigure / LabeledTable. They are 1-based and never reset
 	// across sections.

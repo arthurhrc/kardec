@@ -99,14 +99,35 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 		imageHandles = append(imageHandles, ih)
 	}
 
+	// Pre-allocate per-page StructElem IDs in tagged mode so each
+	// /Page dict can forward-reference its owning structure element
+	// through /StructParents N (where N is the page index in
+	// ParentTree.Nums). The objects themselves are emitted later
+	// by emitStructTree once the page dicts are known.
+	var pageElemIDs []int
+	if doc.Tagged {
+		pageElemIDs = make([]int, len(doc.Pages))
+		for i := range pageElemIDs {
+			pageElemIDs[i] = ow.allocID()
+		}
+	}
+
 	// Emit each page. We decide which fonts and images are referenced
 	// by the page and only list those in /Resources — keeps the dict
 	// small for docs with many fonts or many images.
 	pageIDs := make([]int, 0, len(doc.Pages))
-	for _, p := range doc.Pages {
+	for pageIdx, p := range doc.Pages {
 		usedFonts := pageFonts(p, handles)
 		usedImages := pageImages(p, imageHandles)
 		raw := buildContentStream(p, handles, imageHandles)
+		// In tagged mode the page's glyph operators are wrapped
+		// in a single /P marked-content sequence with MCID 0 —
+		// every item on the page belongs to one logical
+		// paragraph element. v0.17.x will split this into
+		// per-block sequences (heading, paragraph, figure).
+		if doc.Tagged {
+			raw = wrapMarkedContent(raw, "P", 0)
+		}
 		data, compressed := maybeFlate(raw)
 
 		streamID := ow.allocID()
@@ -119,13 +140,25 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 		annotIDs := emitLinkAnnots(ow, p)
 		pageBody := fmt.Sprintf(
 			"<< /Type /Page /Parent %s /MediaBox [0 0 %.4f %.4f] "+
-				"/Resources %s /Contents %s%s >>",
+				"/Resources %s /Contents %s%s",
 			ref(pagesID),
 			p.Width, p.Height,
 			resourcesDict(usedFonts, usedImages),
 			ref(streamID),
 			renderAnnotsArray(annotIDs),
 		)
+		if doc.Tagged {
+			// /StructParents is an integer key into the
+			// /StructTreeRoot's ParentTree number tree
+			// (PDF 14.7.4.4). One MCID per page in lite mode
+			// means a 1:1 map — page index N → ParentTree[N].
+			pageBody += fmt.Sprintf(" /StructParents %d", pageIdx)
+			// /Tabs /S enforces logical reading order for
+			// assistive tech: tab through annotations in
+			// structure order. PDF/UA requires this.
+			pageBody += " /Tabs /S"
+		}
+		pageBody += " >>"
 		pageIDs = append(pageIDs, ow.allocAndWrite(pageBody))
 	}
 
@@ -158,8 +191,16 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 		outputIntentsID = emitOutputIntent(ow, doc)
 	}
 
+	// Optional structure tree (PDF/UA tagging) — emitted before the
+	// catalog so the catalog can reference the StructTreeRoot.
+	structTreeRootID := 0
+	if doc.Tagged {
+		structTreeRootID = emitStructTree(ow, pageIDs, pageElemIDs)
+	}
+
 	// Catalog last among the structural objects — it points at /Pages
-	// and optionally at /Outlines / /Dests / /Metadata / /OutputIntents.
+	// and optionally at /Outlines / /Dests / /Metadata / /OutputIntents
+	// / /StructTreeRoot / /MarkInfo / /Lang.
 	catalogBody := fmt.Sprintf("<< /Type /Catalog /Pages %s", ref(pagesID))
 	if outlinesID > 0 {
 		catalogBody += fmt.Sprintf(" /Outlines %s /PageMode /UseOutlines", ref(outlinesID))
@@ -172,6 +213,12 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	}
 	if outputIntentsID > 0 {
 		catalogBody += fmt.Sprintf(" /OutputIntents %s", ref(outputIntentsID))
+	}
+	if structTreeRootID > 0 {
+		catalogBody += fmt.Sprintf(" /StructTreeRoot %s /MarkInfo << /Marked true >>", ref(structTreeRootID))
+	}
+	if doc.Lang != "" {
+		catalogBody += fmt.Sprintf(" /Lang %s", escapeLiteralString(doc.Lang))
 	}
 	catalogBody += " >>"
 	ow.writeObject(catalogID, catalogBody)
