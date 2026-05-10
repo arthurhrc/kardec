@@ -152,10 +152,22 @@ func (e Engine) placeTableRow(
 
 	for _, p := range plan {
 		col := mergedColumn(cols, p.colStart, p.span)
+		// Tag every cell glyph with the PDF/UA role matching its
+		// role: TH for the header row (rowIdx 0), TD otherwise.
+		// Validators that walk the structure tree see Table > TR
+		// > TD/TH semantics (flat for now — full Table/TR nesting
+		// lands when StructBlock gains children).
+		cellRole := BlockRole("TD")
+		if rowIdx == 0 {
+			cellRole = BlockRole("TH")
+		}
+		prev := cur.curRole
+		cur.curRole = cellRole
 		for li, ln := range p.lines {
 			lineY := rowTop + float64(li)*style.lineHeight*style.sizePt
 			emitTableCellLine(cur, ln, style, col, cur.x0+p.x, p.width, lineY)
 		}
+		cur.curRole = prev
 	}
 
 	cur.cursorY = rowTop + rowHeight
@@ -263,6 +275,7 @@ func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Co
 			Size:  kardec.Pt(t.sizePt),
 			Color: style.color,
 			Link:  t.link,
+			Role:  cur.curRole,
 		})
 		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width

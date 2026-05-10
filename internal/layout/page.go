@@ -27,6 +27,12 @@ type Page struct {
 	// /MediaBox so multi-section documents with mixed orientations
 	// land correct dimensions per page.
 	Width, Height kardec.Length
+
+	// BackgroundImage is the raw bytes of an image rendered behind
+	// every PlacedItem on this page. Nil means "no background".
+	// Format auto-detects through the same path Document.Image
+	// uses (PNG / JPEG / SVG).
+	BackgroundImage []byte
 }
 
 // AnchorMark records a named anchor at a specific Y on a page.
