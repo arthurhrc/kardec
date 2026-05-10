@@ -83,7 +83,4 @@ func (r Run) FootnoteRef() int { return r.footnoteRef }
 // Run, or "" when the Run is plain text. The layout track inspects
 // this seam to route InlineMath runs through the math layout engine
 // instead of the body line breaker.
-//
-// Deprecated: friend-package seam. Stable while exported but expected
-// to move internal at v1.0.
 func (r Run) MathSource() string { return r.mathSource }
