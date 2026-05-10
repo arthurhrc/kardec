@@ -34,6 +34,14 @@ func emitImage(ow *objectWriter, idx int, img EmbeddedImage) (*imageHandle, erro
 		return nil, fmt.Errorf("pdf: image %d has empty payload", idx)
 	}
 
+	// SVG images take a separate path: they are Form XObjects
+	// rather than Image XObjects, so the dictionary keys / required
+	// resources are different. Emission stays in this file so a
+	// page's resource lookup still funnels through imageHandle.
+	if img.Encoding == ImageSVGForm {
+		return emitFormXObject(ow, idx, img)
+	}
+
 	var (
 		filter string
 		body   []byte
@@ -68,6 +76,39 @@ func emitImage(ow *objectWriter, idx int, img EmbeddedImage) (*imageHandle, erro
 			"/ColorSpace /DeviceRGB /BitsPerComponent 8 "+
 			"/Filter %s /Length %d",
 		img.WidthPx, img.HeightPx, filter, len(body),
+	)
+	ow.writeStreamObject(id, dict, body)
+	return &imageHandle{
+		Name:   fmt.Sprintf("Im%d", idx),
+		ID:     id,
+		Width:  img.WidthPx,
+		Height: img.HeightPx,
+	}, nil
+}
+
+// emitFormXObject writes an SVG-derived vector graphic as a PDF
+// Form XObject (PDF 8.10). The page references it through the same
+// /Im0 Do operator as a raster image, but the underlying object's
+// content stream is graphics operators (m, l, c, re, f, S, …)
+// rather than image samples.
+//
+// /BBox is set to (0, 0, WidthPx, HeightPx) — same as the natural
+// canvas size the SVG converter resolved. /Matrix is omitted
+// (identity) so the page's "cm" operator (the same one used for
+// raster images) places and scales the form.
+//
+// /Resources is empty: the v0.19.0 converter only uses inline
+// graphics-state operators (rg, RG, w, …) plus path operators that
+// don't need indirect resources. v0.19.x will populate
+// /Resources /Font when the converter starts handling <text>.
+func emitFormXObject(ow *objectWriter, idx int, img EmbeddedImage) (*imageHandle, error) {
+	body := img.Data
+	id := ow.allocID()
+	dict := fmt.Sprintf(
+		"/Type /XObject /Subtype /Form /FormType 1 "+
+			"/BBox [0 0 %d %d] /Resources << /ProcSet [/PDF] >> "+
+			"/Length %d",
+		img.WidthPx, img.HeightPx, len(body),
 	)
 	ow.writeStreamObject(id, dict, body)
 	return &imageHandle{

@@ -207,6 +207,15 @@ const (
 	// /Filter /FlateDecode. Width and Height describe the pixel grid
 	// in Data: len(Data) must equal Width*Height*3.
 	ImageRawRGB
+	// ImageSVGForm embeds the image as a vector Form XObject
+	// (/Subtype /Form). Data contains the PDF graphics-operator
+	// stream produced by the SVG converter; WidthPx / HeightPx
+	// double as the bounding-box upper-right corner (in PDF user
+	// space units, treated as natural points). The writer emits
+	// the object with /BBox, /Resources, and the /Length plus
+	// optional /FlateDecode filter — no /ColorSpace, no
+	// /BitsPerComponent.
+	ImageSVGForm
 )
 
 // EmbeddedImage carries one raster image's payload and pixel geometry.
