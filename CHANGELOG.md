@@ -7,6 +7,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.15.0]
+
+### Added
+
+- **OTF/CFF font embedding (Type 0 + CIDFontType0 + Identity-H).**
+  The PDF writer now accepts `OTTO`-scaler SFNT inputs alongside
+  classic TrueType. CFF fonts emit as a Type 0 wrapper +
+  CIDFontType0 descendant + FontFile3 stream with
+  `/Subtype /CIDFontType0C`, plus a per-glyph ToUnicode CMap so
+  text extraction round-trips faithfully. Content stream branches
+  by `fontHandle.Kind` — single-byte WinAnsi for TrueType,
+  two-byte hex glyph IDs for Type 0 / Identity-H.
+- **Latin Modern Math actually embedded.** Through v0.14
+  `appendMathFontIfUsed` was a stub that returned -1 because the
+  writer couldn't handle CFF outlines; math glyphs fell back to
+  whichever Liberation Sans glyph happened to share the codepoint.
+  v0.15 wires the math font end-to-end: ∑, ∫, √, greek letters
+  and the LaTeX symbol set finally render with their own font.
+  PDF size jumps ~470 KB on documents that use math (Latin Modern
+  Math is ~500 KB; subsetting it lands in v0.15.x).
+
 ## [0.14.0]
 
 ### Added
@@ -683,7 +704,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.15.0
 [0.14.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.14.0
 [0.13.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.13.0
 [0.12.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.12.0
