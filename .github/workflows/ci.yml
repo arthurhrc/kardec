@@ -59,15 +59,24 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          # v2.x line uses the v2 config schema and ships binaries
-          # built with newer Go that match the go.mod target. v1
-          # binaries refuse to lint a 1.26.x project; v1's whole-
-          # program typecheck also trips on third-party deps that
-          # only build cleanly under our exact Go version.
-          version: v2.1.6
+      # Direct linters instead of golangci-lint: published
+      # golangci-lint binaries (v1.64.x and v2.1.x) are built with
+      # Go 1.24 and either refuse to lint a 1.26.x go.mod or panic
+      # in the type checker on third-party deps. Direct staticcheck
+      # builds with the runner's Go (1.26.x) and side-steps the
+      # ecosystem mismatch. govet runs in the test job.
+      - name: staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck ./...
+      - name: ineffassign
+        run: |
+          go install github.com/gordonklaus/ineffassign@latest
+          ineffassign ./...
+      - name: misspell
+        run: |
+          go install github.com/client9/misspell/cmd/misspell@latest
+          misspell -error .
 
   vuln:
     runs-on: ubuntu-latest
