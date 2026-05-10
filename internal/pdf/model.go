@@ -7,6 +7,8 @@ package pdf
 type Document struct {
 	Title        string
 	Author       string
+	Subject      string
+	Keywords     string
 	Pages        []Page
 	Fonts        []EmbeddedFont
 	Images       []EmbeddedImage
@@ -16,7 +18,7 @@ type Document struct {
 	// PDF/A-2b conformance, attach a /Metadata catalog entry, and
 	// write a stable /ID array in the trailer. Strict PDF/A
 	// validators additionally require an OutputIntent with an
-	// embedded sRGB ICC profile — that lands in v0.6.
+	// embedded sRGB ICC profile — that lands in v0.11.
 	PDFA bool
 }
 
