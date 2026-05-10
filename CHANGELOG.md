@@ -7,6 +7,64 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.10.0]
+
+### Added
+
+- **`Document.EnablePDFA` / `DisablePDFA` and `EnableFontSubsetting`
+  / `DisableFontSubsetting`.** Idiomatic toggle pairs replacing the
+  variadic-bool `PDFA(on ...bool)` and `SubsetFonts(on ...bool)`
+  forms. Old methods stay as `// Deprecated` forwarders.
+- **`Document.Footnote(body)` / `Document.FootnoteWith(marker, body...)`.**
+  Method form replaces `kardec.Footnote(d, body)` and
+  `kardec.FootnoteWithMarker(d, marker, body...)`. Function forms
+  forward and are deprecated.
+- **`Document.NewSection(setup PageSetup)` + `kardec.SetupOf(size, margins)`.**
+  Single section constructor accepting a full PageSetup; common
+  path uses `SetupOf` for size + margins with Portrait default.
+- **`kardec.NewCell(runs...)`.** Replaces the plural-singular-mismatched
+  `Cells(runs...)` (which produced one `Cell`).
+- **`kardec.WithAlignment(a Alignment)`.** Single ColumnOption taking
+  the Alignment enum, replacing four `AlignXxxCol()` helpers.
+- **`kardec.TableBordersNone` / `TableBordersHorizontal` /
+  `TableBordersAll`.** Type-prefixed border constants replacing the
+  bare `BordersXxx` names.
+- **`Document.RegisteredFamilies() []string`.** Introspection
+  alternative to `FontRegistry()` that doesn't leak the internal
+  `*typography.Registry`.
+- **`MIGRATING.md`.** Three-column tables (Old API / New API /
+  Codemod hint) covering every rename and removal in this release
+  plus the v0.9 ParagraphRef return-type change.
+
+### Removed
+
+- **`Document.AddParagraph` and `kardec.ParagraphBuilder` alias.**
+  Deprecated since v0.9.0 when `Paragraph` absorbed the builder via
+  `*ParagraphRef`. Removed after one full minor cycle.
+- **`Document.MathInline(src)`.** Always a placeholder for proper
+  Run-level inline math; the block-flag form is gone. Use `Math(src)`
+  for display math; inline math will land as a Run constructor in
+  a future release.
+
+### Deprecated
+
+- **`Document.PDFA` / `Document.SubsetFonts`** (variadic-bool toggles)
+  → use `Enable*` / `Disable*`.
+- **`kardec.Footnote` / `kardec.FootnoteWithMarker`** (package-level
+  functions) → use `Document.Footnote` / `Document.FootnoteWith`.
+- **`Document.NewSectionWithSetup`** → use `Document.NewSection`.
+- **`kardec.Cells`** → use `kardec.NewCell`.
+- **`kardec.AlignLeftCol` / `AlignCenterCol` / `AlignRightCol` /
+  `AlignDecimalCol`** → use `kardec.WithAlignment(a)`.
+- **`kardec.BordersNone` / `BordersHorizontal` / `BordersAll`** →
+  use `kardec.TableBordersXxx`.
+- **`kardec.SetRenderImpl`** — render-injection seam; only the
+  `kardec/render` `init()` should call it. Becomes internal at v1.0.
+- **`Document.FontRegistry`** — leaks internal `*typography.Registry`.
+  Use `RegisteredFamilies()` for introspection.
+- **`(*Run).SetLink`** — markdown-bridge mutation seam. Use
+  `kardec.Link(text, url)` for new content.
+
 ## [0.9.1]
 
 ### Changed
@@ -493,7 +551,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.10.0
 [0.9.1]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.1
 [0.9.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.0
 [0.8.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.8.0
