@@ -10,7 +10,7 @@ import (
 func TestTable_DecimalAlignment_AlignsOnDot(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Table().
-		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.AlignDecimalCol())).
+		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.WithAlignment(kardec.AlignDecimal))).
 		Row("NA", "1234.56").
 		Row("EMEA", "78.9").
 		Build()
@@ -51,7 +51,7 @@ func TestTable_DecimalAlignment_AlignsOnDot(t *testing.T) {
 func TestTable_DecimalAlignment_IntegerOnlyFallsBackToRightAlign(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Table().
-		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.AlignDecimalCol())).
+		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.WithAlignment(kardec.AlignDecimal))).
 		Row("NA", "100").
 		Row("EMEA", "1.5").
 		Build()
