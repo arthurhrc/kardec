@@ -33,6 +33,12 @@ import (
 )
 
 func init() {
+	// kardec.SetRenderImpl is the friend-package seam this file
+	// exists to consume. The Deprecated comment on the kardec
+	// side warns user code away; this package is the only
+	// legitimate caller and stays so until the seam moves
+	// internal at v1.0.
+	//lint:ignore SA1019 friend-package seam; render is the legitimate caller
 	kardec.SetRenderImpl(renderImpl)
 }
 
@@ -72,6 +78,11 @@ func Bytes(d *kardec.Document) ([]byte, error) {
 // init. It runs the layout engine over the document, converts the
 // layout pages to the PDF writer's input model, and emits PDF 1.7 bytes.
 func renderImpl(d *kardec.Document, w io.Writer) error {
+	// FontRegistry is the friend-package seam exposing the
+	// internal *typography.Registry to render. User code should
+	// use Document.RegisteredFamilies; render needs the full
+	// registry to construct a FontProvider.
+	//lint:ignore SA1019 friend-package seam; render needs the registry
 	registry := d.FontRegistry()
 	provider := newLayoutFontProvider(registry)
 

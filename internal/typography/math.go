@@ -52,17 +52,6 @@ type MathGlyph struct {
 	// Rune is the Unicode codepoint that represents this glyph in
 	// the math font. Layout writes it into the PDF text run.
 	Rune rune
-
-	// advance1000 is the horizontal advance in 1/1000 em (font design
-	// units). Multiplying by sizePt/1000 yields the advance in points.
-	advance1000 int16
-
-	// ascent1000 is the height above the baseline in 1/1000 em.
-	ascent1000 int16
-
-	// descent1000 is the absolute distance below the baseline in
-	// 1/1000 em (i.e. always non-negative for typical glyphs).
-	descent1000 int16
 }
 
 // latinModernMath wraps a *canvas.Font (loaded once, at construction

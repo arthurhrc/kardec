@@ -43,16 +43,3 @@ func styleFromKardec(s kardec.Style) blockStyle {
 	}
 }
 
-// stubBlockStyle is the style applied to placeholder fragments emitted
-// for not-yet-implemented block kinds (tables, images). It is small,
-// gray, and visually distinct from real content so the placeholder is
-// obvious during dry runs.
-func stubBlockStyle() blockStyle {
-	return blockStyle{
-		family:     kardec.FontLiberationSans,
-		sizePt:     11,
-		color:      kardec.ColorGray,
-		lineHeight: 1.2,
-		alignment:  kardec.AlignLeft,
-	}
-}

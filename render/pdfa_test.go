@@ -51,7 +51,7 @@ func TestPDFAOffByDefault(t *testing.T) {
 func TestPDFADocumentIDStableAcrossRuns(t *testing.T) {
 	build := func() []byte {
 		doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-			PDFA().
+			EnablePDFA().
 			SetCreationDate(time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)).
 			Paragraph(kardec.Text("body"))
 		out, err := Bytes(doc.Document)

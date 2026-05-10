@@ -5,13 +5,10 @@ import (
 	"testing"
 )
 
-// hyphenFontProvider gives every glyph a 6-pt advance at 12pt; useful
-// because hyphenation tests need predictable widths to assert that a
-// prefix exactly fits a constrained line.
-type hyphenFontProvider struct{}
-
-func (hyphenFontProvider) Resolve(string, bool, bool) Font { return hyphenFont{} }
-
+// hyphenFont is the predictable-advance font the hyphenation tests
+// use to assert that a prefix exactly fits a constrained line. The
+// FontProvider plumbing isn't needed (these tests drive breakLines
+// directly) — callers construct a stubFont via shapeRuns.
 type hyphenFont struct{}
 
 func (hyphenFont) Measure(text string, sizePt float64) (float64, float64, float64) {

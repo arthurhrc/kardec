@@ -12,7 +12,7 @@ func TestSubsetFontsShrinksRenderedPDF(t *testing.T) {
 		doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 			SetCreationDate(time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC))
 		if subset {
-			doc.SubsetFonts()
+			doc.EnableFontSubsetting()
 		}
 		doc.Heading(1, kardec.Text("Hello, Kardec")).
 			Paragraph(
@@ -46,17 +46,24 @@ func TestSubsetFontsOffByDefault(t *testing.T) {
 	}
 }
 
+// TestSubsetFontsOptIn exercises the deprecated SubsetFonts(...)
+// variadic-bool form. The replacement is EnableFontSubsetting /
+// DisableFontSubsetting (covered by toggles_test.go in the root
+// package); this test remains so the deprecated path keeps working
+// for v0.x consumers until v1.0 removes it.
+//
+//lint:ignore SA1019 covers the deprecated path on purpose
 func TestSubsetFontsOptIn(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		SubsetFonts(true)
+		SubsetFonts(true) //nolint:staticcheck // testing deprecated path
 	if !doc.FontSubsetEnabled() {
 		t.Errorf("SubsetFonts(true) should enable")
 	}
-	doc.SubsetFonts(false)
+	doc.SubsetFonts(false) //nolint:staticcheck // testing deprecated path
 	if doc.FontSubsetEnabled() {
 		t.Errorf("SubsetFonts(false) should disable")
 	}
-	doc.SubsetFonts()
+	doc.SubsetFonts() //nolint:staticcheck // testing deprecated path
 	if !doc.FontSubsetEnabled() {
 		t.Errorf("SubsetFonts() with no args should enable")
 	}

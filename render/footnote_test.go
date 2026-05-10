@@ -11,7 +11,7 @@ func TestRenderEmitsFootnoteAtPageBottom(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal)
 	doc.Paragraph(
 		kardec.Text("Sales grew "),
-		kardec.Footnote(doc, "see appendix B for the breakdown."),
+		doc.Footnote("see appendix B for the breakdown."),
 		kardec.Text(" this quarter."),
 	)
 	out, err := Bytes(doc)

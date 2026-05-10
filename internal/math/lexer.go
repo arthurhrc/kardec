@@ -102,15 +102,6 @@ func (l *lexer) next() token {
 	}
 }
 
-// peek returns the next token without consuming it. The lexer state is
-// restored before returning.
-func (l *lexer) peek() token {
-	saved := l.pos
-	t := l.next()
-	l.pos = saved
-	return t
-}
-
 // skipWhitespace advances past any whitespace runes.
 func (l *lexer) skipWhitespace() {
 	for l.pos < len(l.src) {

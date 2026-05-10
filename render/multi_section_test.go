@@ -10,7 +10,7 @@ import (
 func TestRenderMultiSectionMixesPageSizes(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Heading(1, kardec.Text("Cover")).
-		NewSectionWithSetup(kardec.PageSetup{
+		NewSection(kardec.PageSetup{
 			Size:        kardec.PageA4,
 			Orientation: kardec.Landscape,
 			Margins:     kardec.MarginsNormal,
