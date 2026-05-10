@@ -1,16 +1,17 @@
 // Package hyphenation produces candidate break points for words that
-// would otherwise overflow a line. v0.4 ships a minimal heuristic
-// hyphenator: splits between two consecutive consonants, after a
-// vowel followed by two consonants, and after well-known English
-// prefixes (un-, re-, in-, dis-, pre-, mis-, sub-, inter-, over-).
+// would otherwise overflow a line.
 //
-// The heuristic is intentionally conservative — it never inserts a
-// break that produces a fragment shorter than three characters, so
-// "the" never becomes "t-he". Less accurate than full Knuth–Liang
-// patterns but enough to cover the most common overflow cases at a
-// fraction of the data-table size. Switching to Liang patterns is a
-// drop-in replacement once the table lands; the public BreakPoints
-// surface stays.
+// v0.11 ships Knuth-Liang pattern-based hyphenation as the primary
+// algorithm, with the v0.4 heuristic kept as a structural fallback
+// for words the curated pattern subset doesn't recognise.
+//
+// The curated English (en-US) pattern table covers high-frequency
+// prefixes, suffixes, and consonant-pair splits. Callers needing
+// the full standard hyph-en-us pattern set (~4400 patterns) call
+// Register once at init time with their own pattern bytes.
+//
+// Both algorithms enforce a 3-character minimum on each side of a
+// split, so "the" never becomes "t-he".
 package hyphenation
 
 import "strings"
@@ -20,14 +21,18 @@ import "strings"
 // position of the *break* — the first character on the next line.
 // Empty result means the word should not be split.
 //
-// The lang argument is currently advisory — only "en" is honored;
-// other tags fall through to the same English heuristic.
+// Lookup order: Liang patterns first (lang-specific table), then
+// the heuristic fallback. The first non-empty result wins. lang
+// resolves to "en" when empty; other tags fall through to whatever
+// patterns the caller registered.
 func BreakPoints(word, lang string) []int {
-	_ = lang
 	if len(word) < 6 {
 		return nil
 	}
 	lower := strings.ToLower(word)
+	if breaks := liangBreakPoints(lower, lang); len(breaks) > 0 {
+		return dedupAndPrune(breaks, len(word))
+	}
 	candidates := afterPrefixes(lower)
 	candidates = append(candidates, vcCcvSplits(lower)...)
 	return dedupAndPrune(candidates, len(word))
