@@ -315,11 +315,6 @@ required environments".
   TOC's dot-leader emitter for visual consistency. Canonical use
   cases: CV skills bars, financial line items, contract signatories.
 
-## [0.6.0]
-
-Skipped — scope rolled into v0.10 (API rename sweep) and v0.11
-(font embedding, ICC, metadata, Liang hyphenation). See
-[docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md).
 
 ## [0.7.0]
 
@@ -376,6 +371,12 @@ Skipped — scope rolled into v0.10 (API rename sweep) and v0.11
   Layout emits a thin rect per decorated token: underline below the
   baseline, strikethrough through the x-height. Thickness scales with
   point size with a 0.4pt floor so 8pt body text still reads.
+
+  ## [0.6.0]
+
+Skipped — scope rolled into v0.10 (API rename sweep) and v0.11
+(font embedding, ICC, metadata, Liang hyphenation). See
+[docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md).
 
 ## [0.5.0]
 
