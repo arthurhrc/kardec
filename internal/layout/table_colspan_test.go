@@ -11,7 +11,7 @@ func TestTable_ColspanCellGetsMergedWidth(t *testing.T) {
 		Table().
 		Columns(kardec.Col("Q1"), kardec.Col("Q2"), kardec.Col("Q3"), kardec.Col("Q4")).
 		RowCells(kardec.SpanCell(2, kardec.Text("First half")), kardec.SpanCell(2, kardec.Text("Second half"))).
-		RowCells(kardec.Cells(kardec.Text("100")), kardec.Cells(kardec.Text("110")), kardec.Cells(kardec.Text("120")), kardec.Cells(kardec.Text("130"))).
+		RowCells(kardec.NewCell(kardec.Text("100")), kardec.NewCell(kardec.Text("110")), kardec.NewCell(kardec.Text("120")), kardec.NewCell(kardec.Text("130"))).
 		Build()
 
 	pages, err := NewEngine().Layout(doc, stubProvider{})

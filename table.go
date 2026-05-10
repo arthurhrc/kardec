@@ -249,9 +249,16 @@ func (b *TableBuilder) RowCells(cells ...Cell) *TableBuilder {
 	return b
 }
 
-// Cells builds a Cell from the supplied runs — the rich-content
+// NewCell builds a Cell from the supplied runs — the rich-content
 // counterpart to the plain string accepted by Row.
-func Cells(runs ...Run) Cell { return Cell{Runs: runs} }
+func NewCell(runs ...Run) Cell { return Cell{Runs: runs} }
+
+// Cells builds a Cell from the supplied runs.
+//
+// Deprecated: use NewCell. The plural-singular mismatch with
+// RowCells made this name confusing; the function ships only for
+// the v0.x line and is removed at v1.0.
+func Cells(runs ...Run) Cell { return NewCell(runs...) }
 
 // SpanCell builds a Cell that occupies span columns. The most common
 // use case is a merged header that labels a group of underlying
