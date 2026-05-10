@@ -46,26 +46,17 @@ func TestSubsetFontsOffByDefault(t *testing.T) {
 	}
 }
 
-// TestSubsetFontsOptIn exercises the deprecated SubsetFonts(...)
-// variadic-bool form. The replacement is EnableFontSubsetting /
-// DisableFontSubsetting (covered by toggles_test.go in the root
-// package); this test remains so the deprecated path keeps working
-// for v0.x consumers until v1.0 removes it.
-func TestSubsetFontsOptIn(t *testing.T) {
-	//lint:ignore SA1019 testing deprecated path
+// TestFontSubsettingToggles exercises the EnableFontSubsetting /
+// DisableFontSubsetting pair that replaced the v0.x variadic-bool
+// SubsetFonts at v1.0.
+func TestFontSubsettingToggles(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		SubsetFonts(true)
+		EnableFontSubsetting()
 	if !doc.FontSubsetEnabled() {
-		t.Errorf("SubsetFonts(true) should enable")
+		t.Errorf("EnableFontSubsetting should turn the flag on")
 	}
-	//lint:ignore SA1019 testing deprecated path
-	doc.SubsetFonts(false)
+	doc.DisableFontSubsetting()
 	if doc.FontSubsetEnabled() {
-		t.Errorf("SubsetFonts(false) should disable")
-	}
-	//lint:ignore SA1019 testing deprecated path
-	doc.SubsetFonts()
-	if !doc.FontSubsetEnabled() {
-		t.Errorf("SubsetFonts() with no args should enable")
+		t.Errorf("DisableFontSubsetting should turn the flag off")
 	}
 }

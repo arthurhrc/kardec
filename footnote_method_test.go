@@ -29,10 +29,3 @@ func TestFootnoteWithMethodHonorsCustomMarker(t *testing.T) {
 	}
 }
 
-func TestDeprecatedFootnoteFunctionStillRegistersRef(t *testing.T) {
-	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal)
-	r := kardec.Footnote(doc, "legacy body")
-	if r.FootnoteRef() != 1 {
-		t.Errorf("deprecated kardec.Footnote should still register a footnote ref")
-	}
-}

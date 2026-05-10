@@ -181,23 +181,6 @@ func (d *Document) DisablePDFA() *Document {
 	return d
 }
 
-// PDFA opts the document into PDF/A markers.
-//
-// Deprecated: use EnablePDFA / DisablePDFA. Variadic-bool toggles are
-// unidiomatic Go and the form ships only for the v0.x line. Removed
-// at v1.0.
-func (d *Document) PDFA(on ...bool) *Document {
-	if d.err != nil {
-		return d
-	}
-	if len(on) == 0 {
-		d.pdfa = true
-	} else {
-		d.pdfa = on[0]
-	}
-	return d
-}
-
 // PDFAEnabled reports whether PDF/A markers will be emitted.
 func (d *Document) PDFAEnabled() bool { return d.pdfa }
 
@@ -220,23 +203,6 @@ func (d *Document) DisableFontSubsetting() *Document {
 		return d
 	}
 	d.subsetFonts = false
-	return d
-}
-
-// SubsetFonts toggles glyf-table subsetting for embedded fonts.
-//
-// Deprecated: use EnableFontSubsetting / DisableFontSubsetting.
-// Variadic-bool is unidiomatic; this form ships only for the v0.x
-// line. Removed at v1.0.
-func (d *Document) SubsetFonts(on ...bool) *Document {
-	if d.err != nil {
-		return d
-	}
-	if len(on) == 0 {
-		d.subsetFonts = true
-	} else {
-		d.subsetFonts = on[0]
-	}
 	return d
 }
 

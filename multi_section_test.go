@@ -45,19 +45,6 @@ func TestNewSectionAppliesSetupVerbatim(t *testing.T) {
 	}
 }
 
-func TestNewSectionWithSetupAppliesVerbatim(t *testing.T) {
-	custom := PageSetup{
-		Size:        PageLegal,
-		Orientation: Landscape,
-		Margins:     Symmetric(Cm(3)),
-	}
-	doc := New(PageA4, MarginsNormal).NewSectionWithSetup(custom)
-	got := doc.CurrentSection().Setup
-	if got.Size.Name != "Legal" || got.Orientation != Landscape {
-		t.Errorf("NewSectionWithSetup did not apply setup verbatim: %+v", got)
-	}
-}
-
 func TestNewSectionPreservesEarlierHeaderFooter(t *testing.T) {
 	doc := New(PageA4, MarginsNormal).
 		Header(Text("first header")).

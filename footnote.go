@@ -46,6 +46,9 @@ func (f FootnoteRef) Body() []Run { return f.body }
 //	    kardec.Text(" this quarter."),
 //	)
 func (d *Document) Footnote(body string) Run {
+	if d == nil {
+		return Run{}
+	}
 	return d.FootnoteWith("", Text(body))
 }
 
@@ -67,22 +70,6 @@ func (d *Document) FootnoteWith(marker string, body ...Run) Run {
 		text:        ref.Marker(),
 		footnoteRef: ref.number,
 	}
-}
-
-// Footnote builds a footnote Run anchored to d.
-//
-// Deprecated: use d.Footnote(body). Passing a Document into a Run
-// constructor is a code smell and the function form is removed at
-// v1.0. The method form is identical otherwise.
-func Footnote(d *Document, body string) Run {
-	return d.Footnote(body)
-}
-
-// FootnoteWithMarker is the package-level variant of FootnoteWith.
-//
-// Deprecated: use d.FootnoteWith(marker, body...). Removed at v1.0.
-func FootnoteWithMarker(d *Document, marker string, body ...Run) Run {
-	return d.FootnoteWith(marker, body...)
 }
 
 // decimalString turns a non-negative int into its decimal string

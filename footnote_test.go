@@ -4,8 +4,8 @@ import "testing"
 
 func TestFootnoteAutoNumbersPerDocument(t *testing.T) {
 	doc := New(PageA4, MarginsNormal)
-	a := Footnote(doc, "first body")
-	b := Footnote(doc, "second body")
+	a := doc.Footnote("first body")
+	b := doc.Footnote("second body")
 
 	if a.FootnoteRef() != 1 || b.FootnoteRef() != 2 {
 		t.Errorf("auto-numbering: a=%d b=%d, want 1 and 2", a.FootnoteRef(), b.FootnoteRef())
@@ -24,7 +24,7 @@ func TestFootnoteAutoNumbersPerDocument(t *testing.T) {
 
 func TestFootnoteWithMarkerHonorsCustomLabel(t *testing.T) {
 	doc := New(PageA4, MarginsNormal)
-	r := FootnoteWithMarker(doc, "*", Text("starred body"))
+	r := doc.FootnoteWith("*", Text("starred body"))
 	if r.Text() != "*" {
 		t.Errorf("custom marker text = %q, want *", r.Text())
 	}
@@ -35,7 +35,8 @@ func TestFootnoteWithMarkerHonorsCustomLabel(t *testing.T) {
 }
 
 func TestFootnoteReturnsEmptyOnNilDocument(t *testing.T) {
-	r := Footnote(nil, "ignored")
+	var doc *Document
+	r := doc.Footnote("ignored")
 	if r.Text() != "" || r.FootnoteRef() != 0 {
 		t.Errorf("nil document should return zero Run, got %+v", r)
 	}
