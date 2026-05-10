@@ -39,8 +39,14 @@ func main() {
 		XLabel: "minute",
 		YLabel: "ms",
 		Series: []chart.LineSeries{
-			{Label: "p50", Points: []chart.Point{{1, 120}, {2, 130}, {3, 125}, {4, 140}, {5, 138}, {6, 142}}},
-			{Label: "p99", Points: []chart.Point{{1, 340}, {2, 380}, {3, 360}, {4, 420}, {5, 410}, {6, 435}}},
+			{Label: "p50", Points: []chart.Point{
+				{X: 1, Y: 120}, {X: 2, Y: 130}, {X: 3, Y: 125},
+				{X: 4, Y: 140}, {X: 5, Y: 138}, {X: 6, Y: 142},
+			}},
+			{Label: "p99", Points: []chart.Point{
+				{X: 1, Y: 340}, {X: 2, Y: 380}, {X: 3, Y: 360},
+				{X: 4, Y: 420}, {X: 5, Y: 410}, {X: 6, Y: 435},
+			}},
 		},
 	})
 	doc.Image(line.Render(450, 260)).Width(kardec.Pt(450)).Build()
