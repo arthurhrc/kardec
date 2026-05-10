@@ -157,17 +157,6 @@ func parseTextShows(stream string) []textShow {
 	return out
 }
 
-// findShow returns the first Tj whose operand exactly matches
-// `target`. Returns false when no match is found.
-func findShow(shows []textShow, target string) (textShow, bool) {
-	for _, s := range shows {
-		if s.Operand == target {
-			return s, true
-		}
-	}
-	return textShow{}, false
-}
-
 // TestVisualRegression_WordAdvance guards the bug that produced the
 // v0.1–v0.21 word-overlap: canvas was being asked for a font in mm
 // when it wanted points, so advance widths came out 1/2.83 the
