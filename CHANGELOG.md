@@ -7,6 +7,74 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.22.0]
+
+### Added
+
+- **Body text Identity-H.** TrueType body fonts now emit as Type 0
+  composite fonts with `/Encoding /Identity-H` and a CIDFontType2
+  descendant. Every Unicode codepoint the source TTF supports is
+  renderable; the v0.16+ "Δ → ?" silent substitution disappears.
+  PDF size grows by one byte per glyph in the content stream and
+  compresses away under FlateDecode.
+- **PDF/UA per-block roles.** `SetTagged(lang)` now emits one
+  StructElem per heading / paragraph / figure with the correct
+  role (`H1`–`H6`, `P`, `Figure`) instead of the v0.17 lite form
+  that wrapped each whole page in one `/P`. Layout's
+  `BlockRole` flows through `pdf.Page.StructBlocks` to the writer.
+- **Encrypted strings.** `/Encrypt` declares `/StmF /StdCF /StrF
+  /StdCF` so AESV2 covers Title, Author, Subject, Keywords, link
+  `/URI`s alongside streams. The new `encryptString` helper
+  handles per-object key derivation per PDF 7.6.3.4 algorithm
+  1.A. Strict regulators that demanded Title confidentiality now
+  see a fully encrypted document.
+- **Examples for v0.15–v0.21 features.** New runnable examples:
+  `examples/encryption`, `examples/watermark`, `examples/svg`,
+  `examples/tagged`, `examples/inlinemath`. Each is ~30–50 LoC.
+- **Fuzz tests for parsers.** Math (`internal/math`), SVG
+  (`internal/svg`), and Markdown (`fuzz_markdown_test.go`)
+  parsers all run under `go test -fuzz`. ~180K execs each in a 3s
+  sweep, no panics.
+- **`MIGRATING.md` v0.22 section.** Lists every removed
+  identifier with a sed-style codemod hint.
+
+### Removed
+
+Final removal pass of v0.x-only deprecated identifiers. Each had
+a 1:1 replacement and shipped `// Deprecated: … Removed at v1.0`
+since v0.10:
+
+- `BordersNone` / `BordersHorizontal` / `BordersAll` →
+  `TableBordersNone` / `TableBordersHorizontal` / `TableBordersAll`
+- `AlignLeftCol` / `AlignCenterCol` / `AlignRightCol` /
+  `AlignDecimalCol` → `WithAlignment(AlignLeft / AlignCenter /
+  AlignRight / AlignDecimal)`
+- `Cells(runs...)` → `NewCell(runs...)`
+- package-level `Footnote(d, body)` and
+  `FootnoteWithMarker(d, marker, body...)` → `d.Footnote(body)` and
+  `d.FootnoteWith(marker, body...)`
+- `Document.NewSectionWithSetup(setup)` →
+  `Document.NewSection(setup)`
+- `Document.PDFA(on ...bool)` → `Document.EnablePDFA()` /
+  `Document.DisablePDFA()`
+- `Document.SubsetFonts(on ...bool)` →
+  `Document.EnableFontSubsetting()` / `Document.DisableFontSubsetting()`
+
+Internal cleanup: `internal/pdf/winansi.go` and
+`internal/pdf/tounicode.go` deleted — the WinAnsi machinery had
+no production callers after the Identity-H migration.
+
+### Notes
+
+Friend-package seams (`SetRenderImpl`, `FontRegistry`, `MathFont`,
+`WatermarkResolved`, `Run.MathSource`) stay deprecated but
+exported because there is no alternative without an
+architectural restructure. `// Deprecated:` doc-comments warn
+callers in pkg.go.dev.
+
+Strict PDF/UA-1 conformance still wants nested Sect groupings
+and table TR/TD/TH; queued for v0.22.x.
+
 ## [0.21.1]
 
 ### Fixed
