@@ -35,28 +35,24 @@ func (f FootnoteRef) Body() []Run { return f.body }
 
 // Footnote builds a Run that renders an auto-numbered superscript
 // marker inline, while registering the supplied body runs for
-// emission at the foot of the same page. The numbering is taken
-// from Document.nextFootnoteNumber and increments per call.
+// emission at the foot of the same page. Numbering increments per
+// call and is shared with FootnoteWith / Footnote-as-method.
 //
-// Use it inline in a Paragraph or Heading:
+// Use it inline in a Paragraph:
 //
 //	doc.Paragraph(
 //	    kardec.Text("Sales grew "),
-//	    kardec.Footnote(doc, "see appendix B for the breakdown."),
+//	    doc.Footnote("see appendix B for the breakdown."),
 //	    kardec.Text(" this quarter."),
 //	)
-//
-// The Document argument is required because the caller must share
-// the auto-increment counter and footnote table; passing it
-// explicitly keeps Run construction free of hidden global state.
-func Footnote(d *Document, body string) Run {
-	return FootnoteWithMarker(d, "", Text(body))
+func (d *Document) Footnote(body string) Run {
+	return d.FootnoteWith("", Text(body))
 }
 
-// FootnoteWithMarker is the variant that accepts a custom marker
-// (e.g. "*", "†") and rich body runs. An empty marker reverts to
-// auto-numbered decimal output.
-func FootnoteWithMarker(d *Document, marker string, body ...Run) Run {
+// FootnoteWith is the rich-content variant of Footnote: a caller-
+// supplied marker (e.g. "*", "†") plus inline runs. An empty marker
+// falls back to the auto-numbered decimal form.
+func (d *Document) FootnoteWith(marker string, body ...Run) Run {
 	if d == nil {
 		return Text("")
 	}
@@ -67,15 +63,26 @@ func FootnoteWithMarker(d *Document, marker string, body ...Run) Run {
 		marker: marker,
 	}
 	d.footnotes = append(d.footnotes, ref)
-	// The visible run carries the marker label; the layout engine
-	// recognises footnote-flagged runs through Run.FootnoteRef and
-	// pairs each with the matching ref body when emitting page
-	// chrome. Until the layout integration lands, the marker
-	// renders as plain superscript-shaped text.
 	return Run{
 		text:        ref.Marker(),
 		footnoteRef: ref.number,
 	}
+}
+
+// Footnote builds a footnote Run anchored to d.
+//
+// Deprecated: use d.Footnote(body). Passing a Document into a Run
+// constructor is a code smell and the function form is removed at
+// v1.0. The method form is identical otherwise.
+func Footnote(d *Document, body string) Run {
+	return d.Footnote(body)
+}
+
+// FootnoteWithMarker is the package-level variant of FootnoteWith.
+//
+// Deprecated: use d.FootnoteWith(marker, body...). Removed at v1.0.
+func FootnoteWithMarker(d *Document, marker string, body ...Run) Run {
+	return d.FootnoteWith(marker, body...)
 }
 
 // decimalString turns a non-negative int into its decimal string
