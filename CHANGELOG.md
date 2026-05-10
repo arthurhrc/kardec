@@ -7,6 +7,31 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.25.0]
+
+### Added
+
+- **`kardec/chart` subpackage.** Pure-Go SVG chart renderer for the
+  three most common engineering-report chart types:
+  - `chart.Bar(BarChart{...})` — vertical bars with numeric Y axis.
+  - `chart.Line(LineChart{...})` — multi-series polylines with legend.
+  - `chart.Pie(PieChart{...})` — sectors with side legend + percentages.
+
+  Each `.Render(width, height)` returns SVG bytes that flow through
+  `Document.Image` → vector Form XObject. Stays sharp at any
+  rendered size. `DefaultPalette` ships 8 printer-safe colors;
+  callers override via the `Palette` field.
+- **`examples/chart`.** Bar + line + pie demo, ~5 LoC per chart.
+
+### Fixed
+
+- **`.gitignore` PDF leak.** The previous `!examples/**/*.pdf`
+  exception undid the `*.pdf` rule, so running an example
+  locally and then `git add -A` would commit the rendered PDF.
+  Removed the exception. PDFs are build artefacts in a library
+  repo; the example's `main.go` is the source of truth, not the
+  output PDF.
+
 ## [0.24.0]
 
 ### Added
