@@ -7,6 +7,36 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.18.0]
+
+### Added
+
+- **Knuth-Plass optimum-fit line breaker (behind a feature flag).**
+  `Document.SetLineBreakAlgorithm(kardec.LineBreakOptimal)` opts
+  paragraph and table-cell layout into the dynamic-programming
+  optimum-fit algorithm: every break candidate is scored as
+  `(linePenalty + badness)²` and the path of breakpoints with
+  the lowest summed cost is chosen. Whitespace distributes more
+  evenly, justified text shows fewer rivers, and "loose" last
+  lines disappear. Glue model: stretch = width × 1.0, shrink =
+  width × 0.33, max ratio 1.0. Default stays `LineBreakFirstFit`
+  (greedy + Knuth-Liang hyphenation) so every prior release
+  renders byte-for-byte unchanged.
+- **`Engine.Algorithm` propagation.** The internal layout engine
+  now carries a `LineBreakAlgorithm` field; the package-level
+  `Layout(doc, fonts)` reads `doc.LineBreakAlgorithm()` and
+  forwards it. `placeTextBlock` and `placeTableRow` dispatch
+  through `e.breakLines` so the choice flows through every
+  paragraph-shaped block (including table cells).
+
+### Notes
+
+Hyphenation candidates inside long words are not yet woven into
+optimal-mode DP — overflowing paragraphs fall back to the greedy
+breaker per-paragraph so the existing `tryHyphenate` path still
+applies. v0.18.x will add the hyphen penalty path so optimal mode
+can break inside long words too.
+
 ## [0.17.0]
 
 ### Added
