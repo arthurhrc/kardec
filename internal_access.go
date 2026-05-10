@@ -63,10 +63,14 @@ func (r Run) SizeOverride() (Length, bool) {
 // constructed via Link), or the empty string when the run is plain.
 func (r Run) Link() string { return r.link }
 
-// SetLink replaces the run's hyperlink target in place. Used by
-// AppendMarkdown to retrofit goldmark inline-link destinations onto
-// already-walked Run children. End-user code should prefer the Link
-// constructor for new content.
+// SetLink replaces the run's hyperlink target in place.
+//
+// Deprecated: internal seam used by AppendMarkdown to retrofit
+// goldmark inline-link destinations onto already-walked Run
+// children. End-user code must use the Link constructor for new
+// content; mutating a Run after construction breaks the
+// expected-immutable contract that other accessors assume. The
+// method may move behind an internal helper at v1.0.
 func (r *Run) SetLink(url string) { r.link = url }
 
 // FootnoteRef returns the 1-based footnote number this run belongs
