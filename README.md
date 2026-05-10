@@ -72,36 +72,50 @@ Kardec covers the seam: pure Go like Maroto, document-shaped like Gotenberg.
 ## Examples
 
 ```sh
-go run ./examples/hello       # smallest end-to-end PDF
-go run ./examples/report      # multi-section, header/footer, table with shading
-go run ./examples/markdown    # CommonMark + GFM tables
-go run ./examples/invoice     # text/template + Markdown -> one PDF per record
-go run ./examples/image       # PNG embedded into the PDF
-go run ./examples/math        # LaTeX math subset (\frac, \sqrt, \sum, \int, greek)
+# Core document features
+go run ./examples/hello              # smallest end-to-end PDF
+go run ./examples/report             # multi-section, header/footer, table with shading
+go run ./examples/markdown           # CommonMark + GFM tables
+go run ./examples/invoice            # text/template + Markdown -> one PDF per record
+go run ./examples/image              # PNG embedded into the PDF
+go run ./examples/math               # LaTeX math subset (\frac, \sqrt, \sum, \int, greek)
+
+# Recent features (v0.19+)
+go run ./examples/svg                # SVG embed as vector Form XObject
+go run ./examples/encryption         # AES-128 with read-only permissions
+go run ./examples/watermark          # diagonal "DRAFT" overlay with alpha
+go run ./examples/tagged             # PDF/UA tagged structure (H1/H2/P/Figure)
+go run ./examples/inlinemath         # math expression inside a paragraph
+go run ./examples/qrcode             # QR codes at L/M/Q/H error tiers
+go run ./examples/bookstyle          # background letterhead + verso/recto headers
+go run ./examples/templates_invoice  # one-line invoice from kardec/templates
+go run ./examples/chart              # bar / line / pie charts via kardec/chart
+go run ./examples/signature          # PKCS#7 detached signature via kardec/sign
 ```
 
 ## Features
 
 Document structure
 
-- Headings, paragraphs, lists, tables (borders + shading + colspan), images (JPEG / PNG),
+- Headings, paragraphs, lists, tables (borders + shading + colspan), images (JPEG / PNG / SVG),
   page breaks, spacers, horizontal rules
 - `KeepTogether(blocks...)` binds groups to a single page
 - Two-column section layout via `PageSetup.Columns`
 - Multi-section page setups (mix portrait, landscape, custom margins)
+- Section background image; first-page / even-page header & footer variants
 
 Inline content
 
 - Run decorations: `Bold`, `Italic`, `Underline`, `Strikethrough`, colored, sized
 - Hyperlinks, named anchors, automatic PDF outline (sidebar bookmarks)
-- LaTeX math subset (`\frac`, `\sqrt`, `\sum`, `\int`, greek)
+- LaTeX math subset (`\frac`, `\sqrt`, `\sum`, `\int`, greek) — `Document.Math` (display) and `InlineMath` (Run-level)
 - CommonMark + GFM ingest with Markdown image embed
 
 Cross-references and references
 
 - Auto figure / table numbering with `Label(name)` + `doc.Ref(label)` / `doc.RefPage(label)`
 - Numeric citations: `doc.Cite(key)` + `doc.Bibliography(entries...)`
-- Auto table of contents resolved in a post-pass
+- Auto table of contents (clickable, resolved in a post-pass)
 - Footnotes with auto-numbering or custom markers
 - `Leader(left, right)` dotted rows; `SignatureBlock(name, role)` for contracts
 - `Clause(level, runs...)` hierarchical numbering for legal documents
@@ -112,45 +126,67 @@ Styling and layout
 - Section headers and footers with `{{page}}` / `{{totalPages}}` / `{{section}}` / `{{date}}` tokens
 - Decimal-point column alignment for currency / measurement tables
 - `Image.Caption(...)` auto-prefixed with the figure marker, kept-together with its image
-- Heuristic English word hyphenation
+- Knuth-Liang hyphenation with bundled pattern sets: `en`, `pt-BR`, `es`, `fr`
+- Optional Knuth-Plass optimum-fit line breaker
 
 Output
 
-- Byte-reproducible output via `Document.SetCreationDate(t)`
+- Byte-reproducible output via `Document.SetCreationDate(t)` (unsigned rendering)
 - Optional TTF font subsetting (~70 % size reduction)
-- Optional PDF/A-2b conformance markers (lite)
-- `kardec/httpx.WriteResponse` helper for `net/http` handlers
-- `text/template` companion for per-record generation
+- PDF/A-2b conformance markers; OutputIntent + ICC profile when supplied
+- PDF/UA-1 strict tagging: per-block H1–H6 / P / Figure roles, `Table > TR > TD/TH` hierarchy, `Sect` groupings around H1 boundaries
+- AES-128 encryption + permissions (Standard Security Handler V=4 / R=4); strings + streams both encrypted (`/StrF /StdCF`)
+- Per-page diagonal watermark with alpha blending
+- QR codes via `Document.QRCode` (vector Form XObject)
+- Unicode text via Type 0 / Identity-H font embedding — Δ, Σ, Cyrillic, CJK render correctly
+
+Companion subpackages
+
+- `kardec/render` — registers the renderer (blank-imported once at app entry)
+- `kardec/httpx` — `WriteResponse(w, doc, filename)` for `net/http` handlers
+- `kardec/templates` — ready-made `Invoice` / `Certificate` / `Report` scaffolds
+- `kardec/chart` — pure-Go bar / line / pie chart renderer (SVG out)
+- `kardec/sign` — PKCS#7 detached signatures (Adobe-compatible, ICP-Brasil-ready)
+
+CLI
+
+- `cmd/kardec` ships a `kardec` binary for rendering Markdown + Go templates without writing Go.
+
+## What's NOT in Kardec
+
+Honest non-goals — if you need these, reach for another tool or
+contribute the support:
+
+- **Interactive form fields** (AcroForm beyond signatures). Use a dedicated signing flow.
+- **Multi-script text shaping** for Arabic, Hebrew (RTL), Devanagari, Thai, Burmese. Kardec
+  handles every Unicode codepoint the source TTF covers but does not run a shaping engine;
+  ligatures, complex marks, and bidi reordering are out of scope. CJK / Cyrillic /
+  Greek + Latin scripts render correctly.
+- **PDF/X (print-industry colour management)**. PDF/A-2b is the closest cousin and ships.
+- **Browser-style HTML/CSS rendering**. Use Gotenberg + LibreOffice when input is HTML.
+- **Live editing / WYSIWYG**. Kardec is one-pass programmatic generation, not a layout tool.
 
 ## Status
 
-| Version | Notes |
+v0.26 — heading toward v1.0. The public API is stabilising; remaining
+items are tracked in [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`.
+
+| Range | What it brought |
 |---|---|
-| 0.1 | Paragraphs, headings, page breaks, styles, embedded fonts |
-| 0.2 | Multi-face fonts, tables, images, Markdown, templating |
-| 0.3 | Math subset, lists, headers/footers, hyperlinks + outline, byte-reproducible output |
-| 0.4 | Anchors, table borders, multi-section, footnotes, auto-TOC, hyphenation, Markdown images |
-| 0.5 | TTF font subsetting, PDF/A-2b lite |
-| 0.6 | Skipped — feature batch folded forward into 0.7; see [CHANGELOG](CHANGELOG.md#060) |
-| 0.7 | HorizontalRule, run decorations, KeepTogether, cross-references, image captions, `kardec/httpx` |
-| 0.8 | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
-| 0.9 | Paragraph builder unified, `cmd/kardec` CLI, runnable godoc Examples, render benchmarks |
-| 0.10 | API rename sweep (Enable*/Disable*, `WithAlignment`, `TableBorders*`, `NewSection(setup)`, `NewCell`, `Document.Footnote`); `RegisteredFamilies()`; `MIGRATING.md` |
-| 0.11 | Metadata setters (Title/Author/Subject/Keywords); OutputIntent + ICC profile infrastructure (strict PDF/A-2b ready); Knuth-Liang hyphenation |
-| 0.12 | CI quality gates (lint, vuln, coverage gate); cross-OS test matrix; reproducibility CI step; goreleaser + cosign keyless signing |
-| 0.13 | ToUnicode CMap on every embedded font (faithful text extraction + PDF/A-2u path) |
-| 0.14 | TOC text clickable (auto-anchored heading slugs) |
-| 0.15 | OTF/CFF font embedding — math glyphs render with Latin Modern Math itself |
-| 0.16 | Encryption + permissions (Standard Security Handler V=4 / R=4 / AES-128) |
-| 0.17 | PDF/UA-1 lite tagging (MarkInfo + StructTreeRoot + marked content) |
-| 0.18 | Knuth-Plass optimum-fit line breaker (behind feature flag) |
-| 0.19 | SVG image embed as PDF Form XObject (vector-precise) |
-| 0.20 | Per-page diagonal watermark with alpha blending |
-| 0.21 (current) | Inline math as a Run-level constructor (InlineMath) |
-| 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
+| 0.1–0.5 | Core document model, multi-face fonts, tables, images, Markdown ingest, math subset, byte-reproducible output, font subsetting |
+| 0.6–0.11 | Cross-references, KeepTogether, footnotes, TOC, hyphenation, two-column layout, metadata setters, OutputIntent |
+| 0.12–0.14 | CI quality gates, reproducibility check, ToUnicode CMaps, clickable TOC |
+| 0.15–0.21 | OTF/CFF math glyphs, AES-128 encryption, PDF/UA-1 lite tagging, Knuth-Plass breaker, SVG embed, watermark, inline math |
+| 0.22 | API cleanup pass; Identity-H Unicode body text; per-block PDF/UA roles; encrypted strings |
+| 0.23 | Hyphenation pt/es/fr; background image; first-page + even-page header / footer; QR codes; table cell roles; `kardec/templates` |
+| 0.24 | PDF/UA strict: `Table > TR > TD/TH` nesting + `Sect` groupings |
+| 0.25 | `kardec/chart` — pure-Go bar / line / pie |
+| 0.26 (current) | `kardec/sign` — PKCS#7 detached signatures |
+| 1.0 (planned) | API freeze |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
 Design spec in [docs/RFC-001-dsl.md](docs/RFC-001-dsl.md).
+Migration guide in [MIGRATING.md](MIGRATING.md).
 
 ## Contributing
 
