@@ -12,6 +12,11 @@ version: "2"
 run:
   timeout: 3m
   tests: true
+  # Override the language target so the published binary (built
+  # with Go 1.24 even in v2.1.x) doesn't refuse to lint a 1.26.x
+  # go.mod target. None of the enabled linters depend on language-
+  # version heuristics that this would invalidate.
+  go: "1.24"
 
 linters:
   default: none
