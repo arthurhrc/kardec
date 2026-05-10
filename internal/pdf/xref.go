@@ -20,7 +20,7 @@ import (
 // The xref table is written as a single subsection covering object IDs
 // 0..nextID-1. Object 0 is the conventional "free" head of the free list
 // with generation 65535.
-func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, nextID, root, info int, idPair [2]string) error {
+func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, nextID, root, info int, idPair [2]string, encrypt int) error {
 	var b strings.Builder
 	b.WriteString("xref\n")
 	fmt.Fprintf(&b, "0 %d\n", nextID)
@@ -54,6 +54,9 @@ func writeXrefAndTrailer(w io.Writer, offsets map[int]int64, headerLen int64, ne
 	}
 	if idPair[0] != "" {
 		fmt.Fprintf(&b, " /ID [<%s><%s>]", idPair[0], idPair[1])
+	}
+	if encrypt > 0 {
+		fmt.Fprintf(&b, " /Encrypt %s", ref(encrypt))
 	}
 	b.WriteString(" >>\n")
 

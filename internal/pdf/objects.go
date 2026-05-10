@@ -17,6 +17,13 @@ type objectWriter struct {
 	buf     bytes.Buffer
 	offsets map[int]int64 // 1-based object ID -> byte offset
 	nextID  int
+	// fileKey is the AES-128 file encryption key derived from the
+	// caller-supplied passwords + permissions + /ID. Non-nil opts
+	// the writer into Standard Security Handler V=4/R=4: every
+	// stream's payload is wrapped in AES-CBC with a per-object key
+	// before being written. Strings stay plaintext (StrF=Identity)
+	// — full string encryption is the v0.16.x follow-up.
+	fileKey []byte
 }
 
 func newObjectWriter() *objectWriter {
@@ -47,11 +54,42 @@ func (w *objectWriter) writeObject(id int, body string) {
 // <data>\nendstream\nendobj\n". The dict is written as-is between the
 // double angle brackets. Callers must include /Length in the dict to match
 // len(data) — the writer does not patch it after the fact.
+//
+// When the writer carries a file key (Standard Security Handler is on),
+// the stream payload is wrapped in AES-128-CBC with a per-object key
+// derived from the file key + this object's number/generation. The dict
+// must be patched ahead of time to declare the post-encryption /Length;
+// the helper handles that automatically when fileKey is set.
 func (w *objectWriter) writeStreamObject(id int, dict string, data []byte) {
 	w.offsets[id] = int64(w.buf.Len())
+	if w.fileKey != nil {
+		ciphertext := aesEncryptObject(w.fileKey, id, 0, data)
+		// Override /Length in the supplied dict — encrypted bytes
+		// include a 16-byte IV plus PKCS#7 padding, so the
+		// post-encryption length differs from the plaintext.
+		dict = patchLength(dict, len(ciphertext))
+		data = ciphertext
+	}
 	fmt.Fprintf(&w.buf, "%d 0 obj\n<<%s>>\nstream\n", id, dict)
 	w.buf.Write(data)
 	w.buf.WriteString("\nendstream\nendobj\n")
+}
+
+// patchLength replaces "/Length N" in a stream dict body with the
+// supplied n. The helper is used when encryption changes the
+// post-encryption byte length and the caller-built dict needs to
+// reflect the new size.
+func patchLength(dict string, n int) string {
+	prefix := "/Length "
+	idx := strings.Index(dict, prefix)
+	if idx < 0 {
+		return dict
+	}
+	end := idx + len(prefix)
+	for end < len(dict) && dict[end] >= '0' && dict[end] <= '9' {
+		end++
+	}
+	return dict[:idx+len(prefix)] + fmt.Sprintf("%d", n) + dict[end:]
 }
 
 // allocAndWrite is a convenience for the common "I need an ID and I have

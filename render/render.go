@@ -105,6 +105,13 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 		model.ICCProfile = profile
 		model.ICCProfileN = n
 	}
+	if opts, ok := d.Encryption(); ok {
+		model.Encryption = &pdf.Encryption{
+			UserPwd:     opts.UserPassword,
+			OwnerPwd:    opts.OwnerPassword,
+			Permissions: encryptionPermissionBits(opts.Permissions),
+		}
+	}
 	model.Title = d.Title()
 	model.Author = d.Author()
 	model.Subject = d.Subject()
