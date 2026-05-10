@@ -70,10 +70,18 @@ type Document struct {
 
 	// pdfa toggles PDF/A-2b compliance markers — XMP metadata
 	// stream, /Metadata catalog entry, /ID in trailer. Strict
-	// validators still need an OutputIntent with an embedded
-	// sRGB ICC profile (deferred to v0.6); the lite output
-	// produced here is what Acrobat accepts as PDF/A.
+	// validators (veraPDF) additionally require an OutputIntent
+	// referencing an embedded ICC profile; supply one via
+	// SetICCProfile to opt into strict PDF/A-2b. Without an ICC
+	// profile the markers are still emitted (PDF/A "lite") and
+	// most consumer readers (Acrobat, Foxit, Chrome) accept them.
 	pdfa bool
+
+	// iccProfile + iccProfileN carry the sRGB (or CMYK) ICC profile
+	// bytes for the OutputIntent emitted under PDFA. nil leaves the
+	// writer in lite mode. Set via SetICCProfile.
+	iccProfile  []byte
+	iccProfileN int
 
 	// figureCounter / tableCounter assign the auto-numbers behind
 	// LabeledFigure / LabeledTable. They are 1-based and never reset
