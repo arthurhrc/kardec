@@ -145,7 +145,8 @@ Output
 | 0.17 | PDF/UA-1 lite tagging (MarkInfo + StructTreeRoot + marked content) |
 | 0.18 | Knuth-Plass optimum-fit line breaker (behind feature flag) |
 | 0.19 | SVG image embed as PDF Form XObject (vector-precise) |
-| 0.20 (current) | Per-page diagonal watermark with alpha blending |
+| 0.20 | Per-page diagonal watermark with alpha blending |
+| 0.21 (current) | Inline math as a Run-level constructor (InlineMath) |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
