@@ -204,7 +204,6 @@ type TableBuilder struct {
 	headerShading       *Color
 	alternateRowShading *Color
 	label               string
-	err                 error
 }
 
 // Table starts a new TableBuilder anchored to the document. The Table

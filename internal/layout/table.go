@@ -369,11 +369,3 @@ func computeColumnWidths(cols []kardec.Column, available float64) []float64 {
 	return out
 }
 
-// cellRunsAt returns the runs for the i-th column of row, padding with
-// an empty slice when the row has fewer cells than the column count.
-func cellRunsAt(row kardec.Row, i int) []kardec.Run {
-	if i < 0 || i >= len(row.Cells) {
-		return nil
-	}
-	return row.Cells[i].Runs
-}
