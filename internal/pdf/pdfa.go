@@ -34,6 +34,8 @@ func buildXMPPacket(doc Document, now time.Time) string {
 	createDate := now.UTC().Format("2006-01-02T15:04:05Z")
 	title := xmpEscape(doc.Title)
 	author := xmpEscape(doc.Author)
+	subject := xmpEscape(doc.Subject)
+	keywords := xmpEscape(doc.Keywords)
 	var b strings.Builder
 	b.WriteString("<?xpacket begin=\"\xEF\xBB\xBF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>")
 	b.WriteString(`<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Kardec PDF Writer">`)
@@ -45,7 +47,10 @@ func buildXMPPacket(doc Document, now time.Time) string {
 	b.WriteString(` xmlns:xmp="http://ns.adobe.com/xap/1.0/">`)
 	b.WriteString(`<pdfaid:part>2</pdfaid:part>`)
 	b.WriteString(`<pdfaid:conformance>B</pdfaid:conformance>`)
-	b.WriteString(`<pdf:Producer>Kardec PDF Writer v0.5</pdf:Producer>`)
+	b.WriteString(`<pdf:Producer>Kardec PDF Writer v0.11</pdf:Producer>`)
+	if keywords != "" {
+		b.WriteString(`<pdf:Keywords>` + keywords + `</pdf:Keywords>`)
+	}
 	b.WriteString(`<xmp:CreateDate>` + createDate + `</xmp:CreateDate>`)
 	b.WriteString(`<xmp:CreatorTool>Kardec</xmp:CreatorTool>`)
 	if title != "" {
@@ -58,9 +63,55 @@ func buildXMPPacket(doc Document, now time.Time) string {
 		b.WriteString(author)
 		b.WriteString(`</rdf:li></rdf:Seq></dc:creator>`)
 	}
+	if subject != "" {
+		b.WriteString(`<dc:description><rdf:Alt><rdf:li xml:lang="x-default">`)
+		b.WriteString(subject)
+		b.WriteString(`</rdf:li></rdf:Alt></dc:description>`)
+	}
 	b.WriteString(`</rdf:Description></rdf:RDF></x:xmpmeta>`)
 	b.WriteString(`<?xpacket end="w"?>`)
 	return b.String()
+}
+
+// emitOutputIntent writes the ICC-profile stream and the
+// /OutputIntents catalog dict that strict PDF/A-2b requires. Returns
+// the indirect-object ID of the OutputIntents array. Zero means no
+// OutputIntent was written (no ICC profile supplied).
+//
+// The ICC profile bytes come from the public Document.ICCProfile.
+// Strict validators (veraPDF) require the profile match the
+// declared color space; the writer trusts the caller-supplied
+// profile and writes /N matching ICCProfileN (3 = RGB, 4 = CMYK).
+func emitOutputIntent(ow *objectWriter, doc Document) int {
+	if len(doc.ICCProfile) == 0 {
+		return 0
+	}
+	n := doc.ICCProfileN
+	if n == 0 {
+		n = 3 // sRGB default
+	}
+	// 1. ICC stream object
+	iccID := ow.allocID()
+	iccDict := fmt.Sprintf("/N %d /Length %d", n, len(doc.ICCProfile))
+	ow.writeStreamObject(iccID, iccDict, doc.ICCProfile)
+
+	// 2. OutputIntent dict referencing the ICC stream
+	intentID := ow.allocID()
+	intentBody := fmt.Sprintf(
+		"<< /Type /OutputIntent /S /GTS_PDFA1 "+
+			"/OutputConditionIdentifier (sRGB IEC61966-2.1) "+
+			"/RegistryName (http://www.color.org) "+
+			"/Info (sRGB IEC61966-2.1) "+
+			"/DestOutputProfile %s >>",
+		ref(iccID),
+	)
+	ow.writeObject(intentID, intentBody)
+
+	// 3. /OutputIntents array on the catalog: a 1-element array
+	// referencing the dict above.
+	arrID := ow.allocID()
+	ow.writeObject(arrID, fmt.Sprintf("[%s]", ref(intentID)))
+	return arrID
 }
 
 // xmpEscape escapes the four characters XML packets cannot carry

@@ -16,10 +16,19 @@ type Document struct {
 	Destinations []NamedDestination
 	// PDFA, when true, makes the writer emit XMP metadata declaring
 	// PDF/A-2b conformance, attach a /Metadata catalog entry, and
-	// write a stable /ID array in the trailer. Strict PDF/A
-	// validators additionally require an OutputIntent with an
-	// embedded sRGB ICC profile — that lands in v0.11.
+	// write a stable /ID array in the trailer.
 	PDFA bool
+	// ICCProfile is the embedded sRGB ICC profile bytes used as the
+	// destination color space for the OutputIntent. When non-nil and
+	// PDFA is true, the writer emits a /GTS_PDFA1 OutputIntent
+	// referencing this profile — the missing piece between PDF/A
+	// "lite" and strict veraPDF-passing PDF/A-2b. nil leaves the
+	// writer in lite mode (markers without OutputIntent).
+	ICCProfile []byte
+	// ICCProfileN is the number of color components in ICCProfile
+	// (3 for sRGB, 4 for CMYK). Must match the profile bytes;
+	// the writer does not validate.
+	ICCProfileN int
 }
 
 // NamedDestination is one entry in the PDF's /Dests dictionary. Name

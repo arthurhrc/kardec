@@ -129,12 +129,14 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	// Optional PDF/A metadata stream — emitted before the catalog
 	// so the catalog can reference it.
 	metadataID := 0
+	outputIntentsID := 0
 	if doc.PDFA {
 		metadataID = emitPDFAMetadata(ow, doc, now)
+		outputIntentsID = emitOutputIntent(ow, doc)
 	}
 
 	// Catalog last among the structural objects — it points at /Pages
-	// and optionally at /Outlines / /Dests / /Metadata.
+	// and optionally at /Outlines / /Dests / /Metadata / /OutputIntents.
 	catalogBody := fmt.Sprintf("<< /Type /Catalog /Pages %s", ref(pagesID))
 	if outlinesID > 0 {
 		catalogBody += fmt.Sprintf(" /Outlines %s /PageMode /UseOutlines", ref(outlinesID))
@@ -144,6 +146,9 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	}
 	if metadataID > 0 {
 		catalogBody += fmt.Sprintf(" /Metadata %s", ref(metadataID))
+	}
+	if outputIntentsID > 0 {
+		catalogBody += fmt.Sprintf(" /OutputIntents %s", ref(outputIntentsID))
 	}
 	catalogBody += " >>"
 	ow.writeObject(catalogID, catalogBody)

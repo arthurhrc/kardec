@@ -90,6 +90,10 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 	if d.PDFAEnabled() {
 		model.PDFA = true
 	}
+	if profile, n := d.ICCProfile(); len(profile) > 0 {
+		model.ICCProfile = profile
+		model.ICCProfileN = n
+	}
 	model.Title = d.Title()
 	model.Author = d.Author()
 	model.Subject = d.Subject()
