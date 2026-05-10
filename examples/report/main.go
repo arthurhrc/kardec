@@ -64,9 +64,8 @@ func main() {
 
 	// Cover.
 	doc.Heading(1, kardec.Text("Kardec Quarterly Report"))
-	doc.AddParagraph(kardec.Text("Q4 2025 — Generated end-to-end by Kardec v0.1.0")).
-		WithNamedStyle(kardec.StyleCaption).
-		Done()
+	doc.Paragraph(kardec.Text("Q4 2025 — Generated end-to-end by Kardec v0.1.0")).
+		WithNamedStyle(kardec.StyleCaption)
 	doc.PageBreak()
 
 	// Section 1.
@@ -112,9 +111,9 @@ func main() {
 	// Section 3 — example with named style.
 	doc.Heading(2, kardec.Text("3 — Wiring the renderer"))
 	doc.Paragraph(kardec.Text("To enable Document.Render, callers blank-import the orchestrator package:"))
-	doc.AddParagraph(
+	doc.Paragraph(
 		kardec.Text(`import _ "github.com/arthurhrc/kardec/render"`),
-	).WithNamedStyle(kardec.StyleCode).Done()
+	).WithNamedStyle(kardec.StyleCode)
 	doc.Paragraph(
 		kardec.Text("That single line installs the layout + typography + pdf wiring through an init hook, "),
 		kardec.Text("which keeps the kardec package free of an internal/layout import that would otherwise "),
@@ -122,9 +121,9 @@ func main() {
 	)
 
 	doc.Spacer(kardec.Pt(20))
-	doc.AddParagraph(
+	doc.Paragraph(
 		kardec.Text("Generated with Kardec — github.com/arthurhrc/kardec"),
-	).WithNamedStyle(kardec.StyleCaption).Align(kardec.AlignCenter).Done()
+	).WithNamedStyle(kardec.StyleCaption).Align(kardec.AlignCenter)
 
 	if err := doc.Err(); err != nil {
 		log.Fatalf("builder error: %v", err)

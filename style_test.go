@@ -217,13 +217,12 @@ func TestResolveBlockStyleParagraphHonorsExplicitOverride(t *testing.T) {
 	}
 }
 
-func TestParagraphBuilderCommitsViaDone(t *testing.T) {
+func TestParagraphRefAppliesStyleAndChainsToNextBlock(t *testing.T) {
 	doc := New(PageA4, MarginsNormal).
-		AddParagraph(Text("body")).
+		Paragraph(Text("body")).
 		WithNamedStyle("Quote").
 		LineHeight(1.5).
 		Justify().
-		Done().
 		Heading(1, Text("after"))
 
 	blocks := doc.cur.Blocks

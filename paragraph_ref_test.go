@@ -62,19 +62,3 @@ func TestParagraphRefAlignAndLineHeightAndJustify(t *testing.T) {
 	}
 }
 
-func TestAddParagraphIsAliasForParagraph(t *testing.T) {
-	// Deprecated alias: AddParagraph returns the same *ParagraphRef
-	// type the unified Paragraph emits.
-	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal)
-	p1 := doc.Paragraph(kardec.Text("a"))
-	p2 := doc.AddParagraph(kardec.Text("b"))
-	if p1 == nil || p2 == nil {
-		t.Fatal("ref values should not be nil")
-	}
-	// The deprecated Done() call still resolves to the embedded
-	// *Document for legacy chains.
-	d := p2.Done()
-	if d != p1.Document {
-		t.Errorf("Done() should return the same underlying *Document")
-	}
-}

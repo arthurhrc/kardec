@@ -455,30 +455,6 @@ func (r *ParagraphRef) LineHeight(v float64) *ParagraphRef {
 	return r.patch(func(p *Paragraph) { p.lineHeight = v })
 }
 
-// Done returns the underlying *Document. Retained for source
-// compatibility with the deprecated AddParagraph chain — call sites
-// updated to the new ref API don't need it because the embedded
-// *Document is reachable directly.
-func (r *ParagraphRef) Done() *Document {
-	if r == nil {
-		return nil
-	}
-	return r.Document
-}
-
-// ParagraphBuilder is the legacy alias for *ParagraphRef.
-//
-// Deprecated: use the *ParagraphRef returned by Document.Paragraph.
-type ParagraphBuilder = ParagraphRef
-
-// AddParagraph is the legacy entry point.
-//
-// Deprecated: use Document.Paragraph, which now returns the same ref
-// type and exposes the same WithStyle / WithNamedStyle / Align /
-// Justify / LineHeight methods.
-func (d *Document) AddParagraph(runs ...Run) *ParagraphRef {
-	return d.Paragraph(runs...)
-}
 
 // HeadingBuilder is the fluent counterpart for Heading blocks.
 type HeadingBuilder struct {
