@@ -7,6 +7,77 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.21.1]
+
+### Fixed
+
+Eight visual-rendering bugs that spanned every release from v0.1
+through v0.21. Each fix is small; the impact was that every PDF
+Kardec ever rendered looked broken in a real reader. The 90+
+existing tests asserted byte structure (presence of `/Subtype
+/Type0`, `/Encrypt`, `/MarkInfo`, …) but never checked rendered
+output, so the bugs went unnoticed across every minor release.
+
+- **Canvas font units.** `canvasFont.face` and `latinModernMath.face`
+  passed `sizePt*mmPerPoint` to `canvas.Face`. canvas accepts
+  points; the multiplication produced fonts at 1/2.83 the
+  requested size. Advance widths followed, so words emitted at
+  `/F1 24 Tf` carried `Tj`-positions appropriate for an 8.5-pt
+  font and overlapped one another visibly. Empirical probe:
+  `Face(24).TextWidth("M")` returns 7.05 mm = 20 pt, matching the
+  expected advance for a 24 pt Liberation Sans-Bold "M".
+- **`/Dests` dictionary keys.** Emitted `(literal-string)` keys
+  where PDF 7.3.7 demands `/Name` objects. Strict parsers
+  (poppler) rejected with "Dictionary key must be a name object";
+  Acrobat silently skipped the lookup so internal navigation
+  links never resolved. New `escapePDFName` helper hex-escapes
+  reserved characters per spec 7.3.5.
+- **`/A /D` action target.** Same shape mismatch: link
+  annotations carried `/D (string)` where the now Name-keyed
+  `/Dests` dict needs `/D /name`. Internal links and TOC text
+  jumps never resolved.
+- **Form XObject `cm` matrix.** Image draws used `cm [W 0 0 H X
+  Y]` — correct for raster Image XObjects which sit in the unit
+  square, wrong for Form XObjects that already declare their own
+  `/BBox`. SVG `/BBox [0 0 60 60]` then ate a further 60× scale,
+  putting the drawing thousands of points off-page. Now divides
+  by `imageHandle.Width` / `imageHandle.Height` for forms.
+- **`layoutGlyphRun` tokenisation.** Iterated rune-by-rune. `\int`
+  → `\`, `i`, `n`, `t` → glyph "i", glyph "n", glyph "t" rendered
+  as plain text. Same for `\pi`, `\infty`, `\alpha`. New
+  `tokeniseGlyphRun` keeps backslash-prefixed commands as a
+  single token so `font.GlyphFor` resolves them to the LaTeX
+  symbol's Unicode codepoint.
+- **`emitMathBox` coordinate convention.** The recursion
+  conflated parent-baseline and box-top-left semantics;
+  sub/superscripts collapsed onto the base glyph's row.
+  Refactored to pure top-left coordinates so the Box convention
+  documented in `internal/mathlayout` is followed end-to-end.
+- **Inline-math baseline alignment.** `mathTop` formula included
+  `line.ascent` inappropriately; math glyphs sat ~10 pt below the
+  surrounding text on the same line. Correct anchor is
+  `mathTop = baselineY − mathBox.Height`: math baseline aligns
+  with surrounding text baseline.
+- **Stretchy radical.** The fixed-size √ glyph at sizePt was
+  shorter than a radicand carrying sub/superscripts; the glyph
+  and the overline were visibly detached. Without OpenType MATH
+  stretchy variants, scale the √'s point size up by
+  `bodyAscent / radAscent` so its top reaches the overline.
+- **Markdown soft-line-break.** `walkInline` honoured the
+  `*ast.Text` content but not the soft-break flag goldmark
+  records on the same node via `SoftLineBreak()`. CommonMark
+  §6.8 says soft breaks render as a space; we silently joined
+  the words. Adds a `Text(" ")` run after any text node carrying
+  a break flag.
+
+### Notes
+
+Latin-1+ characters (Δ, Ω, Greek capitals, …) still emit as `?`
+in plain-text mode because the writer encodes through WinAnsi
+(CP1252). The math font already uses Type 0 / Identity-H so math
+content is fine; migrating the body-text path needs a wider
+refactor and is queued for v1.0 consideration.
+
 ## [0.21.0]
 
 ### Added
