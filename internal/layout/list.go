@@ -16,14 +16,14 @@ import (
 // squares for unordered lists, decimal numerals for ordered ones. Per
 // item style (definition lists, lettered ordering, marker
 // punctuation) is left for v0.4 once the public surface settles.
-func (e Engine) placeList(cur *pageCursor, flush func(), list kardec.List, baseStyle blockStyle, fonts FontProvider) error {
-	return e.placeListLevel(cur, flush, list, baseStyle, fonts, 0)
+func (e Engine) placeList(cur *pageCursor, flush func(), doc *kardec.Document, list kardec.List, baseStyle blockStyle, fonts FontProvider) error {
+	return e.placeListLevel(cur, flush, doc, list, baseStyle, fonts, 0)
 }
 
 // placeListLevel is the recursive worker behind placeList. depth is
 // 0-based; each step adds one indent's worth of horizontal offset and
 // rotates the bullet shape.
-func (e Engine) placeListLevel(cur *pageCursor, flush func(), list kardec.List, baseStyle blockStyle, fonts FontProvider, depth int) error {
+func (e Engine) placeListLevel(cur *pageCursor, flush func(), doc *kardec.Document, list kardec.List, baseStyle blockStyle, fonts FontProvider, depth int) error {
 	indent := listIndent(depth, baseStyle.sizePt)
 
 	itemStyle := baseStyle
@@ -39,11 +39,11 @@ func (e Engine) placeListLevel(cur *pageCursor, flush func(), list kardec.List, 
 	for i, item := range list.Items() {
 		marker := listMarker(list.Style(), depth, i)
 		runs := append([]kardec.Run{kardec.Text(marker)}, item.Runs...)
-		if err := e.placeTextBlock(cur, flush, runs, itemStyle, fonts); err != nil {
+		if err := e.placeTextBlock(cur, flush, doc, runs, itemStyle, fonts); err != nil {
 			return err
 		}
 		for _, child := range item.Children {
-			if err := e.placeListLevel(cur, flush, child, baseStyle, fonts, depth+1); err != nil {
+			if err := e.placeListLevel(cur, flush, doc, child, baseStyle, fonts, depth+1); err != nil {
 				return err
 			}
 		}

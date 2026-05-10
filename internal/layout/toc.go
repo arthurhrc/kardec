@@ -50,7 +50,7 @@ func (e Engine) placeTOC(cur *pageCursor, flush func(), doc *kardec.Document, to
 		// was missing through v0.14 (only the sidebar outline
 		// links worked).
 		titleRuns := []kardec.Run{kardec.Text(h.title)}
-		titleTokens := shapeRuns(titleRuns, fonts, style, kardec.Pt(style.sizePt), style.color)
+		titleTokens := shapeRuns(titleRuns, fonts, style, kardec.Pt(style.sizePt), style.color, nil)
 		titleLink := "#" + tocHeadingAnchor(h.title)
 		emitInlineTokensWithLink(cur, titleTokens, titleX, cur.cursorY, titleLink)
 
@@ -67,7 +67,7 @@ func (e Engine) placeTOC(cur *pageCursor, flush func(), doc *kardec.Document, to
 		// Emit the page-number placeholder right-aligned within the
 		// reserved column.
 		pageRuns := []kardec.Run{kardec.Text(pagePlaceholder)}
-		pageTokens := shapeRuns(pageRuns, fonts, style, kardec.Pt(style.sizePt), style.color)
+		pageTokens := shapeRuns(pageRuns, fonts, style, kardec.Pt(style.sizePt), style.color, nil)
 		emitInlineTokens(cur, pageTokens, cur.x0+available-tokensWidth(pageTokens), cur.cursorY)
 
 		_ = n

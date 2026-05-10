@@ -2,6 +2,7 @@ package layout
 
 import (
 	"github.com/arthurhrc/kardec"
+	"github.com/arthurhrc/kardec/internal/typography"
 )
 
 // placeTextBlock lays out a paragraph- or heading-shaped block. It runs
@@ -13,7 +14,7 @@ import (
 // is called and the remainder continues on the fresh page. Headings that
 // don't fit at the top of a page are still emitted (oversized headings
 // degrade gracefully rather than loop forever).
-func (e Engine) placeTextBlock(cur *pageCursor, flush func(), runs []kardec.Run, style blockStyle, fonts FontProvider) error {
+func (e Engine) placeTextBlock(cur *pageCursor, flush func(), doc *kardec.Document, runs []kardec.Run, style blockStyle, fonts FontProvider) error {
 	if len(runs) == 0 {
 		// Empty paragraph still consumes its inter-block spacing so the
 		// layout matches what the user authored.
@@ -25,7 +26,11 @@ func (e Engine) placeTextBlock(cur *pageCursor, flush func(), runs []kardec.Run,
 
 	applySpaceBefore(cur, flush, style.spaceBeforePt)
 
-	tokens := shapeRuns(runs, fonts, style, kardec.Pt(style.sizePt), style.color)
+	var mathFont typography.MathFont
+	if doc != nil {
+		mathFont = doc.MathFont()
+	}
+	tokens := shapeRuns(runs, fonts, style, kardec.Pt(style.sizePt), style.color, mathFont)
 	if len(tokens) == 0 {
 		cur.cursorY += style.spaceAfterPt
 		return nil
@@ -96,6 +101,15 @@ func emitLine(cur *pageCursor, ln line, style blockStyle, isLastLine bool) {
 	baselineY := cur.cursorY
 	for _, t := range ln.tokens {
 		if t.isSpace {
+			x += t.width
+			continue
+		}
+		if t.mathBox != nil {
+			// Inline math: emit the math box's glyphs and rules at
+			// the token's resolved position. baselineY is the line's
+			// top; emitMathBox's third arg is the math baseline,
+			// which sits at top + ascent.
+			emitMathBox(cur, *t.mathBox, x, baselineY+t.ascentPt, t.color)
 			x += t.width
 			continue
 		}

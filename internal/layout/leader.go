@@ -14,8 +14,8 @@ func (e Engine) placeLeader(cur *pageCursor, flush func(), l kardec.Leader, styl
 	}
 
 	available := cur.availableWidth()
-	leftTokens := shapeRuns(l.Left(), fonts, style, kardec.Pt(style.sizePt), style.color)
-	rightTokens := shapeRuns(l.Right(), fonts, style, kardec.Pt(style.sizePt), style.color)
+	leftTokens := shapeRuns(l.Left(), fonts, style, kardec.Pt(style.sizePt), style.color, nil)
+	rightTokens := shapeRuns(l.Right(), fonts, style, kardec.Pt(style.sizePt), style.color, nil)
 
 	leftWidth := tokensWidth(leftTokens)
 	rightWidth := tokensWidth(rightTokens)

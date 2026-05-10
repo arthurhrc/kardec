@@ -23,7 +23,7 @@ func (e Engine) placeMath(cur *pageCursor, flush func(), doc *kardec.Document, m
 		// Parse errors degrade gracefully into a plain-text fallback so
 		// a malformed expression never aborts the whole page render.
 		fallback := []kardec.Run{kardec.Text("[math: " + err.Error() + "]")}
-		return e.placeTextBlock(cur, flush, fallback, blockStyle, &mathTextProvider{base: blockStyle.family})
+		return e.placeTextBlock(cur, flush, doc, fallback, blockStyle, &mathTextProvider{base: blockStyle.family})
 	}
 
 	font := doc.MathFont()

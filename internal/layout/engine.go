@@ -377,7 +377,7 @@ func (e Engine) placeBlock(
 	switch v := b.(type) {
 	case kardec.Paragraph:
 		style := styleFromKardec(doc.ResolveBlockStyle(v))
-		return e.placeTextBlock(cur, flush, v.Runs(), style, fonts)
+		return e.placeTextBlock(cur, flush, doc, v.Runs(), style, fonts)
 	case kardec.Heading:
 		style := styleFromKardec(doc.ResolveBlockStyle(v))
 		title := headingTitle(v)
@@ -394,7 +394,7 @@ func (e Engine) placeBlock(
 			Title: title,
 			Y:     kardec.Pt(cur.cursorY),
 		})
-		return e.placeTextBlock(cur, flush, v.Runs(), style, fonts)
+		return e.placeTextBlock(cur, flush, doc, v.Runs(), style, fonts)
 	case kardec.Table:
 		cellStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableCell))
 		headerStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableHeader))
@@ -407,7 +407,7 @@ func (e Engine) placeBlock(
 		return e.placeMath(cur, flush, doc, v, mathStyle)
 	case kardec.List:
 		itemStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleListItem))
-		return e.placeList(cur, flush, v, itemStyle, fonts)
+		return e.placeList(cur, flush, doc, v, itemStyle, fonts)
 	case kardec.Anchor:
 		cur.anchors = append(cur.anchors, AnchorMark{
 			Name: v.Name(),

@@ -12,6 +12,7 @@ type Run struct {
 	strikethrough bool
 	link          string // empty when this run is not a hyperlink
 	footnoteRef   int    // 1-based footnote number; 0 for non-footnote runs
+	mathSource    string // non-empty when this run is an inline math expression
 	override      styleOverride
 }
 
@@ -49,6 +50,28 @@ func WithStrikethrough(r Run) Run { r.strikethrough = true; return r }
 func Colored(r Run, c Color) Run {
 	r.override.color = &c
 	return r
+}
+
+// InlineMath returns a Run carrying a LaTeX math expression that
+// will render at the surrounding paragraph's font size, inline with
+// the body text. The supported subset matches Document.Math:
+// greek letters, fractions, square roots, sub/superscripts, sums
+// and integrals (the latter two laid out in inline style — small
+// operators with limits at the side rather than above/below).
+//
+// Use it to mix math into ordinary prose:
+//
+//	doc.Paragraph(
+//	    Text("By Pythagoras, "),
+//	    InlineMath("a^2 + b^2 = c^2"),
+//	    Text(" for any right triangle."),
+//	)
+//
+// Parsing failures degrade to a "[math: <error>]" plain-text fallback
+// at render time so a typo in one expression never aborts the
+// surrounding paragraph.
+func InlineMath(src string) Run {
+	return Run{mathSource: src}
 }
 
 // Link returns a Run that, in addition to carrying the visible text,

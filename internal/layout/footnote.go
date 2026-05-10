@@ -41,7 +41,7 @@ func emitFootnotesForPage(
 	y := separatorY + gap
 	for _, ref := range refs {
 		runs := append([]kardec.Run{kardec.Bold(ref.Marker() + " ")}, ref.Body()...)
-		tokens := shapeRuns(runs, fonts, style, kardec.Pt(style.sizePt), style.color)
+		tokens := shapeRuns(runs, fonts, style, kardec.Pt(style.sizePt), style.color, nil)
 		x := cur.x0
 		for _, t := range tokens {
 			if t.isSpace {
