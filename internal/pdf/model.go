@@ -155,17 +155,28 @@ type Page struct {
 }
 
 // StructBlock is one PDF/UA-tagged region inside a page. Role is
-// the structure type (P, H1..H6, Figure, …); ItemStart..ItemEnd is
-// the half-open range of Page.Items the block covers; ImageStart..
-// ImageEnd is the half-open range of Page.Images. Empty image
-// range (Start == End == 0) means "no images in this block".
+// the structure type (P, H1..H6, Figure, Table, TR, TD, TH, Sect,
+// …). A leaf block carries the Item / Image ranges it owns; an
+// inner block carries Children only (no own MCID — the children
+// own theirs). The writer recurses through Children to build the
+// PDF /StructElem hierarchy.
+//
+// Empty image range (Start == End == 0) means "no images". Empty
+// item range with non-empty Children means "container element".
 type StructBlock struct {
 	Role       string
 	ItemStart  int
 	ItemEnd    int
 	ImageStart int
 	ImageEnd   int
+	Children   []StructBlock
 }
+
+// IsLeaf reports whether the block owns its own MCID range
+// (Items or Images) and has no nested children. Leaves emit one
+// BDC/EMC sequence in the content stream and one StructElem
+// referencing its MCID.
+func (b StructBlock) IsLeaf() bool { return len(b.Children) == 0 }
 
 // LinkAnnot is one rectangular hyperlink area on a page. The
 // rectangle is in PDF user-space (bottom-left origin). When URI is

@@ -111,18 +111,22 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 
 	// Pre-allocate per-block StructElem IDs in tagged mode so each
 	// /Page dict can forward-reference its owning structure
-	// elements through /StructParents N. Pages without
-	// StructBlocks fall back to one synthetic /P element covering
-	// the whole page (lite mode).
+	// elements through /StructParents N. Each page allocates one
+	// ID per StructElem in its tree (counting nested children).
+	// Pages without StructBlocks fall back to one synthetic /P
+	// element covering the whole page (lite mode).
 	var pageBlockElemIDs [][]int
 	if doc.Tagged {
 		pageBlockElemIDs = make([][]int, len(doc.Pages))
 		for i, p := range doc.Pages {
-			n := len(p.StructBlocks)
-			if n == 0 {
-				n = 1 // lite-mode placeholder
+			total := 0
+			for _, b := range p.StructBlocks {
+				total += countBlocksInTree(b)
 			}
-			pageBlockElemIDs[i] = make([]int, n)
+			if total == 0 {
+				total = 1 // lite-mode placeholder
+			}
+			pageBlockElemIDs[i] = make([]int, total)
 			for j := range pageBlockElemIDs[i] {
 				pageBlockElemIDs[i][j] = ow.allocID()
 			}

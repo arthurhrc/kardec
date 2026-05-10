@@ -270,6 +270,19 @@ type pageCursor struct {
 	// items in their own marked-content sequence.
 	curRole BlockRole
 
+	// curTableID / curRowIdx / curColIdx: current table-nesting
+	// markers. placeTable sets curTableID per table; placeTableRow
+	// sets curRowIdx; the cell loop sets curColIdx. Items emitted
+	// through emitTableCellLine carry these markers so render can
+	// group them into a /Table > /TR > /TD/TH hierarchy.
+	//
+	// nextTableID is monotonic per page so two tables in the
+	// same page produce distinct hierarchies.
+	curTableID  int
+	curRowIdx   int
+	curColIdx   int
+	nextTableID int
+
 	// Multi-column state. columns == 1 keeps single-column geometry
 	// (pageX0 == x0, pageX1 == x1).
 	columns        int

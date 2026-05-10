@@ -86,6 +86,17 @@ type PlacedItem struct {
 	// structural blocks for tagging. Empty value is treated as "P".
 	Role BlockRole
 
+	// TableID is non-zero when this item belongs to a table cell.
+	// Items with the same TableID share a /Table parent in the
+	// PDF/UA structure tree. RowIdx and ColIdx are 0-based; cells
+	// in the same row share TableID + RowIdx and aggregate under
+	// one /TR; cells in the same column don't aggregate (PDF/UA
+	// nests /TD under /TR, not /TR under columns). TableSeq lets
+	// multiple tables on the same page disambiguate (1, 2, …).
+	TableID  int
+	RowIdx   int
+	ColIdx   int
+
 	// X and Y are the top-left coordinates of the item, in PDF points,
 	// relative to the page's top-left corner.
 	X, Y kardec.Length

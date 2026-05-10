@@ -23,6 +23,12 @@ func (e Engine) placeTable(cur *pageCursor, flush func(), tbl kardec.Table, head
 
 	applySpaceBefore(cur, flush, cellStyle.spaceBeforePt)
 
+	// Tag every cell glyph with a fresh table ID so the render
+	// adapter can build a /Table > /TR > /TD/TH hierarchy for
+	// PDF/UA strict mode.
+	cur.nextTableID++
+	prevTableID := cur.curTableID
+	cur.curTableID = cur.nextTableID
 	for rowIdx, row := range tbl.Rows() {
 		style := cellStyle
 		if rowIdx == 0 && tbl.RepeatHeader() {
@@ -30,6 +36,7 @@ func (e Engine) placeTable(cur *pageCursor, flush func(), tbl kardec.Table, head
 		}
 		e.placeTableRow(cur, flush, cols, colWidths, row, style, fonts, tbl, rowIdx)
 	}
+	cur.curTableID = prevTableID
 	cur.cursorY += cellStyle.spaceAfterPt
 }
 
@@ -150,25 +157,31 @@ func (e Engine) placeTableRow(
 		}
 	}
 
-	for _, p := range plan {
+	prevRow := cur.curRowIdx
+	cur.curRowIdx = rowIdx
+	for colIdx, p := range plan {
 		col := mergedColumn(cols, p.colStart, p.span)
 		// Tag every cell glyph with the PDF/UA role matching its
 		// role: TH for the header row (rowIdx 0), TD otherwise.
-		// Validators that walk the structure tree see Table > TR
-		// > TD/TH semantics (flat for now — full Table/TR nesting
-		// lands when StructBlock gains children).
+		// curTableID + curRowIdx + curColIdx flow on each
+		// PlacedItem so render groups them as
+		// /Table > /TR > /TD/TH.
 		cellRole := BlockRole("TD")
 		if rowIdx == 0 {
 			cellRole = BlockRole("TH")
 		}
-		prev := cur.curRole
+		prevRole := cur.curRole
+		prevCol := cur.curColIdx
 		cur.curRole = cellRole
+		cur.curColIdx = colIdx
 		for li, ln := range p.lines {
 			lineY := rowTop + float64(li)*style.lineHeight*style.sizePt
 			emitTableCellLine(cur, ln, style, col, cur.x0+p.x, p.width, lineY)
 		}
-		cur.curRole = prev
+		cur.curRole = prevRole
+		cur.curColIdx = prevCol
 	}
+	cur.curRowIdx = prevRow
 
 	cur.cursorY = rowTop + rowHeight
 
@@ -268,14 +281,17 @@ func emitTableCellLine(cur *pageCursor, ln line, style blockStyle, col kardec.Co
 			continue
 		}
 		cur.items = append(cur.items, PlacedItem{
-			X:     kardec.Pt(x),
-			Y:     kardec.Pt(baselineY),
-			Text:  t.text,
-			Font:  t.font,
-			Size:  kardec.Pt(t.sizePt),
-			Color: style.color,
-			Link:  t.link,
-			Role:  cur.curRole,
+			X:       kardec.Pt(x),
+			Y:       kardec.Pt(baselineY),
+			Text:    t.text,
+			Font:    t.font,
+			Size:    kardec.Pt(t.sizePt),
+			Color:   style.color,
+			Link:    t.link,
+			Role:    cur.curRole,
+			TableID: cur.curTableID,
+			RowIdx:  cur.curRowIdx,
+			ColIdx:  cur.curColIdx,
 		})
 		cur.recordFootnoteRef(t.footnoteRef)
 		x += t.width

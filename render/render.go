@@ -267,59 +267,183 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 	return out, index, nil
 }
 
-// buildStructBlocks groups consecutive PlacedItems by their Role
-// into pdf.StructBlock spans. Items without a role inherit the
-// previous block's role; if there's no previous role, they default
-// to "P". Image-only blocks (Role == BlockRoleFigure) get their
-// images included in the block's image range.
+// buildStructBlocks groups consecutive PlacedItems into a tree
+// of pdf.StructBlock entries. Three passes: leaf-block extraction,
+// table-cell hierarchy folding, and Sect grouping around H1
+// boundaries.
+//
+// The Sect pass is per-page (it doesn't span pages today — that
+// would require model awareness across page boundaries the writer
+// doesn't yet wire through). Within a page, every H1 starts a new
+// Sect and absorbs the following P / H2-H6 / Figure / Table blocks
+// into its Children. Pages with no H1 stay flat.
 func buildStructBlocks(p layout.Page) []pdf.StructBlock {
+	leaves := buildLeafBlocks(p)
+	if len(leaves) == 0 {
+		return nil
+	}
+	flat := foldTableHierarchy(leaves)
+	return foldSectHierarchy(flat)
+}
+
+// foldSectHierarchy walks the flat top-level block sequence and
+// wraps each H1 + its following non-H1 siblings in a /Sect
+// container. The H1 stays inside the Sect as the first child so
+// screen readers walking the tree announce the section title
+// before its body. H2-H6 don't open new Sect levels here — they
+// stay siblings of the surrounding P. Nested-Sect support (H1
+// containing H2 sub-sections) lands once the layout engine
+// surfaces multi-level outlines.
+func foldSectHierarchy(blocks []pdf.StructBlock) []pdf.StructBlock {
+	var out []pdf.StructBlock
+	i := 0
+	// Skip leading non-H1 blocks — they stay at the top of the
+	// page tree (e.g., a header strip or pre-section paragraph).
+	for i < len(blocks) && blocks[i].Role != "H1" {
+		out = append(out, blocks[i])
+		i++
+	}
+	// From the first H1, every block joins the running Sect
+	// until the next H1 starts a new one.
+	for i < len(blocks) {
+		if blocks[i].Role != "H1" {
+			// Defensive: an H1 was always supposed to come first
+			// here, but handle non-H1 by appending at the top
+			// level just in case.
+			out = append(out, blocks[i])
+			i++
+			continue
+		}
+		sect := pdf.StructBlock{Role: "Sect", Children: []pdf.StructBlock{blocks[i]}}
+		i++
+		for i < len(blocks) && blocks[i].Role != "H1" {
+			sect.Children = append(sect.Children, blocks[i])
+			i++
+		}
+		out = append(out, sect)
+	}
+	return out
+}
+
+// buildLeafBlocks produces the flat sequence of leaf blocks: one
+// per role / cell transition. Each leaf carries its (role,
+// tableID, rowIdx, colIdx) so foldTableHierarchy can group
+// table cells into TR + Table parents in a second pass.
+func buildLeafBlocks(p layout.Page) []leafBlock {
 	if len(p.Items) == 0 {
 		return nil
 	}
-	var blocks []pdf.StructBlock
-	curRole := ""
-	textIdx := 0
-	imageIdx := 0
+	var leaves []leafBlock
+	cur := leafBlock{role: "", tableID: -1}
 	pdfTextIdx := 0
 	pdfImageIdx := 0
+	flush := func(at int, atImg int) {
+		if cur.role == "" {
+			return
+		}
+		cur.itemEnd = at
+		cur.imageEnd = atImg
+		leaves = append(leaves, cur)
+	}
 	for _, it := range p.Items {
 		role := string(it.Role)
 		if role == "" {
 			role = "P"
 		}
-		// Map layout-only items (rules, decorations) into the
-		// current block by skipping role transitions when the
-		// item carries no Role field.
-		if role != curRole {
-			// Close previous block.
-			if curRole != "" {
-				blocks[len(blocks)-1].ItemEnd = pdfTextIdx
-				blocks[len(blocks)-1].ImageEnd = pdfImageIdx
+		// Open a new leaf when role OR table-cell coordinates
+		// change. Cells inside the same table change rowIdx /
+		// colIdx; transitioning rowIdx + colIdx within the same
+		// tableID still requires a new leaf because each cell
+		// owns its own MCID.
+		newLeaf := role != cur.role ||
+			it.TableID != cur.tableID ||
+			(it.TableID != 0 && (it.RowIdx != cur.rowIdx || it.ColIdx != cur.colIdx))
+		if newLeaf {
+			flush(pdfTextIdx, pdfImageIdx)
+			cur = leafBlock{
+				role:       role,
+				itemStart:  pdfTextIdx,
+				imageStart: pdfImageIdx,
+				tableID:    it.TableID,
+				rowIdx:     it.RowIdx,
+				colIdx:     it.ColIdx,
 			}
-			blocks = append(blocks, pdf.StructBlock{
-				Role:       role,
-				ItemStart:  pdfTextIdx,
-				ImageStart: pdfImageIdx,
-			})
-			curRole = role
 		}
-		// Advance the right counter depending on item kind.
 		switch {
 		case it.Image != nil:
 			pdfImageIdx++
 		case it.Rect != nil:
-			// Rects don't contribute to MCIDs; skip.
+			// Rects don't contribute to MCIDs.
 		default:
 			pdfTextIdx++
 		}
-		textIdx++
-		_ = imageIdx
 	}
-	if len(blocks) > 0 {
-		blocks[len(blocks)-1].ItemEnd = pdfTextIdx
-		blocks[len(blocks)-1].ImageEnd = pdfImageIdx
+	flush(pdfTextIdx, pdfImageIdx)
+	return leaves
+}
+
+// leafBlock is render's intermediate flat representation. It
+// carries enough info for foldTableHierarchy to produce a tree.
+type leafBlock struct {
+	role       string
+	itemStart  int
+	itemEnd    int
+	imageStart int
+	imageEnd   int
+	tableID    int
+	rowIdx     int
+	colIdx     int
+}
+
+// foldTableHierarchy walks the flat leaf sequence and groups
+// consecutive cells (TableID == same, non-zero) into a /Table
+// container, with one /TR child per row, one /TD or /TH child per
+// cell. Non-table leaves pass through unchanged at the same level.
+func foldTableHierarchy(leaves []leafBlock) []pdf.StructBlock {
+	var out []pdf.StructBlock
+	i := 0
+	for i < len(leaves) {
+		L := leaves[i]
+		if L.tableID == 0 {
+			out = append(out, pdf.StructBlock{
+				Role:       L.role,
+				ItemStart:  L.itemStart,
+				ItemEnd:    L.itemEnd,
+				ImageStart: L.imageStart,
+				ImageEnd:   L.imageEnd,
+			})
+			i++
+			continue
+		}
+		// Found the first cell of a table. Greedily consume all
+		// leaves with the same TableID, grouping them by RowIdx
+		// to build TR children, with one TD/TH leaf inside each.
+		tID := L.tableID
+		var rows []pdf.StructBlock
+		var curRow []pdf.StructBlock
+		curRowIdx := L.rowIdx
+		for i < len(leaves) && leaves[i].tableID == tID {
+			c := leaves[i]
+			if c.rowIdx != curRowIdx && len(curRow) > 0 {
+				rows = append(rows, pdf.StructBlock{Role: "TR", Children: curRow})
+				curRow = nil
+				curRowIdx = c.rowIdx
+			}
+			curRow = append(curRow, pdf.StructBlock{
+				Role:       c.role, // TD or TH
+				ItemStart:  c.itemStart,
+				ItemEnd:    c.itemEnd,
+				ImageStart: c.imageStart,
+				ImageEnd:   c.imageEnd,
+			})
+			i++
+		}
+		if len(curRow) > 0 {
+			rows = append(rows, pdf.StructBlock{Role: "TR", Children: curRow})
+		}
+		out = append(out, pdf.StructBlock{Role: "Table", Children: rows})
 	}
-	return blocks
+	return out
 }
 
 // collectUsedFontKeys walks every PlacedItem on every page and gathers
