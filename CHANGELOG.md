@@ -7,6 +7,43 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.14.0]
+
+### Added
+
+- **TOC text clickable.** Every Heading placement also drops an
+  auto-anchor named after the slugified title (prefix
+  `kardec-toc-`); the TOC's title tokens emit a hyperlink to that
+  anchor. Click "Introduction" inside the TOC and the reader jumps
+  to the heading — closes the bug the v1.0 readiness recap
+  flagged in "open additions" (only the sidebar outline links
+  worked through v0.13). Limitation: duplicate-title docs produce
+  duplicate slugs; first anchor wins on link resolution.
+
+### Deferred to dedicated minor releases (post-v0.14)
+
+Each of the items below is large enough (600 – 2000 LoC of
+low-level binary-format work) that bundling dilutes the attention
+each one needs:
+
+- **OTF/CFF font embedding** (Type 0 + CIDFontType0 + Identity-H)
+- **Encryption + permissions** (RC4-128 + AES-128 Standard Security
+  Handler)
+- **PDF/UA tagging** (MarkInfo + StructTreeRoot + per-block
+  classification + alt text)
+- **Knuth-Plass total-fit line breaker** behind a feature flag
+- **SVG image embed** (vector → PDF native)
+- **Watermarks** (DRAFT / CONFIDENTIAL diagonal overlay)
+- **Run-level inline math** constructor (the proper inline form,
+  distinct from the display-mode `Math` block)
+
+The freeze-readiness recap treats these as the v0.14 → v1.0
+backlog. v1.0 is held until at least the encryption +
+PDF/UA + OTF/CFF trio ships, since those three are what
+distinguish "PDF library nice for personal projects" from
+"library shippable to corporate / regulated / accessibility-
+required environments".
+
 ## [0.13.0]
 
 ### Added
@@ -645,7 +682,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.14.0
 [0.13.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.13.0
 [0.12.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.12.0
 [0.11.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.11.0
