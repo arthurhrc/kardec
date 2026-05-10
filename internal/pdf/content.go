@@ -120,15 +120,13 @@ func buildContentStreamWithWatermark(page Page, fonts []*fontHandle, images []*i
 }
 
 // wrapMarkedContentByBlocks emits the page's draw operators
-// partitioned into per-block marked-content sequences, one per
-// StructBlock entry. Each block's items + images are wrapped in
-// `/<role> << /MCID N >> BDC ... EMC` so the structure tree can
-// reference the right MCIDs.
+// partitioned into per-leaf marked-content sequences. Each leaf
+// block's items + images are wrapped in `/<role> << /MCID N >>
+// BDC ... EMC`. Inner blocks (Table, TR, Sect, …) carry no MCIDs
+// — only their leaf descendants do.
 //
-// Items / images that fall outside any block range are emitted
-// outside any BDC/EMC pair — they show on the page but are not
-// part of the PDF/UA structure tree (e.g. footnote separators,
-// auto-injected page numbers).
+// MCIDs are assigned in pre-order traversal of the tree, matching
+// the order emitStructTree emits StructElem objects.
 func wrapMarkedContentByBlocks(page Page, fonts []*fontHandle, images []*imageHandle, watermark *Watermark, alphaName string) []byte {
 	var buf bytes.Buffer
 	// Rects (no PDF/UA role, just visual chrome) come first.
@@ -141,26 +139,40 @@ func wrapMarkedContentByBlocks(page Page, fonts []*fontHandle, images []*imageHa
 			r.X, r.Y, r.W, r.H,
 		)
 	}
-	// Per-block content. Items + images for each block sit inside
-	// one BDC/EMC pair.
-	for blockIdx, block := range page.StructBlocks {
-		fmt.Fprintf(&buf, "/%s << /MCID %d >> BDC\n", block.Role, blockIdx)
-		// Images first inside the block.
-		for i := block.ImageStart; i < block.ImageEnd && i < len(page.Images); i++ {
-			emitImageDraw(&buf, page.Images[i], images)
-		}
-		// Then text items.
-		for i := block.ItemStart; i < block.ItemEnd && i < len(page.Items); i++ {
-			emitTextItem(&buf, page.Items[i], fonts)
-		}
-		buf.WriteString("EMC\n")
+	// Recurse the block tree, emitting BDC/EMC per leaf with a
+	// running MCID counter.
+	mcid := 0
+	for _, block := range page.StructBlocks {
+		mcid = emitBlockTree(&buf, block, fonts, images, page, mcid)
 	}
-	// Watermark sits outside any block — purely decorative, no
-	// PDF/UA role.
+	// Watermark sits outside any block — purely decorative.
 	if watermark != nil && watermark.Text != "" && watermark.FontID >= 0 && watermark.FontID < len(fonts) {
 		appendWatermark(&buf, watermark, fonts[watermark.FontID], page.Width, page.Height, alphaName)
 	}
 	return buf.Bytes()
+}
+
+// emitBlockTree recurses through one StructBlock's tree, emitting
+// BDC/EMC marked-content pairs around each LEAF block's draw
+// operators. Inner blocks only frame their children — no MCID is
+// assigned to them. Returns the next free MCID (so siblings keep
+// counting up).
+func emitBlockTree(buf *bytes.Buffer, b StructBlock, fonts []*fontHandle, images []*imageHandle, page Page, mcid int) int {
+	if b.IsLeaf() {
+		fmt.Fprintf(buf, "/%s << /MCID %d >> BDC\n", b.Role, mcid)
+		for i := b.ImageStart; i < b.ImageEnd && i < len(page.Images); i++ {
+			emitImageDraw(buf, page.Images[i], images)
+		}
+		for i := b.ItemStart; i < b.ItemEnd && i < len(page.Items); i++ {
+			emitTextItem(buf, page.Items[i], fonts)
+		}
+		buf.WriteString("EMC\n")
+		return mcid + 1
+	}
+	for i := range b.Children {
+		mcid = emitBlockTree(buf, b.Children[i], fonts, images, page, mcid)
+	}
+	return mcid
 }
 
 // emitImageDraw writes the operators for one ImageDraw — extracted
