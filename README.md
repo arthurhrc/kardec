@@ -168,8 +168,11 @@ contribute the support:
 
 ## Status
 
-v0.26 — heading toward v1.0. The public API is stabilising; remaining
-items are tracked in [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`.
+**v1.0 — API frozen.** Every public type, function, and method
+exposed at v1.0 stays signature-compatible through the v1.x line.
+Breaking changes need a v2.0 major bump. Internal packages
+(`internal/...`) remain unstable; callers reaching into them get
+whatever they deserve.
 
 | Range | What it brought |
 |---|---|
@@ -181,8 +184,8 @@ items are tracked in [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`.
 | 0.23 | Hyphenation pt/es/fr; background image; first-page + even-page header / footer; QR codes; table cell roles; `kardec/templates` |
 | 0.24 | PDF/UA strict: `Table > TR > TD/TH` nesting + `Sect` groupings |
 | 0.25 | `kardec/chart` — pure-Go bar / line / pie |
-| 0.26 (current) | `kardec/sign` — PKCS#7 detached signatures |
-| 1.0 (planned) | API freeze |
+| 0.26 | `kardec/sign` — PKCS#7 detached signatures |
+| **1.0 (current)** | **API frozen.** No code change from v0.26 — the surface is committed-stable. |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
 Design spec in [docs/RFC-001-dsl.md](docs/RFC-001-dsl.md).

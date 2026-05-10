@@ -7,6 +7,59 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [1.0.0] — API freeze
+
+v1.0 is the API freeze. No code changes from v0.26 — this release
+exists to mark the public surface as stable: every type, function,
+and method exposed at v1.0 is committed to staying signature-
+compatible through the v1.x line. Breaking changes require a v2.0
+major bump.
+
+### Stability commitments
+
+- **Document API** — `New`, `NewWithSetup`, `Heading`, `Paragraph`,
+  `Image`, `Table`, `Math`, `InlineMath`, `Footnote`,
+  `KeepTogether`, `TableOfContents`, plus the setter/builder
+  surface (`SetTitle`, `SetAuthor`, `SetTagged`, `SetEncryption`,
+  `SetWatermark`, `SetLineBreakAlgorithm`, `SetBackgroundImage`,
+  `FirstPageHeader` / `EvenPageHeader`, …).
+- **Inline runs** — `Text`, `Bold`, `Italic`, `Underline`,
+  `Strikethrough`, `Link`, `Colored`, `InlineMath`,
+  `Document.Footnote`, `Document.Cite`, `Document.Ref`,
+  `Document.RefPage`.
+- **Output API** — `Document.Render(path)`, `Document.RenderTo(w)`,
+  `Document.Bytes()`.
+- **Companion subpackages** — `kardec/render`, `kardec/httpx`,
+  `kardec/templates`, `kardec/chart`, `kardec/sign`.
+- **PDF output format** — produced PDFs continue to open in
+  Acrobat / Foxit / Chrome / Edge / Firefox / pdftotext through
+  the v1.x line.
+- **Byte-reproducibility** — `Document.SetCreationDate(t)` plus
+  identical input produce byte-identical output (excluding the
+  `kardec/sign` path, which intentionally carries fresh PKCS#7
+  nonces per signature).
+
+### What is NOT promised
+
+The internal packages (`internal/pdf`, `internal/layout`,
+`internal/typography`, `internal/svg`, `internal/math`,
+`internal/mathlayout`, `internal/hyphenation`) remain unstable —
+they have always been and stay so. Callers reaching into
+`internal/` get whatever they deserve.
+
+A small set of deprecated friend-package seams stay public
+because no architectural alternative exists without a v2 refactor:
+`SetRenderImpl`, `Document.FontRegistry()`, `Document.MathFont()`,
+`Document.WatermarkResolved()`, `Run.MathSource()`. The
+`// Deprecated:` doc comments stay on them.
+
+### Carrying forward from v0.26 unchanged
+
+Everything documented in the [0.26.0], [0.25.0], [0.24.0],
+[0.23.0], [0.22.0], [0.21.1], [0.21.0]–[0.1.0] sections below.
+The library shipped 27 minor releases between v0.1 and v0.26;
+v1.0 freezes that surface.
+
 ## [0.26.0]
 
 ### Added
