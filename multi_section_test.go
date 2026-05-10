@@ -5,7 +5,7 @@ import "testing"
 func TestNewSectionAppendsAndSwitchesCurrent(t *testing.T) {
 	doc := New(PageA4, MarginsNormal).
 		Paragraph(Text("page 1")).
-		NewSection(PageA5, MarginsNarrow).
+		NewSection(SetupOf(PageA5, MarginsNarrow)).
 		Paragraph(Text("section 2"))
 
 	secs := doc.Sections()
@@ -29,15 +29,19 @@ func TestNewSectionAppendsAndSwitchesCurrent(t *testing.T) {
 	}
 }
 
-func TestNewSectionInheritsOrientation(t *testing.T) {
+func TestNewSectionAppliesSetupVerbatim(t *testing.T) {
+	// The v0.10 NewSection takes a PageSetup directly; orientation
+	// no longer auto-inherits from the previous section. Callers
+	// who want to preserve orientation pass it explicitly via the
+	// PageSetup struct.
 	first := PageSetup{Size: PageA4, Orientation: Landscape, Margins: MarginsNormal}
 	doc := New(PageA4, MarginsNormal)
 	doc.sections[0].Setup = first
 	doc.cur.Setup = first
 
-	doc.NewSection(PageLetter, MarginsNarrow)
+	doc.NewSection(PageSetup{Size: PageLetter, Orientation: Landscape, Margins: MarginsNarrow})
 	if got := doc.CurrentSection().Setup.Orientation; got != Landscape {
-		t.Errorf("NewSection should inherit Orientation; got %v, want Landscape", got)
+		t.Errorf("NewSection should apply explicit Orientation; got %v, want Landscape", got)
 	}
 }
 
@@ -57,7 +61,7 @@ func TestNewSectionWithSetupAppliesVerbatim(t *testing.T) {
 func TestNewSectionPreservesEarlierHeaderFooter(t *testing.T) {
 	doc := New(PageA4, MarginsNormal).
 		Header(Text("first header")).
-		NewSection(PageA4, MarginsWide).
+		NewSection(SetupOf(PageA4, MarginsWide)).
 		Header(Text("second header"))
 
 	secs := doc.Sections()
@@ -72,7 +76,7 @@ func TestNewSectionPreservesEarlierHeaderFooter(t *testing.T) {
 func TestNewSectionInertAfterDeferredError(t *testing.T) {
 	doc := New(PageA4, MarginsNormal)
 	doc.fail(errInternalForSectionTest())
-	doc.NewSection(PageA5, MarginsNarrow)
+	doc.NewSection(SetupOf(PageA5, MarginsNarrow))
 	if len(doc.Sections()) != 1 {
 		t.Errorf("NewSection should be inert once an error is captured, got %d sections", len(doc.Sections()))
 	}
