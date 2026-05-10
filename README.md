@@ -140,7 +140,8 @@ Output
 | 0.12 | CI quality gates (lint, vuln, coverage gate); cross-OS test matrix; reproducibility CI step; goreleaser + cosign keyless signing |
 | 0.13 | ToUnicode CMap on every embedded font (faithful text extraction + PDF/A-2u path) |
 | 0.14 | TOC text clickable (auto-anchored heading slugs) |
-| 0.15 (current) | OTF/CFF font embedding — math glyphs render with Latin Modern Math itself |
+| 0.15 | OTF/CFF font embedding — math glyphs render with Latin Modern Math itself |
+| 0.16 (current) | Encryption + permissions (Standard Security Handler V=4 / R=4 / AES-128) |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).

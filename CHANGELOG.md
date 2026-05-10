@@ -7,6 +7,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.16.0]
+
+### Added
+
+- **Encryption + permissions (Standard Security Handler V=4 / R=4 /
+  AES-128).** New public surface: `EncryptionOptions`,
+  `Permissions`, `AllPermissions()`, `ReadOnlyPermissions()`,
+  `Document.SetEncryption()`, `Document.Encryption()`. Streams are
+  encrypted on the fly with AES-128-CBC, random per-stream IV, and
+  PKCS#7 padding; the file key is derived per spec algorithm 3.2
+  from the user password, owner hash, /P bits, and the first /ID
+  component. The trailer's `/Encrypt` entry plus the `/ID` array
+  are emitted whenever encryption is on. `/StrF /Identity` keeps
+  document strings (Title, Author, content-stream literals)
+  plaintext for now — full string-object encryption lands in
+  v0.16.x. Encryption breaks reproducibility-by-bytes by design
+  (random IV per stream); the plain-mode reprocheck flow is
+  unchanged.
+
 ## [0.15.0]
 
 ### Added
