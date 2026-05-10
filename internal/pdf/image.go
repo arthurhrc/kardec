@@ -13,8 +13,9 @@ import (
 type imageHandle struct {
 	Name   string
 	ID     int
-	Width  int // pixel width, used by callers that need the natural size
-	Height int
+	Width  int  // natural width: pixels for raster, BBox width for Form
+	Height int  // natural height: pixels for raster, BBox height for Form
+	IsForm bool // true for SVG-derived Form XObjects (different cm math)
 }
 
 // emitImage writes one EmbeddedImage as a PDF XObject and returns the
@@ -83,6 +84,7 @@ func emitImage(ow *objectWriter, idx int, img EmbeddedImage) (*imageHandle, erro
 		ID:     id,
 		Width:  img.WidthPx,
 		Height: img.HeightPx,
+		IsForm: false,
 	}, nil
 }
 
@@ -116,5 +118,6 @@ func emitFormXObject(ow *objectWriter, idx int, img EmbeddedImage) (*imageHandle
 		ID:     id,
 		Width:  img.WidthPx,
 		Height: img.HeightPx,
+		IsForm: true,
 	}, nil
 }

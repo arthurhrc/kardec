@@ -56,9 +56,22 @@ func buildContentStream(page Page, fonts []*fontHandle, images []*imageHandle) [
 			continue
 		}
 		ih := images[im.ImageID]
+		// Image XObjects (raster) live in the unit square [0,1]×[0,1],
+		// so a cm of [W 0 0 H X Y] scales them straight to W×H points.
+		// Form XObjects (SVG) live in their declared /BBox; the
+		// caller-requested W×H must therefore be divided by the BBox
+		// dimensions before being baked into the matrix, otherwise the
+		// drawing renders at BBox×W, BBox×H — which trivially flies
+		// off-page for a 60-pt SVG asked to draw at 60 pt (was the
+		// silent-blank-SVG bug through v0.21).
+		sx, sy := im.W, im.H
+		if ih.IsForm && ih.Width > 0 && ih.Height > 0 {
+			sx = im.W / float64(ih.Width)
+			sy = im.H / float64(ih.Height)
+		}
 		fmt.Fprintf(&buf,
 			"q\n%.4f 0 0 %.4f %.4f %.4f cm\n/%s Do\nQ\n",
-			im.W, im.H, im.X, im.Y, ih.Name,
+			sx, sy, im.X, im.Y, ih.Name,
 		)
 	}
 

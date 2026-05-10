@@ -26,15 +26,15 @@ func TestRenderTOCTextEmitsClickableLink(t *testing.T) {
 	// kardec-toc-introduction and kardec-toc-subsection so the
 	// TOC text annotations resolve.
 	for _, name := range []string{"kardec-toc-introduction", "kardec-toc-subsection"} {
-		// /Dests entries are keyed by literal-string names; the
-		// writer emits each as `(<name>) [pageRef /XYZ ...]`.
-		if !bytes.Contains(out, []byte("("+name+") [")) {
+		// /Dests entries are keyed by Name objects (PDF spec
+		// 7.3.5); the writer emits each as `/<name> [pageRef ...]`.
+		if !bytes.Contains(out, []byte("/"+name+" [")) {
 			t.Errorf("named destination %q missing — TOC link cannot resolve", name)
 		}
 	}
 	// The TOC title tokens should also carry an /A << /Type /Action
-	// /S /GoTo /D (kardec-toc-...) >> link annotation.
-	if !bytes.Contains(out, []byte("/A << /Type /Action /S /GoTo /D (kardec-toc-introduction)")) {
+	// /S /GoTo /D /kardec-toc-... >> link annotation.
+	if !bytes.Contains(out, []byte("/A << /Type /Action /S /GoTo /D /kardec-toc-introduction")) {
 		t.Errorf("TOC title link annotation missing for Introduction")
 	}
 }

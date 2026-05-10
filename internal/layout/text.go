@@ -105,11 +105,19 @@ func emitLine(cur *pageCursor, ln line, style blockStyle, isLastLine bool) {
 			continue
 		}
 		if t.mathBox != nil {
-			// Inline math: emit the math box's glyphs and rules at
-			// the token's resolved position. baselineY is the line's
-			// top; emitMathBox's third arg is the math baseline,
-			// which sits at top + ascent.
-			emitMathBox(cur, *t.mathBox, x, baselineY+t.ascentPt, t.color)
+			// Inline math: emit the math box so its baseline
+			// aligns with the surrounding text baseline.
+			//
+			// In this layout's convention, baselineY is the line's
+			// baseline in top-left page coords (the text glyph's
+			// PlacedItem.Y stores the same value because the PDF
+			// writer's Td positions the BASELINE at PlacedItem.Y).
+			// emitMathBox treats originY as the box's top-left, so
+			// math baseline-in-top-left = originY + box.Height.
+			// We want math baseline = baselineY, hence
+			// originY = baselineY − box.Height = baselineY − t.ascentPt.
+			mathTop := baselineY - t.ascentPt
+			emitMathBox(cur, *t.mathBox, x, mathTop, t.color)
 			x += t.width
 			continue
 		}

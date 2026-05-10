@@ -26,10 +26,14 @@ func emitLinkAnnots(ow *objectWriter, p Page) []int {
 			action = fmt.Sprintf("<< /Type /Action /S /URI /URI %s >>",
 				escapeLiteralString(ln.URI))
 		case ln.DestName != "":
-			// /GoTo with a name string resolves via the catalog's
-			// /Dests dictionary (PDF 12.3.2.3 Named Destinations).
+			// /GoTo with a Name resolves via the catalog's /Dests
+			// dictionary (PDF 12.3.2.3). The dict uses Name keys —
+			// see emitDestinations — so the /D entry has to be a
+			// Name as well or the lookup misses. (A *string* /D
+			// would resolve via /Names /Dests, the modern name
+			// tree, which Kardec does not emit.)
 			action = fmt.Sprintf("<< /Type /Action /S /GoTo /D %s >>",
-				escapeLiteralString(ln.DestName))
+				escapePDFName(ln.DestName))
 		default:
 			// Empty link annotation is degenerate; skip.
 			continue
