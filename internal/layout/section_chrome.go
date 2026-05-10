@@ -46,7 +46,7 @@ func emitChromeRow(
 	pageNumber, sectionNumber int,
 ) {
 	substituted := substituteRunTokens(runs, pageNumber, sectionNumber)
-	tokens := shapeRuns(substituted, fonts, style, kardec.Pt(style.sizePt), style.color)
+	tokens := shapeRuns(substituted, fonts, style, kardec.Pt(style.sizePt), style.color, nil)
 	x := cur.x0
 	for _, t := range tokens {
 		if t.isSpace {
