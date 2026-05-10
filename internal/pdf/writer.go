@@ -43,7 +43,34 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	}
 	writerClock := wr.Clock
 
+	// Resolve the timestamp once so /Info /CreationDate, the XMP
+	// xmp:CreateDate, the trailer /ID, and the encryption key
+	// derivation all share the same value.
+	now := w_clockOrDefault(writerClock)
+
+	// /ID array is emitted in the trailer when either PDF/A or
+	// encryption is on. Encryption needs the first /ID component
+	// to derive the file encryption key (spec algorithm 3.2 step
+	// 4), so compute it up front.
+	idA, idB := stableDocumentID(doc, now)
+
 	ow := newObjectWriter()
+
+	// Set up Standard Security Handler (V=4 / R=4 / AES-128) when
+	// the caller asked for it. Streams are then encrypted on the
+	// fly inside writeStreamObject; the /Encrypt indirect-object
+	// is emitted before any stream objects so the trailer's
+	// /Encrypt entry has its target ID resolved.
+	encryptID := 0
+	if doc.Encryption != nil {
+		idABytes := decodeHexID(idA)
+		oHash := computeOwnerHash(doc.Encryption.UserPwd, doc.Encryption.OwnerPwd)
+		fileKey := computeEncryptionKey(doc.Encryption.UserPwd, oHash, doc.Encryption.Permissions, idABytes)
+		uHash := computeUserHash(fileKey, idABytes)
+		ow.fileKey = fileKey
+		encryptID = ow.allocID()
+		ow.writeObject(encryptID, buildEncryptDict(oHash, uHash, doc.Encryption.Permissions))
+	}
 
 	// Allocate the catalog and pages-tree IDs up front because /Catalog
 	// references /Pages and each /Page references the /Pages parent.
@@ -122,10 +149,6 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	outlinesID := emitOutlines(ow, doc.Outlines, pageIDs)
 	destsID := emitDestinations(ow, doc.Destinations, pageIDs)
 
-	// Resolve the timestamp once so /Info /CreationDate, the XMP
-	// xmp:CreateDate and the trailer /ID all share the same value.
-	now := w_clockOrDefault(writerClock)
-
 	// Optional PDF/A metadata stream — emitted before the catalog
 	// so the catalog can reference it.
 	metadataID := 0
@@ -166,12 +189,14 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	if _, err := ow.writeTo(w); err != nil {
 		return err
 	}
+	// /ID is required in the trailer for both PDF/A AND any
+	// encryption configuration (spec §7.6.3.4). Always emit
+	// when either is on; otherwise the trailer omits /ID.
 	var idPair [2]string
-	if doc.PDFA {
-		idA, idB := stableDocumentID(doc, now)
+	if doc.PDFA || doc.Encryption != nil {
 		idPair = [2]string{idA, idB}
 	}
-	if err := writeXrefAndTrailer(w, ow.offsets, int64(len(pdfHeader)), ow.nextID, catalogID, infoID, idPair); err != nil {
+	if err := writeXrefAndTrailer(w, ow.offsets, int64(len(pdfHeader)), ow.nextID, catalogID, infoID, idPair, encryptID); err != nil {
 		return err
 	}
 	if err := writeStartxref(w, xrefOffset); err != nil {

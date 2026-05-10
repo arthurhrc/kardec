@@ -29,7 +29,45 @@ type Document struct {
 	// (3 for sRGB, 4 for CMYK). Must match the profile bytes;
 	// the writer does not validate.
 	ICCProfileN int
+
+	// Encryption, when non-nil, opts the document into the
+	// Standard Security Handler V=4 R=4 (AES-128). All streams
+	// and string literals in the produced PDF are encrypted with
+	// per-object keys derived from the supplied passwords, and
+	// the trailer carries the /Encrypt indirect-object reference.
+	Encryption *Encryption
 }
+
+// Encryption configures the PDF Standard Security Handler. UserPwd
+// is what a reader prompts for to OPEN the document; OwnerPwd
+// authorises bypassing the permissions. Empty UserPwd produces a
+// "permissions-only" PDF anyone can open but only the owner
+// password can re-edit / re-print.
+//
+// Permissions is the OR of the AllowXxx bits. Spec §7.6.3.2 Table
+// 22 — Kardec follows the bit numbering exactly.
+type Encryption struct {
+	UserPwd     string
+	OwnerPwd    string
+	Permissions int32
+}
+
+// Permission bits for the standard security handler /P entry.
+// Kardec mirrors the spec layout (§7.6.3.2 Table 22) with
+// readable Go names. Bits 1-2, 7-8, and 13-32 are reserved-must-
+// be-1 per the spec; pdfBaseP folds them in by default so
+// hand-constructed P values stay valid.
+const (
+	pdfBaseP            = -3904 // bits 7, 8, 13-32 set; reserved
+	PermissionPrint     = 1 << 2
+	PermissionModify    = 1 << 3
+	PermissionCopy      = 1 << 4
+	PermissionAnnotate  = 1 << 5
+	PermissionFillForms = 1 << 8
+	PermissionAccess    = 1 << 9
+	PermissionAssemble  = 1 << 10
+	PermissionPrintHigh = 1 << 11
+)
 
 // NamedDestination is one entry in the PDF's /Dests dictionary. Name
 // is the lookup key (referenced from /GoTo actions); PageIndex is

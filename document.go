@@ -83,6 +83,11 @@ type Document struct {
 	iccProfile  []byte
 	iccProfileN int
 
+	// encryption, when non-nil, opts the document into the PDF
+	// Standard Security Handler (V=4 / R=4 / AES-128). Set via
+	// Document.SetEncryption.
+	encryption *encryptionConfig
+
 	// figureCounter / tableCounter assign the auto-numbers behind
 	// LabeledFigure / LabeledTable. They are 1-based and never reset
 	// across sections.
