@@ -7,6 +7,40 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.21.0]
+
+### Added
+
+- **Inline math as a Run-level constructor.**
+  `kardec.InlineMath(src)` returns a Run carrying a LaTeX
+  expression that the layout engine threads through the math
+  parser + math layout in inline (non-display) style. The
+  resulting glyph stream lives inside a single non-breakable
+  token so the math expression sits on the body baseline next
+  to surrounding text instead of breaking onto its own line:
+  `Paragraph(Text("By Pythagoras, "), InlineMath("a^2+b^2=c^2"),
+  Text(" for any right triangle."))`.
+- **shapeRuns now resolves the math face.** `placeTextBlock`
+  threads the document into shaping so `doc.MathFont()` is read
+  exactly once per paragraph; non-paragraph callers (footnotes,
+  leaders, table cells, TOC entries, section chrome) pass nil
+  since math runs aren't expected in those contexts.
+
+### Notes
+
+v0.21.0 limitations queued for v0.21.x:
+
+- Parse failures inside an `InlineMath` run drop the run
+  silently rather than emitting a `[math: <error>]` plain-text
+  fallback like display math does.
+- Inline-math tokens are non-breakable; very long expressions
+  may overflow the column rather than wrapping at internal
+  glue points.
+- Table cells / footnotes / leaders / TOC entries / section
+  chrome can carry InlineMath syntactically but render as no-ops
+  because those callsites pass a nil math face. Wiring them
+  through is mechanical and lands as needed.
+
 ## [0.20.0]
 
 ### Added
