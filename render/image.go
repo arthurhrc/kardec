@@ -10,6 +10,7 @@ import (
 	"github.com/arthurhrc/kardec"
 	"github.com/arthurhrc/kardec/internal/layout"
 	"github.com/arthurhrc/kardec/internal/pdf"
+	"github.com/arthurhrc/kardec/internal/svg"
 )
 
 // imageEntry caches the conversion of a single source image so multi-page
@@ -81,6 +82,25 @@ func encodeImage(img *layout.PlacedImage) (pdf.EmbeddedImage, error) {
 			HeightPx: h,
 			Encoding: pdf.ImageRawRGB,
 			Data:     rgb,
+		}, nil
+	case kardec.ImageFormatSVG:
+		// internal/svg.Convert produces both the natural canvas
+		// size (used as the Form XObject /BBox) and the PDF
+		// graphics-operator stream that paints the vector content.
+		// WidthPx / HeightPx are stored as integers in the
+		// EmbeddedImage struct so we round to the nearest PDF
+		// point — sub-point precision in BBox is overkill for the
+		// downstream cm matrix, which always rescales the form to
+		// the page-side W and H anyway.
+		w, h, stream, err := svg.Convert(img.Data)
+		if err != nil {
+			return pdf.EmbeddedImage{}, fmt.Errorf("render: convert svg: %w", err)
+		}
+		return pdf.EmbeddedImage{
+			WidthPx:  int(w + 0.5),
+			HeightPx: int(h + 0.5),
+			Encoding: pdf.ImageSVGForm,
+			Data:     stream,
 		}, nil
 	default:
 		return pdf.EmbeddedImage{}, fmt.Errorf("render: unsupported image format %s", img.Format)

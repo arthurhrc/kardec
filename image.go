@@ -16,6 +16,12 @@ const (
 	ImageFormatUnknown ImageFormat = iota
 	ImageFormatJPEG
 	ImageFormatPNG
+	// ImageFormatSVG is recognised by the leading XML / <svg> bytes.
+	// The renderer converts a useful subset of SVG (basic shapes,
+	// path subset, groups, fill/stroke) into a PDF Form XObject so
+	// the embedded vector graphic stays sharp at any scale. See
+	// internal/svg for the supported feature list.
+	ImageFormatSVG
 )
 
 // String returns a human-readable label, mainly for error messages.
@@ -25,6 +31,8 @@ func (f ImageFormat) String() string {
 		return "JPEG"
 	case ImageFormatPNG:
 		return "PNG"
+	case ImageFormatSVG:
+		return "SVG"
 	default:
 		return "unknown"
 	}
@@ -76,9 +84,60 @@ func detectImageFormat(data []byte) (ImageFormat, error) {
 		return ImageFormatJPEG, nil
 	case data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G':
 		return ImageFormatPNG, nil
+	case looksLikeSVG(data):
+		return ImageFormatSVG, nil
 	default:
 		return ImageFormatUnknown, fmt.Errorf("kardec: unsupported image format (header %x)", data[:4])
 	}
+}
+
+// looksLikeSVG returns true when the payload's first non-whitespace
+// content is `<svg` or `<?xml ... <svg ...>`. Only a quick prefix
+// check; full validation happens later in the SVG converter.
+func looksLikeSVG(data []byte) bool {
+	// Fast path: skip leading whitespace + BOM and check for <svg
+	// or <?xml.
+	i := 0
+	if len(data) >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+		i = 3
+	}
+	for i < len(data) && (data[i] == ' ' || data[i] == '\t' || data[i] == '\n' || data[i] == '\r') {
+		i++
+	}
+	if i+4 < len(data) && data[i] == '<' {
+		// Direct <svg tag.
+		if i+4 <= len(data) && string(data[i:i+4]) == "<svg" {
+			return true
+		}
+		// XML preamble followed by <svg somewhere in the first kilobyte.
+		if i+5 <= len(data) && string(data[i:i+5]) == "<?xml" {
+			search := data
+			if len(search) > 1024 {
+				search = search[:1024]
+			}
+			return bytes_contains(search, []byte("<svg"))
+		}
+	}
+	return false
+}
+
+func bytes_contains(haystack, needle []byte) bool {
+	if len(needle) == 0 {
+		return true
+	}
+	for i := 0; i+len(needle) <= len(haystack); i++ {
+		match := true
+		for j := 0; j < len(needle); j++ {
+			if haystack[i+j] != needle[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }
 
 // ImageBuilder accumulates customisation for an image before the

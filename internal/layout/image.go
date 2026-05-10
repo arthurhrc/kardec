@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/arthurhrc/kardec"
+	"github.com/arthurhrc/kardec/internal/svg"
 )
 
 // placeImage emits the PlacedItem for a kardec.Image block, paginating
@@ -25,7 +26,7 @@ import (
 // page break and are placed at the top of the new page (clipping is
 // avoided by also scaling height down to the page if necessary).
 func (e Engine) placeImage(cur *pageCursor, flush func(), img kardec.Image) error {
-	natW, natH, err := imageNaturalSize(img.Data())
+	natW, natH, err := imageNaturalSizeForFormat(img.Data(), img.Format())
 	if err != nil {
 		return err
 	}
@@ -70,10 +71,19 @@ func (e Engine) placeImage(cur *pageCursor, flush func(), img kardec.Image) erro
 	return nil
 }
 
-// imageNaturalSize reads only the header of an image payload to recover
-// its pixel dimensions. Backed by the standard library's image.DecodeConfig
-// which dispatches by registered format (jpeg, png).
-func imageNaturalSize(data []byte) (float64, float64, error) {
+// imageNaturalSizeForFormat returns the natural pixel-size of the
+// image payload in points (1 px = 1 pt at 72 DPI). Raster formats
+// dispatch through stdlib image.DecodeConfig; SVG payloads are
+// parsed for their <svg width="..." height="..." viewBox="..."> root
+// attributes via the internal/svg converter.
+func imageNaturalSizeForFormat(data []byte, format kardec.ImageFormat) (float64, float64, error) {
+	if format == kardec.ImageFormatSVG {
+		w, h, _, err := svg.Convert(data)
+		if err != nil {
+			return 0, 0, err
+		}
+		return w, h, nil
+	}
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
 		return 0, 0, err
