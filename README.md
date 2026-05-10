@@ -132,7 +132,8 @@ Output
 | 0.7 | HorizontalRule, run decorations, KeepTogether, cross-references, image captions, `kardec/httpx` |
 | 0.8 | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
 | 0.9 | Paragraph builder unified, `cmd/kardec` CLI, runnable godoc Examples, render benchmarks |
-| 0.10 (current) | API rename sweep (Enable*/Disable*, `WithAlignment`, `TableBorders*`, `NewSection(setup)`, `NewCell`, `Document.Footnote`); `RegisteredFamilies()`; `MIGRATING.md` |
+| 0.10 | API rename sweep (Enable*/Disable*, `WithAlignment`, `TableBorders*`, `NewSection(setup)`, `NewCell`, `Document.Footnote`); `RegisteredFamilies()`; `MIGRATING.md` |
+| 0.11 (current) | Metadata setters (Title/Author/Subject/Keywords); OutputIntent + ICC profile infrastructure (strict PDF/A-2b ready); Knuth-Liang hyphenation |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).

@@ -7,6 +7,38 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.11.0]
+
+### Added
+
+- **`Document.SetTitle` / `SetAuthor` / `SetSubject` / `SetKeywords`.**
+  Public knobs for the PDF /Info dictionary entries; XMP packet
+  mirrors them as dc:title / dc:creator / dc:description /
+  pdf:Keywords when PDFA is on. Empty fields are omitted.
+- **`Document.SetICCProfile(profile, components)` + OutputIntent
+  emission.** New `pdf.Document.ICCProfile` plumbing writes a
+  `/GTS_PDFA1` OutputIntent referencing the embedded ICC stream
+  when both PDFA is enabled and the caller supplied a profile —
+  the missing piece between PDF/A "lite" and strict veraPDF-passing
+  PDF/A-2b. No bundled profile yet; callers fetch sRGB IEC 61966-2.1
+  from color.org / W3C.
+- **Knuth-Liang hyphenation.** New `internal/hyphenation/liang.go`
+  implements Liang's pattern-based algorithm; ships ~120 curated
+  English (en-US) patterns covering high-frequency prefixes,
+  suffixes, and consonant-pair splits. New `Register(lang, patterns)`
+  hook merges caller-supplied additional patterns (e.g. the full
+  hyph-en-us standard set, ~4400 patterns). The v0.4 heuristic
+  stays as a structural fallback so behaviour is strictly
+  equal-or-better than v0.4 — never worse.
+
+### Deferred
+
+- **OTF/CFF font embedding** stays scheduled for v0.11.x — the
+  code path is large enough (~1.5–2.5 KLoC of low-level PDF font-
+  encoding work) to justify a dedicated release rather than
+  bundling into v0.11.0. Math glyphs continue to fall back to
+  TTF rendering until the CFF embed lands.
+
 ## [0.10.0]
 
 ### Added
@@ -551,7 +583,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.11.0
 [0.10.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.10.0
 [0.9.1]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.1
 [0.9.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.0
