@@ -1,49 +1,53 @@
-# golangci-lint configuration. The set of linters here is conservative
-# — every linter that runs in CI must produce a clean output, so adding
-# one means committing to fixing every existing finding it surfaces.
+# golangci-lint configuration (v2 schema). The set of linters here is
+# conservative — every linter that runs in CI must produce a clean
+# output, so adding one means committing to fixing every existing
+# finding it surfaces.
 #
 # To run locally:
 #
 #   golangci-lint run ./...
 
+version: "2"
+
 run:
   timeout: 3m
   tests: true
+  # Override the language version target so the published
+  # golangci-lint binary (built with Go 1.24) doesn't refuse to lint
+  # a project whose go.mod targets a newer Go. None of the enabled
+  # linters depend on language-version heuristics that this would
+  # invalidate.
+  go: "1.24"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck      # unchecked errors
     - govet         # go vet — suspicious constructs
     - ineffassign   # ineffective assignments
     - misspell      # typos in comments and strings
-    - staticcheck   # go vet successor; comprehensive
+    - staticcheck   # comprehensive static analysis (absorbs gosimple in v2)
     - unused        # unused funcs / vars / consts
-    - gosimple      # simpler equivalents for common patterns
-
-linters-settings:
-  errcheck:
-    # Errors from these functions are conventionally ignored — they
-    # appear inside fmt.Fprintf chains writing to bytes.Buffer or
-    # strings.Builder, which never fail.
-    exclude-functions:
-      - (*bytes.Buffer).Write
-      - (*bytes.Buffer).WriteString
-      - (*bytes.Buffer).WriteByte
-      - (*strings.Builder).Write
-      - (*strings.Builder).WriteString
-      - (*strings.Builder).WriteByte
-      - fmt.Fprintf
-      - fmt.Fprintln
-
-issues:
-  # Exclude sample sources / examples from style nags so the
-  # ergonomic shape readers see is not bent by a linter rule.
-  exclude-dirs:
-    - examples
-  # Test files exercise edge cases that often shadow names or
-  # discard returns intentionally; allow that.
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
+  settings:
+    errcheck:
+      # Errors from these functions are conventionally ignored — they
+      # appear inside fmt.Fprintf chains writing to bytes.Buffer or
+      # strings.Builder, which never fail.
+      exclude-functions:
+        - (*bytes.Buffer).Write
+        - (*bytes.Buffer).WriteString
+        - (*bytes.Buffer).WriteByte
+        - (*strings.Builder).Write
+        - (*strings.Builder).WriteString
+        - (*strings.Builder).WriteByte
+        - fmt.Fprintf
+        - fmt.Fprintln
+  exclusions:
+    paths:
+      # Sample sources / examples are kept ergonomic over strictly
+      # idiomatic so readers see the API at its most legible.
+      - examples
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
