@@ -123,14 +123,15 @@ Output
 
 | Version | Notes |
 |---|---|
-| 0.1.0 | Paragraphs, headings, page breaks, styles, embedded fonts |
-| 0.2.0 | Multi-face fonts, tables, images, Markdown, templating |
-| 0.3.0 | Math subset, lists, headers/footers, hyperlinks + outline, byte-reproducible output |
-| 0.4.0 | Anchors, table borders, multi-section, footnotes, auto-TOC, hyphenation, Markdown images |
-| 0.5.0 | TTF font subsetting, PDF/A-2b lite |
-| 0.7.0 | HorizontalRule, run decorations, KeepTogether, cross-references, image captions, `kardec/httpx` |
-| 0.8.0 | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
-| 0.9.1 (current) | Paragraph + AddParagraph unified, `cmd/kardec` CLI, runnable godoc Examples, render benchmarks, `gofmt -s` clean |
+| 0.1 | Paragraphs, headings, page breaks, styles, embedded fonts |
+| 0.2 | Multi-face fonts, tables, images, Markdown, templating |
+| 0.3 | Math subset, lists, headers/footers, hyperlinks + outline, byte-reproducible output |
+| 0.4 | Anchors, table borders, multi-section, footnotes, auto-TOC, hyphenation, Markdown images |
+| 0.5 | TTF font subsetting, PDF/A-2b lite |
+| 0.6 | Skipped — feature batch folded forward into 0.7; see [CHANGELOG](CHANGELOG.md#060) |
+| 0.7 | HorizontalRule, run decorations, KeepTogether, cross-references, image captions, `kardec/httpx` |
+| 0.8 | Leader, SignatureBlock, Clause numbering, Bibliography + Cite, table colspan, decimal alignment, two-column layout |
+| 0.9 (current) | Paragraph builder unified, `cmd/kardec` CLI, runnable godoc Examples, render benchmarks |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
