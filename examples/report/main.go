@@ -99,7 +99,7 @@ func main() {
 			kardec.Col("Faces", kardec.Width(0.20), kardec.WithAlignment(kardec.AlignRight)),
 		).
 		RepeatHeader().
-		Borders(kardec.BordersHorizontal).
+		Borders(kardec.TableBordersHorizontal).
 		HeaderShading(kardec.HexColor("#E7EFF7")).
 		AlternateRowShading(kardec.HexColor("#F8F8F8")).
 		Row("Family", "Role", "Faces").

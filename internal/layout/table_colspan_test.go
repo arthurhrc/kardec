@@ -67,7 +67,7 @@ func TestTable_ColspanWithBordersAllEmitsAtCellBoundaries(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Table().
 		Columns(kardec.Col("A"), kardec.Col("B"), kardec.Col("C"), kardec.Col("D")).
-		Borders(kardec.BordersAll).
+		Borders(kardec.TableBordersAll).
 		RowCells(kardec.SpanCell(4, kardec.Text("merged"))).
 		Build()
 

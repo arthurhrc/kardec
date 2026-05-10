@@ -138,10 +138,10 @@ func (e Engine) placeTableRow(
 	}
 
 	bs := tbl.BorderStyle()
-	if bs == kardec.BordersHorizontal || bs == kardec.BordersAll {
+	if bs == kardec.TableBordersHorizontal || bs == kardec.TableBordersAll {
 		emitHorizontalLine(cur, cur.x0, rowTop, totalWidth)
 	}
-	if bs == kardec.BordersAll {
+	if bs == kardec.TableBordersAll {
 		// Verticals emit at every cell boundary (not every column
 		// boundary) so a spanned cell paints as one merged region.
 		emitVerticalLine(cur, cur.x0, rowTop, rowHeight)
@@ -160,7 +160,7 @@ func (e Engine) placeTableRow(
 
 	cur.cursorY = rowTop + rowHeight
 
-	if rowIdx == len(tbl.Rows())-1 && (bs == kardec.BordersHorizontal || bs == kardec.BordersAll) {
+	if rowIdx == len(tbl.Rows())-1 && (bs == kardec.TableBordersHorizontal || bs == kardec.TableBordersAll) {
 		emitHorizontalLine(cur, cur.x0, cur.cursorY, totalWidth)
 	}
 }

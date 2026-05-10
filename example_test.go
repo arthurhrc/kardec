@@ -65,7 +65,7 @@ func ExampleDocument_Table() {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Table().
 		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.WithAlignment(kardec.AlignDecimal))).
-		Borders(kardec.BordersAll).
+		Borders(kardec.TableBordersAll).
 		RepeatHeader().
 		Row("Region", "Revenue").
 		Row("NA", "1,234.56").
