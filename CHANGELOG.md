@@ -7,6 +7,76 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.23.0]
+
+### Added
+
+- **Hyphenation pt-BR / es / fr.** Three new Liang pattern subsets
+  ship alongside the v0.11 English one. `pt-BR` covers open-
+  syllable splits + the `ch / lh / nh` digraph exceptions;
+  `es` covers `ch / ll`; `fr` covers `ch / ph / th`. Region
+  aliases normalise (`pt-BR` → `pt`, `en-US` → `en`), and the
+  Register API still merges full pattern sets when callers want
+  the upstream `~6000-pattern` table.
+- **Section background image.** `Document.SetBackgroundImage(data)`
+  paints an image behind every page in the section. Format auto-
+  detects (PNG / JPEG / SVG); the bytes are deduped across pages
+  so a multi-page section shares one Form XObject. Common use:
+  letterhead, decorative borders, certificate watermarks too large
+  for `SetWatermark` text stamps.
+- **Header / footer variants.** `FirstPageHeader` / `FirstPageFooter`
+  and `EvenPageHeader` / `EvenPageFooter` let callers split chrome
+  between the cover page, recto pages, and verso pages. Empty
+  call suppresses the default — typical "cover with no running
+  header" pattern. Internal `Has*` flags distinguish "no override"
+  from "explicit empty".
+- **QR codes.** `Document.QRCode(data, level, size)` emits a QR
+  code as a vector SVG → Form XObject. Stays sharp at any
+  rendered size. `QRErrorLevel` (Low / Medium / Quart / High)
+  maps to QR spec L/M/Q/H redundancy tiers. Uses `rsc.io/qr`
+  (Russ Cox, pure Go, MIT) — the only v0.23 dependency addition.
+- **Table cell roles.** `placeTableRow` now tags every cell glyph
+  with `BlockRoleTD` (body) or `BlockRoleTH` (header row).
+  Validators walking the structure tree see real cell semantics;
+  screen readers announce the right role. Flat tagging (no
+  /Table > /TR > /TD nesting); full hierarchy deferred to v0.24
+  along with cross-page Sect groupings.
+- **Templates library.** New top-level `templates` package ships
+  three scaffolds:
+  - `templates.Invoice(data)` — invoice with line items, tax,
+    totals.
+  - `templates.Certificate(data)` — one-page completion
+    certificate.
+  - `templates.Report(data)` — cover + optional TOC + sectioned
+    body.
+
+  Each takes a strongly-typed struct and returns
+  `*kardec.Document` ready to render. Callers chain
+  `SetWatermark` / `SetEncryption` / `SetTagged` on top before
+  rendering.
+
+### Examples
+
+- `examples/qrcode` — four error-correction tiers + a PIX-style
+  payload.
+- `examples/bookstyle` — background-image letterhead + first-page
+  suppression + verso/recto running heads.
+- `examples/templates_invoice` — invoice from template in 5 lines.
+
+### Notes
+
+Two PDF/UA strict items remain deferred to v0.24:
+
+- Full `/Table > /TR > /TD/TH` nesting. Today's flat-by-role
+  tagging is enough for screen readers and most validators but
+  not strict PDF/UA-1.
+- Nested `Sect` groupings across pages. Requires `StructBlock`
+  to gain `Children []StructBlock` and a cross-page hierarchy
+  builder.
+
+Neither is a blocker for v1.0 — both polish a tier of strict
+validation few users actually run.
+
 ## [0.22.0]
 
 ### Added
