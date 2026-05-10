@@ -33,6 +33,74 @@ func (d *Document) Footer(runs ...Run) *Document {
 	return d
 }
 
+// FirstPageHeader sets a separate header that prints only on the
+// first page of the section, overriding Header for that page.
+// Common pattern: a cover-page section that suppresses the running
+// header, or a chapter opening with a different decorative band.
+//
+// Pass an empty call (no runs) to clear a previously-set first-page
+// header.
+func (d *Document) FirstPageHeader(runs ...Run) *Document {
+	if d.err != nil {
+		return d
+	}
+	d.cur.FirstPageHeader = runs
+	d.cur.HasFirstPageHeader = true
+	return d
+}
+
+// FirstPageFooter mirrors FirstPageHeader for the bottom of the
+// first page in the current section.
+func (d *Document) FirstPageFooter(runs ...Run) *Document {
+	if d.err != nil {
+		return d
+	}
+	d.cur.FirstPageFooter = runs
+	d.cur.HasFirstPageFooter = true
+	return d
+}
+
+// EvenPageHeader sets a separate header that prints on even-numbered
+// pages (2, 4, 6, …), overriding Header on those pages. Pair with
+// Header for the odd pages to produce the book / two-sided layout
+// where the title runs across the verso/recto pair.
+func (d *Document) EvenPageHeader(runs ...Run) *Document {
+	if d.err != nil {
+		return d
+	}
+	d.cur.EvenPageHeader = runs
+	d.cur.HasEvenPageHeader = true
+	return d
+}
+
+// EvenPageFooter mirrors EvenPageHeader for the bottom of even-
+// numbered pages.
+func (d *Document) EvenPageFooter(runs ...Run) *Document {
+	if d.err != nil {
+		return d
+	}
+	d.cur.EvenPageFooter = runs
+	d.cur.HasEvenPageFooter = true
+	return d
+}
+
+// SetBackgroundImage attaches an image that renders behind every
+// page's content in the current section. data is the raw image
+// bytes; format auto-detects via the same mechanism Document.Image
+// uses (PNG / JPEG / SVG). The image is scaled to cover the full
+// page (MediaBox) — useful for letterhead paper, decorative
+// borders, or page-wide watermarks that exceed what the
+// SetWatermark text stamp can express.
+//
+// Pass nil data to clear a previously set background.
+func (d *Document) SetBackgroundImage(data []byte) *Document {
+	if d.err != nil {
+		return d
+	}
+	d.cur.BackgroundImage = data
+	return d
+}
+
 // NewSection starts a new section configured from the supplied
 // PageSetup. Subsequent block / header / footer calls land in the
 // new section; the previous section's blocks are frozen as-is.

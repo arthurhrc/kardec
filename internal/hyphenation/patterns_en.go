@@ -155,27 +155,62 @@ func Register(lang string, patterns map[string]string) {
 	}
 }
 
-// patternsFor returns the merged pattern table for lang. The
-// bundled default subset is shipped for "en"; an empty lang
-// alias also resolves to "en". Other languages return whatever the
-// caller registered (or nil).
+// patternsFor returns the merged pattern table for lang. Bundled
+// subsets ship for "en" (en-US), "pt" / "pt-BR", "es", and "fr";
+// an empty lang alias resolves to "en". Other languages return
+// whatever the caller registered (or nil).
+//
+// Lang tags follow BCP-47-ish casing: "pt-BR" and "pt" share the
+// same Portuguese subset, "en-US" and "en" share the English one,
+// etc. Region-specific overrides can be Register()ed under the
+// full tag.
 func patternsFor(lang string) map[string]string {
 	if lang == "" {
 		lang = "en"
 	}
+	// Normalise common variants to the bundled-subset key.
+	base := lang
+	if idx := stringsIndexByte(lang, '-'); idx > 0 {
+		base = lang[:idx]
+	}
+	var bundled map[string]string
+	switch base {
+	case "en":
+		bundled = enUSPatterns
+	case "pt":
+		bundled = ptBRPatterns
+	case "es":
+		bundled = esPatterns
+	case "fr":
+		bundled = frPatterns
+	}
 	extra := extraPatterns[lang]
-	if lang != "en" {
+	if len(extra) == 0 {
+		extra = extraPatterns[base]
+	}
+	if len(bundled) == 0 {
 		return extra
 	}
 	if len(extra) == 0 {
-		return enUSPatterns
+		return bundled
 	}
-	merged := make(map[string]string, len(enUSPatterns)+len(extra))
-	for k, v := range enUSPatterns {
+	merged := make(map[string]string, len(bundled)+len(extra))
+	for k, v := range bundled {
 		merged[k] = v
 	}
 	for k, v := range extra {
 		merged[k] = v
 	}
 	return merged
+}
+
+// stringsIndexByte avoids pulling the standard-library "strings"
+// import in this file for a single byte search.
+func stringsIndexByte(s string, c byte) int {
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			return i
+		}
+	}
+	return -1
 }

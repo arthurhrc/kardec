@@ -31,10 +31,36 @@ type imageEntry struct {
 // composited over white). Unknown formats are silently dropped — the
 // kardec.Image builder rejects them earlier, so reaching this branch
 // indicates a layout-level bug rather than user input.
-func buildEmbeddedImages(pages []layout.Page) ([]pdf.EmbeddedImage, map[*layout.PlacedImage]int, error) {
+func buildEmbeddedImages(pages []layout.Page) ([]pdf.EmbeddedImage, map[*layout.PlacedImage]int, map[string]int, error) {
 	out := []pdf.EmbeddedImage{}
 	index := map[*layout.PlacedImage]int{}
+	bgIndex := map[string]int{} // page-background bytes (hash) → image idx
+	addBG := func(data []byte) error {
+		if len(data) == 0 {
+			return nil
+		}
+		key := string(data) // bytes used as map key; cheap since bgs are small
+		if _, ok := bgIndex[key]; ok {
+			return nil
+		}
+		format, err := detectFormatFor(data)
+		if err != nil {
+			return err
+		}
+		placed := &layout.PlacedImage{Data: data, Format: format}
+		embed, err := encodeImage(placed)
+		if err != nil {
+			return err
+		}
+		id := len(out)
+		out = append(out, embed)
+		bgIndex[key] = id
+		return nil
+	}
 	for _, p := range pages {
+		if err := addBG(p.BackgroundImage); err != nil {
+			return nil, nil, nil, err
+		}
 		for _, it := range p.Items {
 			if it.Image == nil {
 				continue
@@ -44,7 +70,7 @@ func buildEmbeddedImages(pages []layout.Page) ([]pdf.EmbeddedImage, map[*layout.
 			}
 			embed, err := encodeImage(it.Image)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			id := len(out)
 			out = append(out, embed)
@@ -52,7 +78,26 @@ func buildEmbeddedImages(pages []layout.Page) ([]pdf.EmbeddedImage, map[*layout.
 			_ = imageEntry{id: id, embed: embed}
 		}
 	}
-	return out, index, nil
+	return out, index, bgIndex, nil
+}
+
+// detectFormatFor mirrors kardec.detectImageFormat so the render
+// path can identify SVG/PNG/JPEG payloads attached as background
+// images. Inline duplication keeps the friend-package surface
+// small.
+func detectFormatFor(data []byte) (kardec.ImageFormat, error) {
+	if len(data) < 4 {
+		return kardec.ImageFormatUnknown, fmt.Errorf("render: background image too small")
+	}
+	switch {
+	case data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF:
+		return kardec.ImageFormatJPEG, nil
+	case data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G':
+		return kardec.ImageFormatPNG, nil
+	case bytes.HasPrefix(data, []byte("<svg")) || bytes.HasPrefix(data, []byte("<?xml")):
+		return kardec.ImageFormatSVG, nil
+	}
+	return kardec.ImageFormatUnknown, fmt.Errorf("render: background image: unknown format")
 }
 
 // encodeImage maps a layout PlacedImage to the pdf.EmbeddedImage shape

@@ -30,5 +30,6 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	modernc.org/knuth v0.5.5 // indirect
 	modernc.org/token v1.1.0 // indirect
+	rsc.io/qr v0.2.0 // indirect
 	star-tex.org/x/tex v0.7.1 // indirect
 )

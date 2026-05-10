@@ -92,13 +92,23 @@ func (e Engine) Layout(doc *kardec.Document, fonts FontProvider) ([]Page, error)
 		if err != nil {
 			return nil, err
 		}
-		// Stamp section chrome (header / footer) on each page that the
-		// section produced, with per-page tokens already substituted.
+		// Propagate the section's background image onto every
+		// page it produced — the renderer paints it behind body
+		// content. Empty BackgroundImage leaves Page.BackgroundImage
+		// nil so the writer skips the underlying-image emission.
+		for i := range secPages {
+			secPages[i].BackgroundImage = sec.BackgroundImage
+		}
+		// Stamp section chrome (header / footer) on each page that
+		// the section produced, with per-page tokens already
+		// substituted. First-page and even-page variants override
+		// the default Header/Footer when set.
 		// {{totalPages}} stays as a marker until the post-pass below.
-		if len(sec.Header) > 0 || len(sec.Footer) > 0 {
+		if sectionHasAnyChrome(sec) {
 			chromeStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleHeader))
 			for i := range secPages {
-				stampSectionChrome(&secPages[i], sec, chromeStyle, fonts, secIdx+1, len(pages)+i+1)
+				h, f := chromeForPage(sec, i)
+				stampSectionChromeRuns(&secPages[i], sec, h, f, chromeStyle, fonts, secIdx+1, len(pages)+i+1)
 			}
 		}
 		// Stamp footnotes for any page whose body referenced one.
@@ -172,19 +182,67 @@ func stampFootnotes(
 	page.Items = cur.items
 }
 
-// stampSectionChrome paints header / footer onto an already-laid-out
-// page. The page's pageCursor is reconstructed from setup so chrome
-// emission can reuse the shared shapeRuns/PlacedItem path.
-func stampSectionChrome(
+// sectionHasAnyChrome reports whether the section carries any
+// header or footer runs (default, first-page, or even-page). The
+// engine skips chrome stamping entirely when none are set.
+func sectionHasAnyChrome(sec *kardec.Section) bool {
+	if len(sec.Header) > 0 || len(sec.Footer) > 0 {
+		return true
+	}
+	if sec.HasFirstPageHeader || sec.HasFirstPageFooter {
+		return true
+	}
+	if sec.HasEvenPageHeader || sec.HasEvenPageFooter {
+		return true
+	}
+	return false
+}
+
+// chromeForPage returns the header / footer runs that should print
+// on page index i (zero-based within the section). First-page and
+// even-page overrides take precedence over the section default
+// when their `Has*` flags are true (so an explicitly empty
+// override suppresses the default).
+func chromeForPage(sec *kardec.Section, i int) (header, footer []kardec.Run) {
+	header = sec.Header
+	footer = sec.Footer
+	if i == 0 {
+		if sec.HasFirstPageHeader {
+			header = sec.FirstPageHeader
+		}
+		if sec.HasFirstPageFooter {
+			footer = sec.FirstPageFooter
+		}
+		return
+	}
+	// Page number within the section is i+1 (1-based). Even pages
+	// are 2, 4, 6, … so i is odd (1, 3, 5, …) here.
+	if i%2 == 1 {
+		if sec.HasEvenPageHeader {
+			header = sec.EvenPageHeader
+		}
+		if sec.HasEvenPageFooter {
+			footer = sec.EvenPageFooter
+		}
+	}
+	return
+}
+
+// stampSectionChromeRuns paints the supplied header / footer runs
+// onto an already-laid-out page. The page's pageCursor is
+// reconstructed from setup so chrome emission can reuse the shared
+// shapeRuns/PlacedItem path.
+func stampSectionChromeRuns(
 	page *Page,
 	sec *kardec.Section,
+	header, footer []kardec.Run,
 	style blockStyle,
 	fonts FontProvider,
 	sectionNumber, pageNumber int,
 ) {
 	cur := startPage(sec.Setup)
 	cur.items = page.Items
-	emitSectionChrome(cur, sec.Header, sec.Footer, style, fonts, pageNumber, sectionNumber)
+	emitSectionChrome(cur, header, footer, style, fonts, pageNumber, sectionNumber)
 	page.Items = cur.items
 }
 

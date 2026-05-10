@@ -234,6 +234,11 @@ func (d *Document) Footnotes() []FootnoteRef { return d.footnotes }
 // inside it. Most documents use a single Section; multi-section support
 // (different page setups within one document) lands later in v0.x.
 //
+// Section variant fields. HasFirstPageHeader/Footer + Even* let
+// the layout engine distinguish "no override" from "explicit
+// empty override" — when the Has* flag is false, the renderer
+// falls back to Header/Footer for that page.
+
 // Header and Footer are inline runs reprinted at the top and bottom of
 // every page in the section. They support the token substitutions
 // documented on Document.Header / Document.Footer.
@@ -242,6 +247,28 @@ type Section struct {
 	Blocks []Block
 	Header []Run
 	Footer []Run
+
+	// First-page header / footer variants. Has* distinguish
+	// "no override" from "explicit empty override" so a caller
+	// suppressing the running header on a cover page can pass
+	// no runs and still mean it.
+	FirstPageHeader    []Run
+	FirstPageFooter    []Run
+	HasFirstPageHeader bool
+	HasFirstPageFooter bool
+
+	// Even-page header / footer variants. Used by book-style
+	// two-sided layouts where verso (even) and recto (odd)
+	// carry different running content.
+	EvenPageHeader    []Run
+	EvenPageFooter    []Run
+	HasEvenPageHeader bool
+	HasEvenPageFooter bool
+
+	// BackgroundImage is rendered behind every page's content in
+	// the section. Raw image bytes (PNG/JPEG/SVG); format is
+	// auto-detected.
+	BackgroundImage []byte
 }
 
 // New creates an empty Document with a single Section configured from the

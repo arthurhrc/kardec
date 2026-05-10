@@ -170,7 +170,7 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 	mathID, embeddedWithMath := appendMathFontIfUsed(embedded, pages)
 	embedded = embeddedWithMath
 
-	images, imageIndex, err := buildEmbeddedImages(pages)
+	images, imageIndex, bgIndex, err := buildEmbeddedImages(pages)
 	if err != nil {
 		return pdf.Document{}, nil, err
 	}
@@ -185,6 +185,19 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 		pdfPage := pdf.Page{
 			Width:  lp.Width.Points(),
 			Height: lp.Height.Points(),
+		}
+		// Page background: covers the full MediaBox underneath all
+		// other draws. The image-embed table keyed by raw bytes
+		// resolves repeated backgrounds (every page in a section
+		// shares one) to a single XObject.
+		if id, ok := bgIndex[string(lp.BackgroundImage)]; ok && len(lp.BackgroundImage) > 0 {
+			pdfPage.Images = append(pdfPage.Images, pdf.ImageDraw{
+				X:       0,
+				Y:       0,
+				W:       pdfPage.Width,
+				H:       pdfPage.Height,
+				ImageID: id,
+			})
 		}
 		linkRanges := newLinkRangeAccumulator()
 		for _, item := range lp.Items {
