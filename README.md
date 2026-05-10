@@ -144,7 +144,8 @@ Output
 | 0.16 | Encryption + permissions (Standard Security Handler V=4 / R=4 / AES-128) |
 | 0.17 | PDF/UA-1 lite tagging (MarkInfo + StructTreeRoot + marked content) |
 | 0.18 | Knuth-Plass optimum-fit line breaker (behind feature flag) |
-| 0.19 (current) | SVG image embed as PDF Form XObject (vector-precise) |
+| 0.19 | SVG image embed as PDF Form XObject (vector-precise) |
+| 0.20 (current) | Per-page diagonal watermark with alpha blending |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).

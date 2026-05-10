@@ -7,6 +7,31 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.20.0]
+
+### Added
+
+- **Per-page diagonal watermark with alpha blending.**
+  `Document.SetWatermark(text, opts...)` stamps a configurable
+  overlay on every page after primary content is drawn — the
+  classic "DRAFT" / "CONFIDENTIAL" use case lands in two lines.
+  `WatermarkOptions` exposes `Color`, `Opacity`, `AngleDeg`, and
+  `FontSize`; defaults give a 30 % gray, 45° diagonal at 60 pt.
+  Fully opaque (`Opacity == 1`) skips the `/ExtGState` alpha
+  object so the page resource dict stays minimal.
+- **Body-text-independent font inclusion.** The watermark face is
+  guaranteed to land in every page's `/Font` dict via
+  `ensureFontIncluded`, so a stamp on a graph-only page still
+  renders the right glyphs instead of `.notdef` boxes.
+
+### Notes
+
+The watermark uses the registry's default body face. A future
+v0.20.x will accept an explicit family/weight/style triple plus
+optional rendering modes (stroke-only outlines, multi-line
+stamps). Watermarks remain document-level only — per-section
+overrides land at the same time.
+
 ## [0.19.0]
 
 ### Added
