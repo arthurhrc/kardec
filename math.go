@@ -2,7 +2,7 @@ package kardec
 
 // Math is the block carrying a LaTeX math expression. Display-style
 // math centers the formula on its own line at the surrounding font
-// size; inline math (added through MathInline once that lands) flows
+// size; inline math (planned via a Run-level constructor) flows
 // at the surrounding x-height.
 //
 // v0.3 ships display math only. Inline-flow math (mixing math runs
@@ -36,10 +36,3 @@ func (d *Document) Math(src string) *Document {
 	return d.append(Math{source: src, display: true})
 }
 
-// MathInline appends a single-paragraph math block typeset in inline
-// style (small operators, limits as side-scripts). Until v0.4 wires
-// genuine inline math into Run, this is the way to add math without
-// the display-mode visual emphasis.
-func (d *Document) MathInline(src string) *Document {
-	return d.append(Math{source: src, display: false})
-}

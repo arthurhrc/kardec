@@ -23,14 +23,6 @@ func TestDocumentMathAppendsBlock(t *testing.T) {
 	}
 }
 
-func TestDocumentMathInlineSetsDisplayFalse(t *testing.T) {
-	doc := New(PageA4, MarginsNormal).MathInline(`x^2`)
-	m := doc.Sections()[0].Blocks[0].(Math)
-	if m.Display() {
-		t.Errorf("MathInline should set Display=false")
-	}
-}
-
 func TestDocumentMathPreservesDeferredError(t *testing.T) {
 	doc := New(PageA4, MarginsNormal)
 	doc.fail(errInternalForMathTest())
