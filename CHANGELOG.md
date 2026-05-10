@@ -7,6 +7,38 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.19.0]
+
+### Added
+
+- **SVG image embed as PDF Form XObject.** SVG payloads are now
+  recognised by `Document.Image()` alongside JPEG and PNG and
+  embedded as vector Form XObjects (`/Subtype /Form`) so the
+  drawing stays sharp at any rendered size. The new
+  `internal/svg` package converts the supported subset of SVG
+  into the PDF graphics-operator stream the form's content
+  stream consumes; sizing, alignment, and KeepTogether-with-
+  caption flow through the same `ImageBuilder` callers already
+  use for raster images.
+- **SVG support — v0.19.0 lite scope.** `<svg>` root with
+  `width` / `height` / `viewBox`; `<rect>`, `<circle>`,
+  `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`; `<path>`
+  with `M/L/H/V/C/Q/Z` (absolute + relative; quadratic
+  promoted to cubic); `<g>` nesting with paint inheritance for
+  `fill`, `stroke`, `stroke-width`, and the opacity family;
+  colours as `#rgb`, `#rrggbb`, `none`, plus a curated
+  named-colour palette.
+
+### Notes
+
+Out of scope in v0.19.0 (silently dropped): SVG transforms
+(`translate`, `scale`, `rotate`, `matrix`), gradients, patterns,
+masks, `clipPath`, `<defs>` / `<use>`, `<text>`, `<image>`, and
+arc commands (`A`/`a`). v0.19.x will close gaps as real-world
+content asks for them — transforms first, since they're the
+single biggest blocker for icons exported by mainstream design
+tools.
+
 ## [0.18.0]
 
 ### Added
