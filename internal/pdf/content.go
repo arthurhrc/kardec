@@ -71,18 +71,59 @@ func buildContentStream(page Page, fonts []*fontHandle, images []*imageHandle) [
 		g := float64(it.Color.G) / 255.0
 		b := float64(it.Color.B) / 255.0
 
-		encoded := encodeWinAnsi([]rune(it.Text))
-		literal := escapeLiteralString(string(encoded))
+		// Encoding is font-specific: simple TrueType uses single-byte
+		// WinAnsi escaped literals, Type 0 / CIDFontType0 (CFF math
+		// fonts) uses 2-byte hex glyph IDs in angle brackets.
+		var operand string
+		switch fh.Kind {
+		case fontKindCFF:
+			operand = encodeCFFHex([]rune(it.Text), fh.Metrics)
+		default:
+			encoded := encodeWinAnsi([]rune(it.Text))
+			operand = escapeLiteralString(string(encoded))
+		}
 
 		fmt.Fprintf(&buf,
 			"q\n%.4f %.4f %.4f rg\nBT\n/%s %.4f Tf\n%.4f %.4f Td\n%s Tj\nET\nQ\n",
 			r, g, b,
 			fh.Name, it.FontSize,
 			it.X, it.Y,
-			literal,
+			operand,
 		)
 	}
 	return buf.Bytes()
+}
+
+// encodeCFFHex turns a slice of Unicode runes into the
+// `<00410042...>` hex string a Type 0 / Identity-H content stream
+// expects: each glyph index is two bytes, big-endian. Glyph indices
+// come from the cmap parsed at font-load time; runes the cmap
+// doesn't cover collapse to glyph 0 (.notdef), the conventional
+// missing-glyph slot.
+func encodeCFFHex(runes []rune, m *ttfMetrics) string {
+	var b []byte
+	b = append(b, '<')
+	for _, r := range runes {
+		gid := uint16(0)
+		if g, ok := m.CmapUnicode[uint32(r)]; ok {
+			gid = g
+		}
+		b = append(b,
+			hexNibble(byte(gid>>12)),
+			hexNibble(byte((gid>>8)&0x0F)),
+			hexNibble(byte((gid>>4)&0x0F)),
+			hexNibble(byte(gid&0x0F)),
+		)
+	}
+	b = append(b, '>')
+	return string(b)
+}
+
+func hexNibble(n byte) byte {
+	if n < 10 {
+		return '0' + n
+	}
+	return 'A' + (n - 10)
 }
 
 // resourcesDict returns the /Resources dict body for a page. Fonts go

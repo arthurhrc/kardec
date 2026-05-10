@@ -40,23 +40,49 @@ type ttfMetrics struct {
 	// PostScriptName from the 'name' table (nameID=6); falls back to a
 	// sanitized version of EmbeddedFont.Name when absent.
 	PostScriptName string
+
+	// IsCFF reports that this font uses CFF outlines (the 'OTTO'
+	// SFNT scaler). The emit path uses Type 0 + CIDFontType0 +
+	// FontFile3 / Subtype /CIDFontType0C for these instead of the
+	// simple TrueType path.
+	IsCFF bool
+
+	// CFFData carries the raw bytes of the 'CFF ' table when IsCFF
+	// is true. Empty for TrueType fonts. The writer streams these
+	// straight into the FontFile3 stream.
+	CFFData []byte
 }
 
-// parseTTF extracts ttfMetrics from a TrueType (or OpenType-with-glyf)
-// file. The implementation intentionally tolerates unknown tables and
-// returns whatever it managed to read, defaulting missing fields to safe
-// values — consumer code (the writer) survives a partial parse with a
-// less-accurate but still-rendering font.
+// parseTTF extracts ttfMetrics from a TrueType / OpenType file. The
+// implementation tolerates unknown tables and returns whatever it
+// managed to read, defaulting missing fields to safe values — consumer
+// code (the writer) survives a partial parse with a less-accurate but
+// still-rendering font.
+//
+// The parser accepts three SFNT scalers:
+//   - 0x00010000: classic TrueType (glyf outlines)
+//   - 'true':     legacy Apple TrueType
+//   - 'OTTO':     OpenType with CFF outlines — populates m.CFFData
+//                 from the 'CFF ' table so the writer can embed via
+//                 FontFile3 / Subtype /CIDFontType0C.
+//
+// m.IsCFF reports whether the scaler indicated CFF outlines, so the
+// emit path can choose Type 0 + CIDFontType0 instead of simple
+// /Subtype /TrueType.
 func parseTTF(data []byte) (*ttfMetrics, error) {
 	if len(data) < 12 {
 		return nil, errors.New("pdf/ttf: file too short for offset table")
 	}
 	scaler := binary.BigEndian.Uint32(data[0:4])
-	// Accept TrueType ("\x00\x01\x00\x00"), 'true', and 'OTTO'-with-glyf is
-	// rejected — OTTO uses CFF outlines incompatible with /Subtype TrueType.
-	if scaler != 0x00010000 && scaler != 0x74727565 /* 'true' */ {
-		return nil, fmt.Errorf("pdf/ttf: unsupported scaler 0x%08x (only TrueType is supported in v0.1)", scaler)
+	const (
+		scalerTrueType  = 0x00010000
+		scalerTrueLegacy = 0x74727565 // 'true'
+		scalerOTTO       = 0x4F54544F // 'OTTO'
+	)
+	if scaler != scalerTrueType && scaler != scalerTrueLegacy && scaler != scalerOTTO {
+		return nil, fmt.Errorf("pdf/ttf: unsupported scaler 0x%08x", scaler)
 	}
+	isCFF := scaler == scalerOTTO
 	numTables := int(binary.BigEndian.Uint16(data[4:6]))
 	if len(data) < 12+numTables*16 {
 		return nil, errors.New("pdf/ttf: truncated table directory")
@@ -77,6 +103,12 @@ func parseTTF(data []byte) (*ttfMetrics, error) {
 	m := &ttfMetrics{
 		StemV:       80, // generic upright sans heuristic
 		CmapUnicode: make(map[uint32]uint16),
+		IsCFF:       isCFF,
+	}
+	if isCFF {
+		if cff, ok := tables["CFF "]; ok {
+			m.CFFData = cff
+		}
 	}
 
 	if head, ok := tables["head"]; ok && len(head) >= 54 {
