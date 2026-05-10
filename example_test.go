@@ -64,7 +64,7 @@ func ExampleDocument_Heading() {
 func ExampleDocument_Table() {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
 		Table().
-		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.AlignDecimalCol())).
+		Columns(kardec.Col("Region"), kardec.Col("Revenue", kardec.WithAlignment(kardec.AlignDecimal))).
 		Borders(kardec.BordersAll).
 		RepeatHeader().
 		Row("Region", "Revenue").

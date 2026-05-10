@@ -137,27 +137,44 @@ func Col(header string, opts ...ColumnOption) Column {
 // fraction-vs-fixed convention.
 func Width(v float64) ColumnOption { return func(c *Column) { c.Width = v } }
 
-// AlignLeftCol forces a column's cells to left-align. AlignLeft is the
-// default; this option exists for documentary symmetry alongside the
-// right and center variants.
-func AlignLeftCol() ColumnOption { return func(c *Column) { c.Alignment = AlignLeft } }
+// WithAlignment is the canonical ColumnOption that sets a column's
+// cell alignment. Replaces the four AlignXxxCol helpers — one
+// option function with the Alignment enum is more idiomatic Go and
+// avoids polluting the package namespace with one function per
+// alignment value:
+//
+//	kardec.Col("Revenue", kardec.WithAlignment(kardec.AlignDecimal))
+//	kardec.Col("Region",  kardec.WithAlignment(kardec.AlignRight))
+//
+// AlignDecimal is the alignment that, when paired with a numeric
+// column, aligns each cell on the decimal point: the integer part
+// right-aligns against a pivot at 60% of the column width and the
+// fractional part flows from the pivot. Cells without a "." fall
+// back to right alignment so an integer row sits at the same pivot
+// as its dotted neighbours.
+func WithAlignment(a Alignment) ColumnOption {
+	return func(c *Column) { c.Alignment = a }
+}
+
+// AlignLeftCol forces a column's cells to left-align.
+//
+// Deprecated: use WithAlignment(AlignLeft). Removed at v1.0.
+func AlignLeftCol() ColumnOption { return WithAlignment(AlignLeft) }
 
 // AlignCenterCol centers the column's cells horizontally.
-func AlignCenterCol() ColumnOption { return func(c *Column) { c.Alignment = AlignCenter } }
+//
+// Deprecated: use WithAlignment(AlignCenter). Removed at v1.0.
+func AlignCenterCol() ColumnOption { return WithAlignment(AlignCenter) }
 
-// AlignRightCol right-aligns the column's cells, useful for currency
-// or numeric data.
-func AlignRightCol() ColumnOption { return func(c *Column) { c.Alignment = AlignRight } }
+// AlignRightCol right-aligns the column's cells.
+//
+// Deprecated: use WithAlignment(AlignRight). Removed at v1.0.
+func AlignRightCol() ColumnOption { return WithAlignment(AlignRight) }
 
-// AlignDecimalCol aligns numeric cells on the decimal point. The
-// integer part (everything up to the first ".") is right-aligned
-// against a pivot positioned at 60% of the column width; the
-// fractional part flows from the pivot. Cells without a "." pivot
-// fall back to right alignment so an integer row matches the column
-// of digits formed by the dotted neighbours. Recommended for
-// currency or measurement columns where the eye benefits from a
-// shared pivot.
-func AlignDecimalCol() ColumnOption { return func(c *Column) { c.Alignment = AlignDecimal } }
+// AlignDecimalCol aligns numeric cells on the decimal point.
+//
+// Deprecated: use WithAlignment(AlignDecimal). Removed at v1.0.
+func AlignDecimalCol() ColumnOption { return WithAlignment(AlignDecimal) }
 
 // TableBuilder accumulates column descriptors, rows and rendering hints
 // before the Table block is appended to the parent document. Build

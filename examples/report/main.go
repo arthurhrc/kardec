@@ -96,7 +96,7 @@ func main() {
 		Columns(
 			kardec.Col("Family", kardec.Width(0.35)),
 			kardec.Col("Role", kardec.Width(0.45)),
-			kardec.Col("Faces", kardec.Width(0.20), kardec.AlignRightCol()),
+			kardec.Col("Faces", kardec.Width(0.20), kardec.WithAlignment(kardec.AlignRight)),
 		).
 		RepeatHeader().
 		Borders(kardec.BordersHorizontal).
