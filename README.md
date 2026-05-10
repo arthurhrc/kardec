@@ -3,7 +3,10 @@
 Document-style PDFs in pure Go. Embedded fonts, no Docker, no system dependencies.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/arthurhrc/kardec.svg)](https://pkg.go.dev/github.com/arthurhrc/kardec)
+[![CI](https://github.com/arthurhrc/kardec/actions/workflows/ci.yml/badge.svg)](https://github.com/arthurhrc/kardec/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arthurhrc/kardec)](https://goreportcard.com/report/github.com/arthurhrc/kardec)
+[![Latest release](https://img.shields.io/github/v/release/arthurhrc/kardec)](https://github.com/arthurhrc/kardec/releases/latest)
+[![Go version](https://img.shields.io/github/go-mod/go-version/arthurhrc/kardec)](go.mod)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ```go
