@@ -142,7 +142,8 @@ Output
 | 0.14 | TOC text clickable (auto-anchored heading slugs) |
 | 0.15 | OTF/CFF font embedding — math glyphs render with Latin Modern Math itself |
 | 0.16 | Encryption + permissions (Standard Security Handler V=4 / R=4 / AES-128) |
-| 0.17 (current) | PDF/UA-1 lite tagging (MarkInfo + StructTreeRoot + marked content) |
+| 0.17 | PDF/UA-1 lite tagging (MarkInfo + StructTreeRoot + marked content) |
+| 0.18 (current) | Knuth-Plass optimum-fit line breaker (behind feature flag) |
 | 1.0 (planned) | API freeze; see [docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md) |
 
 Full release notes in [CHANGELOG.md](CHANGELOG.md).
