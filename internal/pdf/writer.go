@@ -99,6 +99,16 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 		imageHandles = append(imageHandles, ih)
 	}
 
+	// Watermark /ExtGState (alpha) is allocated up front so every
+	// page's resource dict can forward-reference the same object.
+	// Opacity ≥ 1 (or ≤ 0) returns 0,"" — the resource entry is
+	// then skipped entirely.
+	wmAlphaID := 0
+	wmAlphaName := ""
+	if doc.Watermark != nil && doc.Watermark.Text != "" {
+		wmAlphaID, wmAlphaName = emitWatermarkAlpha(ow, doc.Watermark.Opacity)
+	}
+
 	// Pre-allocate per-page StructElem IDs in tagged mode so each
 	// /Page dict can forward-reference its owning structure element
 	// through /StructParents N (where N is the page index in
@@ -119,7 +129,12 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	for pageIdx, p := range doc.Pages {
 		usedFonts := pageFonts(p, handles)
 		usedImages := pageImages(p, imageHandles)
-		raw := buildContentStream(p, handles, imageHandles)
+		// Make sure the watermark font is in the page's /Font dict
+		// even if no body text on that page references it.
+		if doc.Watermark != nil && doc.Watermark.Text != "" {
+			usedFonts = ensureFontIncluded(usedFonts, handles, doc.Watermark.FontID)
+		}
+		raw := buildContentStreamWithWatermark(p, handles, imageHandles, doc.Watermark, wmAlphaName)
 		// In tagged mode the page's glyph operators are wrapped
 		// in a single /P marked-content sequence with MCID 0 —
 		// every item on the page belongs to one logical
@@ -143,7 +158,7 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 				"/Resources %s /Contents %s%s",
 			ref(pagesID),
 			p.Width, p.Height,
-			resourcesDict(usedFonts, usedImages),
+			resourcesDict(usedFonts, usedImages, wmAlphaName, wmAlphaID),
 			ref(streamID),
 			renderAnnotsArray(annotIDs),
 		)
@@ -272,6 +287,24 @@ func pageFonts(p Page, all []*fontHandle) []*fontHandle {
 		used = append(used, all[it.FontID])
 	}
 	return used
+}
+
+// ensureFontIncluded appends all[fontID] to used when it isn't
+// already present. The watermark text uses an ID outside the body's
+// reachable set on pages that have no matching glyph runs; without
+// this the page's /Font dict would omit the face and Acrobat would
+// render the watermark as missing-glyph blocks.
+func ensureFontIncluded(used []*fontHandle, all []*fontHandle, fontID int) []*fontHandle {
+	if fontID < 0 || fontID >= len(all) {
+		return used
+	}
+	target := all[fontID]
+	for _, fh := range used {
+		if fh == target {
+			return used
+		}
+	}
+	return append(used, target)
 }
 
 // pageImages returns the subset of image handles actually referenced

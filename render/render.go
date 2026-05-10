@@ -116,6 +116,21 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 		model.Tagged = true
 		model.Lang = lang
 	}
+	//lint:ignore SA1019 friend-package seam; render is the legitimate caller
+	if cfg, ok := d.WatermarkResolved(); ok {
+		// Watermark uses the registry's default (regular, non-italic)
+		// face. Body text on each page may not reference this font;
+		// ensureFontIncluded in the writer guarantees the watermark
+		// face still lands in the page's /Font dict.
+		model.Watermark = &pdf.Watermark{
+			Text:     cfg.Text,
+			FontID:   0,
+			FontSize: cfg.FontSize,
+			Color:    pdf.Color{R: cfg.Color.R, G: cfg.Color.G, B: cfg.Color.B},
+			Opacity:  cfg.Opacity,
+			AngleDeg: cfg.AngleDeg,
+		}
+	}
 	model.Title = d.Title()
 	model.Author = d.Author()
 	model.Subject = d.Subject()
