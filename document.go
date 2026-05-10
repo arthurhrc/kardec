@@ -626,9 +626,15 @@ var ErrRendererUnregistered = errors.New("kardec: no render implementation regis
 // and the orchestrator that combines layout, typography and pdf.
 var renderImpl func(*Document, io.Writer) error
 
-// SetRenderImpl wires a render implementation. The render package calls it
-// from init(); user code should not invoke it directly. Calling SetRenderImpl
-// with a nil function clears the registration.
+// SetRenderImpl wires a render implementation. The render package
+// calls it from init(); user code should not invoke it directly.
+// Calling SetRenderImpl with a nil function clears the registration.
+//
+// Deprecated: this is an internal seam exposed only because Go has
+// no friend-package mechanism for the renderer-injection pattern.
+// User code must never call it; the render package's init() is the
+// only legitimate consumer. The function may move behind an
+// internal helper at v1.0 without further notice.
 func SetRenderImpl(f func(*Document, io.Writer) error) {
 	renderImpl = f
 }

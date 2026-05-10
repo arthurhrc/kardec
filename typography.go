@@ -42,19 +42,38 @@ func (d *Document) MeasureText(text string, family string, size Length, weight W
 	return Length(face.Measure(text, size.Points())), true
 }
 
-// FontRegistry exposes the underlying typography registry. It exists so the
-// public render package (github.com/arthurhrc/kardec/render) can construct a
-// FontProvider for the layout engine without going through every measurement
-// via MeasureText. End-user code should prefer MeasureText / RegisterFont.
+// FontRegistry exposes the underlying typography registry.
 //
-// The returned *typography.Registry is the document's own backing store;
-// callers must not register fonts directly through it (use RegisterFont so
-// errors flow through the deferred-error chain).
+// Deprecated: this leaks the internal *typography.Registry type
+// through the public surface. Use RegisteredFamilies() for
+// introspection. Removed at v1.0 once the renderer-injection seam
+// migrates to an internal helper.
 func (d *Document) FontRegistry() *typography.Registry {
 	if d.fonts == nil {
 		d.fonts = typography.NewRegistry()
 	}
 	return d.fonts
+}
+
+// RegisteredFamilies returns the names of every font family the
+// document's registry currently knows about, in registration order.
+// Useful for tests and integrations that need to verify a font
+// arrived without exposing the internal *typography.Registry.
+func (d *Document) RegisteredFamilies() []string {
+	if d.fonts == nil {
+		return nil
+	}
+	faces := d.fonts.Faces()
+	seen := make(map[string]bool, len(faces))
+	out := make([]string, 0, len(faces))
+	for _, f := range faces {
+		if seen[f.Family] {
+			continue
+		}
+		seen[f.Family] = true
+		out = append(out, f.Family)
+	}
+	return out
 }
 
 // toInternalWeight maps the public Weight constants to their typography
