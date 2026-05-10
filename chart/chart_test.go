@@ -40,8 +40,8 @@ func TestLineRendersExpectedSeries(t *testing.T) {
 	l := Line(LineChart{
 		Title: "T",
 		Series: []LineSeries{
-			{Label: "p50", Points: []Point{{1, 10}, {2, 20}, {3, 15}}},
-			{Label: "p99", Points: []Point{{1, 30}, {2, 50}, {3, 40}}},
+			{Label: "p50", Points: []Point{{X: 1, Y: 10}, {X: 2, Y: 20}, {X: 3, Y: 15}}},
+			{Label: "p99", Points: []Point{{X: 1, Y: 30}, {X: 2, Y: 50}, {X: 3, Y: 40}}},
 		},
 	})
 	out := l.Render(400, 250)

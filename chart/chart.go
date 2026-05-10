@@ -88,10 +88,7 @@ func numberFormat(v float64) string {
 	for strings.HasSuffix(s, "0") {
 		s = s[:len(s)-1]
 	}
-	if strings.HasSuffix(s, ".") {
-		s = s[:len(s)-1]
-	}
-	return s
+	return strings.TrimSuffix(s, ".")
 }
 
 // niceMax rounds v up to a "nice" axis ceiling: a multiple of 1,
