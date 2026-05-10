@@ -7,6 +7,46 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.26.0]
+
+### Added
+
+- **`kardec/sign` subpackage.** Attaches a PKCS#7 detached
+  signature to a kardec-rendered PDF so Adobe Acrobat reports
+  the document as "Signed by X". Implements PDF 12.8: emits a
+  `/Sig` dict with `/SubFilter /adbe.pkcs7.detached`,
+  `/ByteRange` covering the whole file except `/Contents`, plus
+  the `/AcroForm` + `/SigFlags 3` catalog wiring readers expect.
+- **`sign.Apply(pdfBytes, Options{...})` API.** Required: an
+  `*rsa.PrivateKey` and an `*x509.Certificate`. Optional:
+  `CertChain` (intermediate CAs), `Reason` / `Location` /
+  `SignerName` (surfaces in Acrobat's signature panel), and a
+  `SigningTime` override for partially-deterministic output.
+- **`examples/signature`.** End-to-end demo: render a contract,
+  generate an ephemeral RSA-2048 self-signed cert, apply the
+  signature, write the signed PDF. Production callers swap the
+  ephemeral cert for an ICP-Brasil cert loaded from a smart
+  card / HSM / encrypted file.
+
+### Implementation
+
+- The incremental-update path (PDF 7.5.6) appends the new signature
+  objects + a patched catalog without touching the original PDF
+  body — existing xref offsets stay valid via the new xref's
+  `/Prev` link.
+- PKCS#7 SignedData ASN.1 encoding uses
+  `github.com/digitorus/pkcs7` (the maintained fork of
+  mozilla-services/pkcs7) — pure Go, well-tested, the right
+  trade-off vs writing CMS encoding by hand.
+
+### Notes
+
+Signed-PDF output is **not byte-reproducible** because every
+signature carries fresh PKCS#7 nonce + RSA padding. Reprocheck
+still passes for the unsigned render; `sign.Apply` is the layer
+that introduces randomness. Pass `Options.SigningTime` to fix
+at least the timestamp.
+
 ## [0.25.0]
 
 ### Added
