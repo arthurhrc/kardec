@@ -33,6 +33,14 @@ type Document struct {
 	// SetCreationDate.
 	creationDate *time.Time
 
+	// title, author, subject, keywords feed the PDF /Info dictionary
+	// (and the XMP metadata when PDFA is on). Empty strings stay
+	// empty; the writer omits unpopulated entries from /Info.
+	title    string
+	author   string
+	subject  string
+	keywords string
+
 	// warnings accumulates non-fatal advisories — Markdown nodes that
 	// were dropped silently, link URLs that arrived empty, etc.
 	// Surfaced via Document.Warnings; callers that opt into noise

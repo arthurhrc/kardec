@@ -90,6 +90,10 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 	if d.PDFAEnabled() {
 		model.PDFA = true
 	}
+	model.Title = d.Title()
+	model.Author = d.Author()
+	model.Subject = d.Subject()
+	model.Keywords = d.Keywords()
 	writer := pdf.Writer{}
 	if t, ok := d.CreationDate(); ok {
 		fixed := t

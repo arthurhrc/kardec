@@ -232,6 +232,12 @@ func buildInfoDict(doc Document, now time.Time) string {
 	if doc.Author != "" {
 		fmt.Fprintf(&buf, " /Author %s", escapeLiteralString(doc.Author))
 	}
+	if doc.Subject != "" {
+		fmt.Fprintf(&buf, " /Subject %s", escapeLiteralString(doc.Subject))
+	}
+	if doc.Keywords != "" {
+		fmt.Fprintf(&buf, " /Keywords %s", escapeLiteralString(doc.Keywords))
+	}
 	fmt.Fprintf(&buf, " /Producer %s", escapeLiteralString("Kardec PDF Writer v0.1"))
 	fmt.Fprintf(&buf, " /Creator %s", escapeLiteralString("Kardec"))
 	// PDF date format: D:YYYYMMDDHHmmSSOHH'mm — see PDF 7.9.4. The 'Z'
