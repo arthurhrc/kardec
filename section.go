@@ -79,15 +79,6 @@ func SetupOf(size PageSize, margins Margins) PageSetup {
 	}
 }
 
-// NewSectionWithSetup forwards to NewSection.
-//
-// Deprecated: use NewSection(setup). The two methods were folded
-// into one during the v0.10 sweep; this alias ships only for the
-// v0.x line and is removed at v1.0.
-func (d *Document) NewSectionWithSetup(setup PageSetup) *Document {
-	return d.NewSection(setup)
-}
-
 // CurrentSection returns the section receiving subsequent block
 // calls. Read-only; useful for tests and integrations that need to
 // inspect Setup or attached Header / Footer values without going

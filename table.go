@@ -26,21 +26,6 @@ const (
 	TableBordersAll
 )
 
-// BordersNone is the legacy alias for TableBordersNone.
-//
-// Deprecated: use TableBordersNone. Removed at v1.0.
-const BordersNone = TableBordersNone
-
-// BordersHorizontal is the legacy alias for TableBordersHorizontal.
-//
-// Deprecated: use TableBordersHorizontal. Removed at v1.0.
-const BordersHorizontal = TableBordersHorizontal
-
-// BordersAll is the legacy alias for TableBordersAll.
-//
-// Deprecated: use TableBordersAll. Removed at v1.0.
-const BordersAll = TableBordersAll
-
 // Table is a block of tabular data composed of column descriptors and
 // rows of cells. Each cell is a slice of inline Runs, so callers can
 // mix styled fragments inside a single cell ("R$ ", Bold("1.000")).
@@ -172,26 +157,6 @@ func WithAlignment(a Alignment) ColumnOption {
 	return func(c *Column) { c.Alignment = a }
 }
 
-// AlignLeftCol forces a column's cells to left-align.
-//
-// Deprecated: use WithAlignment(AlignLeft). Removed at v1.0.
-func AlignLeftCol() ColumnOption { return WithAlignment(AlignLeft) }
-
-// AlignCenterCol centers the column's cells horizontally.
-//
-// Deprecated: use WithAlignment(AlignCenter). Removed at v1.0.
-func AlignCenterCol() ColumnOption { return WithAlignment(AlignCenter) }
-
-// AlignRightCol right-aligns the column's cells.
-//
-// Deprecated: use WithAlignment(AlignRight). Removed at v1.0.
-func AlignRightCol() ColumnOption { return WithAlignment(AlignRight) }
-
-// AlignDecimalCol aligns numeric cells on the decimal point.
-//
-// Deprecated: use WithAlignment(AlignDecimal). Removed at v1.0.
-func AlignDecimalCol() ColumnOption { return WithAlignment(AlignDecimal) }
-
 // TableBuilder accumulates column descriptors, rows and rendering hints
 // before the Table block is appended to the parent document. Build
 // returns the document so callers can resume the top-level chain.
@@ -284,13 +249,6 @@ func (b *TableBuilder) RowCells(cells ...Cell) *TableBuilder {
 // NewCell builds a Cell from the supplied runs — the rich-content
 // counterpart to the plain string accepted by Row.
 func NewCell(runs ...Run) Cell { return Cell{Runs: runs} }
-
-// Cells builds a Cell from the supplied runs.
-//
-// Deprecated: use NewCell. The plural-singular mismatch with
-// RowCells made this name confusing; the function ships only for
-// the v0.x line and is removed at v1.0.
-func Cells(runs ...Run) Cell { return NewCell(runs...) }
 
 // SpanCell builds a Cell that occupies span columns. The most common
 // use case is a merged header that labels a group of underlying
