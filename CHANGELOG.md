@@ -128,19 +128,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [0.6.0]
 
-Skipped. The original v0.6 plan bundled the v0.5 deferrals (OTF / CFF
-font embedding, OutputIntent + sRGB ICC profile, Document metadata
-setters, Liang hyphenation patterns, Knuth-Plass total-fit line
-breaker) with the idiomatic API rename sweep. A roadmap revision
-folded the cross-reference / KeepTogether feature batch (originally
-slated for v0.7) forward into the v0.7 release directly, and the
-API rename sweep was deferred to v0.10 so the academic-grade
-v0.7 + v0.8 + v0.9 cycle could land contiguously.
-
-The deferrals themselves arrive in v0.11 per
-[docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md). No code shipped under
-this version number; the entry exists so the CHANGELOG and tag list
-remain auditable as a continuous history.
+Skipped — scope rolled into v0.10 (API rename sweep) and v0.11
+(font embedding, ICC, metadata, Liang hyphenation). See
+[docs/ROADMAP_TO_V1.md](docs/ROADMAP_TO_V1.md).
 
 ## [0.7.0]
 
