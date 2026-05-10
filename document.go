@@ -94,6 +94,12 @@ type Document struct {
 	tagged     bool
 	taggedLang string
 
+	// lineBreakAlgo selects the paragraph line-breaking strategy.
+	// Zero value is LineBreakFirstFit (greedy + hyphenation —
+	// matches every release through v0.17). Set via
+	// Document.SetLineBreakAlgorithm.
+	lineBreakAlgo LineBreakAlgorithm
+
 	// figureCounter / tableCounter assign the auto-numbers behind
 	// LabeledFigure / LabeledTable. They are 1-based and never reset
 	// across sections.

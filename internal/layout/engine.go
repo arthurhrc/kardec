@@ -6,15 +6,50 @@ import (
 	"github.com/arthurhrc/kardec"
 )
 
-// Engine is the layout entry point. It is a value type with no mutable
-// configuration today; future versions will gain hooks for things like
-// pluggable line breakers without breaking the call site.
-type Engine struct{}
+// Engine is the layout entry point. The Algorithm field selects the
+// line-breaking strategy used by paragraph and table-cell layout —
+// the zero value (LineBreakFirstFit) keeps the legacy first-fit
+// behaviour with hyphenation; LineBreakOptimal switches to the
+// Knuth-Plass DP optimum-fit breaker.
+type Engine struct {
+	Algorithm LineBreakAlgorithm
+}
 
-// NewEngine returns a ready-to-use layout engine. Provided as a function
-// rather than relying on the zero value so future required configuration
-// has a forward-compatible insertion point.
-func NewEngine() Engine { return Engine{} }
+// LineBreakAlgorithm selects the paragraph line-breaking strategy.
+// The values mirror kardec.LineBreakAlgorithm; the layout package
+// keeps a private copy so internals do not transitively expose the
+// public enum to other internal callers.
+type LineBreakAlgorithm uint8
+
+const (
+	// LineBreakFirstFit is the v0.1-era greedy breaker plus the
+	// v0.4 Knuth-Liang hyphenation fallback. Predictable, fast, and
+	// the default.
+	LineBreakFirstFit LineBreakAlgorithm = iota
+	// LineBreakOptimal runs the Knuth-Plass DP optimum-fit
+	// algorithm: lines are chosen to minimise summed badness² so
+	// whitespace distributes more evenly and rivers in justified
+	// paragraphs shrink. O(n²) in space count; sub-millisecond for
+	// paragraph-sized inputs.
+	LineBreakOptimal
+)
+
+// NewEngine returns a layout engine using the default first-fit
+// breaker. Callers that want Knuth-Plass set Algorithm to
+// LineBreakOptimal after construction (or rely on the package-level
+// Layout function to read kardec.Document.LineBreakAlgorithm()).
+func NewEngine() Engine { return Engine{Algorithm: LineBreakFirstFit} }
+
+// breakLines dispatches paragraph line-break to the algorithm
+// currently configured on the engine. Centralising the switch here
+// keeps placeTextBlock and table layout unaware of the breaker
+// choice.
+func (e Engine) breakLines(tokens []token, available float64) []line {
+	if e.Algorithm == LineBreakOptimal {
+		return breakLinesOptimal(tokens, available)
+	}
+	return breakLines(tokens, available)
+}
 
 // Layout walks the document and returns the laid-out pages. Errors are
 // returned only for unrecoverable conditions (a block taller than a whole
