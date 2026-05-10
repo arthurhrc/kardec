@@ -27,13 +27,11 @@ coverage.html
 .env.local
 .envrc
 
-# Generated test fixtures
+# Generated artifacts — PDFs are output of build, not source.
+# Examples ship as .go programs; running them writes a .pdf next to
+# the main.go, which must NOT be committed. The previous
+# `!examples/**/*.pdf` exception is gone — there's no good reason
+# to track rendered output in a library repo.
 /testdata/output/
-/examples/*/out/*.pdf
-/examples/*/*.pdf
-
-# CLI smoke-test artifacts
-out.pdf
 *.pdf
-!examples/**/*.pdf
 
