@@ -372,7 +372,7 @@ required environments".
   baseline, strikethrough through the x-height. Thickness scales with
   point size with a 0.4pt floor so 8pt body text still reads.
 
-  ## [0.6.0]
+## [0.6.0]
 
 Skipped — scope rolled into v0.10 (API rename sweep) and v0.11
 (font embedding, ICC, metadata, Liang hyphenation). See
