@@ -6,6 +6,7 @@ require (
 	github.com/go-fonts/latin-modern v0.3.3
 	github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e
 	github.com/yuin/goldmark v1.8.2
+	rsc.io/qr v0.2.0
 )
 
 require (
@@ -30,6 +31,5 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	modernc.org/knuth v0.5.5 // indirect
 	modernc.org/token v1.1.0 // indirect
-	rsc.io/qr v0.2.0 // indirect
 	star-tex.org/x/tex v0.7.1 // indirect
 )
