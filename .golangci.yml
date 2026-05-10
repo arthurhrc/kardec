@@ -1,4 +1,4 @@
-# golangci-lint configuration (v1.x schema). Conservative linter set
+# golangci-lint configuration (v2 schema). Conservative linter set
 # — every linter that runs in CI must produce a clean output, so
 # adding one means committing to fixing every existing finding it
 # surfaces.
@@ -6,23 +6,15 @@
 # To run locally:
 #
 #   golangci-lint run ./...
-#
-# IDE schema validators may complain about this file because their
-# plugins target the v2 schema (released 2025); the runtime in CI
-# uses v1.64.x. Ignore the IDE diagnostics; the file is canonical
-# v1 syntax.
+
+version: "2"
 
 run:
   timeout: 3m
   tests: true
-  # Override the language target so the published binary (built with
-  # Go 1.24 in v1.64.x) doesn't refuse to lint against a 1.26.x
-  # go.mod. None of the enabled linters depend on language-version
-  # heuristics that this would invalidate.
-  go: "1.24"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
     - govet
@@ -30,24 +22,23 @@ linters:
     - misspell
     - staticcheck
     - unused
-    - gosimple
-
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (*bytes.Buffer).Write
-      - (*bytes.Buffer).WriteString
-      - (*bytes.Buffer).WriteByte
-      - (*strings.Builder).Write
-      - (*strings.Builder).WriteString
-      - (*strings.Builder).WriteByte
-      - fmt.Fprintf
-      - fmt.Fprintln
-
-issues:
-  exclude-dirs:
-    - examples
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*bytes.Buffer).Write
+        - (*bytes.Buffer).WriteString
+        - (*bytes.Buffer).WriteByte
+        - (*strings.Builder).Write
+        - (*strings.Builder).WriteString
+        - (*strings.Builder).WriteByte
+        - fmt.Fprintf
+        - fmt.Fprintln
+  exclusions:
+    paths:
+      # Sample sources / examples are kept ergonomic over strictly
+      # idiomatic so readers see the API at its most legible.
+      - examples
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck

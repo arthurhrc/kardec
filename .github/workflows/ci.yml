@@ -60,14 +60,14 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          # latest tracks the most recent release; required because
-          # pinned versions built with older Go (1.61 ships with
-          # Go 1.23) refuse to lint against the go.mod directive
-          # (1.26.x). Pin once a version that supports the target
-          # Go is in wide use.
-          version: latest
+          # v2.x line uses the v2 config schema and ships binaries
+          # built with newer Go that match the go.mod target. v1
+          # binaries refuse to lint a 1.26.x project; v1's whole-
+          # program typecheck also trips on third-party deps that
+          # only build cleanly under our exact Go version.
+          version: v2.1.6
 
   vuln:
     runs-on: ubuntu-latest
