@@ -7,6 +7,33 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.17.0]
+
+### Added
+
+- **PDF/UA-1 lite tagging.** `Document.SetTagged(lang)` opts the
+  document into structure-tag emission: catalog gains
+  `/MarkInfo << /Marked true >>`, `/StructTreeRoot`, and `/Lang
+  <lang>`; every `/Page` dict carries `/StructParents` plus
+  `/Tabs /S` so screen readers walk annotations in structure
+  order. Each page's content stream is wrapped in `/P
+  <</MCID 0>> BDC ... EMC` and bound to a per-page `/P`
+  StructElem through a freshly emitted ParentTree. Untagged
+  documents render exactly as before — none of the new objects
+  appear unless `SetTagged` is called.
+- **`Document.DisableTagging` / `Document.Tagged()` accessors.**
+  Round-trip the language code and let templating layers
+  conditionally toggle tagging.
+
+### Notes
+
+v0.17.0 ships the document-level scaffolding only. v0.17.x will
+add per-block role classification (H1–H6, Figure with `/Alt`,
+Table TR/TD, list items) once the layout engine plumbs per-block
+markers through `PlacedItem`. The current tree is enough to
+make Acrobat's tagging mode acknowledge the PDF as tagged and
+to satisfy validators that only check the catalog markers.
+
 ## [0.16.0]
 
 ### Added
