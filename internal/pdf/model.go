@@ -36,6 +36,17 @@ type Document struct {
 	// per-object keys derived from the supplied passwords, and
 	// the trailer carries the /Encrypt indirect-object reference.
 	Encryption *Encryption
+
+	// Tagged opts the writer into PDF/UA-1 lite tagging: every
+	// page's content stream is wrapped in a marked-content
+	// sequence, the catalog declares /MarkInfo /Marked true plus
+	// /StructTreeRoot, and a flat structure tree is emitted with
+	// one /P element per page. Lang is the BCP-47 language code
+	// written to the catalog's /Lang entry — required by PDF/UA
+	// for screen readers and, when empty, omitted (the resulting
+	// file declares structure but not language).
+	Tagged bool
+	Lang   string
 }
 
 // Encryption configures the PDF Standard Security Handler. UserPwd

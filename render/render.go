@@ -112,6 +112,10 @@ func renderImpl(d *kardec.Document, w io.Writer) error {
 			Permissions: encryptionPermissionBits(opts.Permissions),
 		}
 	}
+	if lang, ok := d.Tagged(); ok {
+		model.Tagged = true
+		model.Lang = lang
+	}
 	model.Title = d.Title()
 	model.Author = d.Author()
 	model.Subject = d.Subject()
