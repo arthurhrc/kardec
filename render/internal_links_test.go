@@ -20,8 +20,8 @@ func TestRenderEmitsNamedDestinationForAnchor(t *testing.T) {
 	if !bytes.Contains(out, []byte("/Dests")) {
 		t.Errorf("expected /Dests dictionary in catalog")
 	}
-	if !bytes.Contains(out, []byte("(introduction)")) {
-		t.Errorf("expected named destination 'introduction' in PDF byte stream")
+	if !bytes.Contains(out, []byte("/introduction ")) {
+		t.Errorf("expected named destination /introduction (Name key) in PDF byte stream")
 	}
 }
 

@@ -3,6 +3,7 @@ package pdf
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 // emitDestinations writes the /Dests dictionary that maps named
@@ -26,7 +27,7 @@ func emitDestinations(ow *objectWriter, dests []NamedDestination, pageIDs []int)
 			continue
 		}
 		fmt.Fprintf(&buf, " %s [%s /XYZ null %.4f null]",
-			escapeLiteralString(d.Name),
+			escapePDFName(d.Name),
 			ref(pageIDs[d.PageIndex]),
 			d.Y,
 		)
@@ -34,4 +35,29 @@ func emitDestinations(ow *objectWriter, dests []NamedDestination, pageIDs []int)
 	buf.WriteString(" >>")
 	ow.writeObject(id, buf.String())
 	return id
+}
+
+// escapePDFName turns an arbitrary string into a valid PDF Name
+// object (PDF 7.3.5). Names start with `/` and may contain any
+// regular character; reserved or non-printable bytes must be
+// hex-escaped as `#XX`. Empty name returns `/` (technically an
+// empty name, accepted by readers).
+//
+// Reserved chars per spec: whitespace, delimiters `()<>[]{}/%`,
+// the `#` escape introducer itself, and bytes < 0x21 or > 0x7E.
+func escapePDFName(s string) string {
+	var b strings.Builder
+	b.WriteByte('/')
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < 0x21 || c > 0x7E ||
+			c == '(' || c == ')' || c == '<' || c == '>' ||
+			c == '[' || c == ']' || c == '{' || c == '}' ||
+			c == '/' || c == '%' || c == '#' {
+			fmt.Fprintf(&b, "#%02X", c)
+			continue
+		}
+		b.WriteByte(c)
+	}
+	return b.String()
 }

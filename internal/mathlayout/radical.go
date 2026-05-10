@@ -60,6 +60,7 @@ func layoutNthRoot(r NthRoot, font Font, sizePt float64, display bool) Box {
 func composeRadical(indexBox Box, indexAdvance float64, body Box, font Font, sizePt float64) Box {
 	g, ok := font.GlyphFor(radicalSymbol)
 	var radWidth, radAscent, radDescent float64
+	radSizePt := sizePt
 	if ok {
 		radWidth = font.Measure(g, sizePt)
 		radAscent, radDescent = font.AscentDescent(g, sizePt)
@@ -68,11 +69,26 @@ func composeRadical(indexBox Box, indexAdvance float64, body Box, font Font, siz
 	overlineThickness := radicalOverlineThickness * sizePt
 
 	// Vertical metrics:
-	//   parent height = max(body.Height + margin + overlineThickness,
-	//                       radical ascent, index ascent shifted up)
+	//   parent height = body.Height + margin + overlineThickness
 	//   parent depth  = max(body.Depth, radical descent)
+	//
+	// The fixed-size √ glyph at sizePt only reaches its natural ascent
+	// (≈0.7×sizePt). When the body is taller — sub/superscripts, or a
+	// fraction inside the radicand — the glyph would float disconnected
+	// from the overline, leaving a visible gap. Stretchy radical
+	// variants from the OpenType MATH table are the proper fix; until
+	// the typography track surfaces them we scale the glyph's point
+	// size up so its ascent matches the body ascent. Width grows
+	// proportionally, which is acceptable for the small tail and is
+	// what most fixed-glyph TeX-style rendererers do.
 	bodyAscent := body.Height + margin + overlineThickness
 	parentHeight := bodyAscent
+	if ok && radAscent > 0 && bodyAscent > radAscent {
+		scale := bodyAscent / radAscent
+		radSizePt = sizePt * scale
+		radWidth = font.Measure(g, radSizePt)
+		radAscent, radDescent = font.AscentDescent(g, radSizePt)
+	}
 	if radAscent > parentHeight {
 		parentHeight = radAscent
 	}
@@ -101,13 +117,14 @@ func composeRadical(indexBox Box, indexAdvance float64, body Box, font Font, siz
 		parent.Children = append(parent.Children, indexBox)
 	}
 
-	// Radical glyph at the baseline.
+	// Radical glyph at the baseline. SizePt is radSizePt (which equals
+	// sizePt unless we scaled the glyph up to cover a tall body).
 	if ok {
 		parent.Glyphs = append(parent.Glyphs, PlacedGlyph{
 			X:      indexAdvance,
 			Y:      parentHeight - radAscent,
 			Rune:   g.Rune,
-			SizePt: sizePt,
+			SizePt: radSizePt,
 		})
 	}
 

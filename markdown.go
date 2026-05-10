@@ -266,6 +266,15 @@ func walkInline(d *Document, node ast.Node, source []byte, bold, italic bool, ou
 			return
 		}
 		*out = append(*out, makeRun(s, bold, italic))
+		// goldmark drops the trailing newline from a soft-break Text
+		// node and emits the break as a sibling node. Without the
+		// case below, paragraphs spanning multiple source lines
+		// concatenated into "fluent builder.Body" instead of "fluent
+		// builder. Body". Match CommonMark §6.8: a soft line break
+		// is rendered as a space.
+		if n.HardLineBreak() || n.SoftLineBreak() {
+			*out = append(*out, Text(" "))
+		}
 	case *ast.Emphasis:
 		newItalic, newBold := italic, bold
 		if n.Level == 1 {

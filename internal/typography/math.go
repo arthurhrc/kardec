@@ -87,10 +87,12 @@ func LatinModernMath() (MathFont, error) {
 }
 
 // face builds a transient *canvas.FontFace at the requested size in
-// points, using the same mm-per-point conversion as canvasFont so the
-// numbers line up with the rest of the typography package.
+// points. canvas.Face takes the size in points; TextWidth /
+// Metrics() return millimetres, which the Measure / AscentDescent
+// wrappers convert back to points via mmPerPoint. Mirrors the
+// (post-v0.21.1) behaviour of canvasFont.face.
 func (m *latinModernMath) face(sizePt float64) *canvas.FontFace {
-	return m.font.Face(sizePt*mmPerPoint, canvas.Black)
+	return m.font.Face(sizePt, canvas.Black)
 }
 
 // GlyphFor implements MathFont. The lookup order is:

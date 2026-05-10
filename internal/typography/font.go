@@ -36,15 +36,24 @@ type Font interface {
 // Font interface above. It builds a transient FontFace per measurement call
 // because FontFace caches size-dependent state.
 //
-// FontFace.Size is in millimeters in the canvas library; callers convert
-// from points using mmPerPoint.
+// canvas.Face accepts size in PDF points; FontFace.TextWidth and the
+// metrics it exposes (Ascent, Descent, LineHeight) come back in
+// millimetres. The Measure / Ascent / Descent / LineHeight wrappers
+// below divide by mmPerPoint so every value the rest of Kardec sees is
+// in points — the unit the layout engine and PDF emit assume.
+//
+// (The size-input unit was wrong through v0.21: callers passed
+// `sizePt*mmPerPoint` to Face under the assumption canvas wanted mm.
+// That produced a font ~2.83x smaller than requested, advance widths
+// followed suit, and word-positions in the PDF were too tight — every
+// rendered document had visibly overlapping words. Fixed in v0.21.1.)
 type canvasFont struct {
 	f    *canvas.Font
 	name string
 }
 
-// mmPerPoint is the conversion factor between PDF points (1/72 inch) and
-// millimeters used by the canvas library's FontFace.
+// mmPerPoint is the conversion factor used to translate millimetre
+// measurements out of the canvas library back into PDF points.
 const mmPerPoint = 25.4 / 72.0
 
 // newCanvasFont parses ttf bytes via canvas.LoadFont and returns a Font.
@@ -58,9 +67,12 @@ func newCanvasFont(ttf []byte, style canvas.FontStyle) (Font, error) {
 	return &canvasFont{f: f, name: f.Name()}, nil
 }
 
-// face builds a FontFace at the requested size in points.
+// face builds a FontFace at the requested size in points. canvas.Face
+// takes the size argument in points directly — empirically, M's
+// advance width on LiberationSans-Bold at Face(24) reports 7.05mm =
+// 20pt, which matches the OpenType advance for a 24pt M in that face.
 func (c *canvasFont) face(sizePt float64) *canvas.FontFace {
-	return c.f.Face(sizePt*mmPerPoint, canvas.Black)
+	return c.f.Face(sizePt, canvas.Black)
 }
 
 // Name implements Font.

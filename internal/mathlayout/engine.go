@@ -75,19 +75,25 @@ func layoutNode(expr Expr, font Font, sizePt float64, display bool) Box {
 }
 
 // layoutGlyphRun typesets a flat string of characters as a single Box
-// with one PlacedGlyph per rune. The glyphs are placed left-to-right at
-// the baseline; the box's Height/Depth are the maximum ascent/descent of
-// the run. This helper is shared by atoms, operators, numbers and
-// identifiers, all of which have identical layout semantics at this
-// stage of the engine.
+// with one PlacedGlyph per token. Tokens are either a backslash-prefixed
+// LaTeX command name (`\int`, `\pi`, `\infty`, ...) treated as one
+// glyph, or a single rune. Iterating rune-by-rune would split `\int`
+// into `\`, `i`, `n`, `t` and emit them as four plain-text glyphs —
+// the bug that made integrals and greek letters render as ASCII names
+// through v0.21.
+//
+// Glyphs are placed left-to-right at the baseline; the box's
+// Height/Depth are the maximum ascent/descent of the run. This helper
+// is shared by atoms, operators, numbers and identifiers, all of which
+// have identical layout semantics at this stage of the engine.
 func layoutGlyphRun(text string, font Font, sizePt float64) Box {
 	var box Box
 	if text == "" {
 		return box
 	}
 	x := 0.0
-	for _, r := range text {
-		g, ok := font.GlyphFor(string(r))
+	for _, tok := range tokeniseGlyphRun(text) {
+		g, ok := font.GlyphFor(tok)
 		if !ok {
 			continue
 		}
@@ -100,7 +106,7 @@ func layoutGlyphRun(text string, font Font, sizePt float64) Box {
 		box.Glyphs = append(box.Glyphs, PlacedGlyph{
 			X:      x,
 			Y:      asc, // temporary: holds per-glyph ascent; rewritten below
-			Rune:   r,
+			Rune:   g.Rune,
 			SizePt: sizePt,
 		})
 		x += w
@@ -120,4 +126,50 @@ func layoutGlyphRun(text string, font Font, sizePt float64) Box {
 	}
 	box.Width = x
 	return box
+}
+
+// tokeniseGlyphRun splits a math-source string into the tokens
+// font.GlyphFor accepts. Backslash followed by a run of letters is one
+// token (the LaTeX command including the backslash); every other
+// character is its own one-rune token.
+func tokeniseGlyphRun(s string) []string {
+	var out []string
+	i := 0
+	for i < len(s) {
+		if s[i] == '\\' {
+			j := i + 1
+			for j < len(s) {
+				c := s[j]
+				if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
+					j++
+					continue
+				}
+				break
+			}
+			if j > i+1 {
+				out = append(out, s[i:j])
+				i = j
+				continue
+			}
+			// Lone backslash — treat as literal.
+			out = append(out, s[i:i+1])
+			i++
+			continue
+		}
+		// One rune.
+		r := s[i]
+		if r < 0x80 {
+			out = append(out, s[i:i+1])
+			i++
+		} else {
+			// UTF-8 multi-byte; consume up to 4 bytes.
+			n := 1
+			for n < 4 && i+n < len(s) && (s[i+n]&0xC0) == 0x80 {
+				n++
+			}
+			out = append(out, s[i:i+n])
+			i += n
+		}
+	}
+	return out
 }

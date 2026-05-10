@@ -55,26 +55,43 @@ func (e Engine) placeMath(cur *pageCursor, flush func(), doc *kardec.Document, m
 			originX += (available - box.Width) / 2
 		}
 	}
-	originY := cur.cursorY + box.Height
+	// Math box top-left in page top-left coords. emitMathBox now uses
+	// top-left convention exclusively, so we hand it the cursor row
+	// directly — no baseline arithmetic at the call site.
+	originY := cur.cursorY
 
 	emitMathBox(cur, box, originX, originY, blockStyle.color)
 	cur.cursorY += totalHeight + blockStyle.spaceAfterPt
 	return nil
 }
 
-// emitMathBox walks a Box tree and appends each glyph as a PlacedItem
-// on the cursor. Coordinates accumulate down the tree: the absolute
-// glyph X is the sum of every ancestor's X plus the glyph's own X; Y
-// is referenced to the math baseline at originY.
+// emitMathBox walks a Box tree and appends each glyph + rule as a
+// PlacedItem on the cursor. Coordinates accumulate down the tree
+// using the same top-left-origin convention mathlayout uses
+// internally: every Box.X / Box.Y / Glyph.X / Glyph.Y is the
+// top-left offset within the parent Box, in points.
 //
-// PlacedItem.Y stores the glyph's top-left in the page's top-left
-// coordinate space, matching the contract used by text blocks.
-func emitMathBox(cur *pageCursor, box mathlayout.Box, originX, baselineY float64, color kardec.Color) {
+// originX, originY are the absolute (page top-left) coordinates of
+// THIS box's top-left corner. Children recurse with originX+child.X,
+// originY+child.Y.
+//
+// PlacedItem.Y carries each glyph's BASELINE in top-left page
+// coordinates because the PDF writer's Td operator positions the
+// text baseline (not the top edge) at the supplied Y. The baseline
+// for a glyph at top g.Y is g.Y + glyph_ascent — we approximate the
+// ascent at 0.7 × SizePt, the same fallback the typography Measure
+// helper uses.
+//
+// (Through v0.21 emitMathBox confused the convention: the old
+// formula `baselineY - 0.7*g.SizePt + g.Y` mixed parent-baseline
+// and glyph-top semantics, so superscripts and subscripts in inline
+// math collapsed onto the base glyph's row. Fixed in v0.21.1.)
+func emitMathBox(cur *pageCursor, box mathlayout.Box, originX, originY float64, color kardec.Color) {
 	for _, g := range box.Glyphs {
-		glyphTopY := baselineY - 0.7*g.SizePt + g.Y
+		glyphAscent := 0.7 * g.SizePt
 		cur.items = append(cur.items, PlacedItem{
-			X:      kardec.Pt(originX + box.X + g.X),
-			Y:      kardec.Pt(glyphTopY),
+			X:      kardec.Pt(originX + g.X),
+			Y:      kardec.Pt(originY + g.Y + glyphAscent),
 			Text:   string(g.Rune),
 			Font:   &mathFont{rune: g.Rune},
 			Size:   kardec.Pt(g.SizePt),
@@ -83,22 +100,12 @@ func emitMathBox(cur *pageCursor, box mathlayout.Box, originX, baselineY float64
 		})
 	}
 	for _, child := range box.Children {
-		emitMathBox(cur, child, originX+box.X+child.X, baselineY+child.Y, color)
+		emitMathBox(cur, child, originX+child.X, originY+child.Y, color)
 	}
 	for _, rule := range box.Rules {
-		// Rule coordinates are relative to the box; the math layout
-		// engine already places them on the math axis (frac bar /
-		// sqrt overline). Translate to absolute page coordinates.
-		ruleX := originX + box.X + rule.X
-		// rule.Y in the math layout is reported relative to the box
-		// baseline; emitMathBox's baselineY is the absolute baseline,
-		// and the math engine emits negative offsets for content
-		// above it. The renderer expects top-left coords, so the
-		// rule's top-left is baselineY - |Height_above| + rule.Y.
-		ruleY := baselineY + rule.Y
 		cur.items = append(cur.items, PlacedItem{
-			X: kardec.Pt(ruleX),
-			Y: kardec.Pt(ruleY),
+			X: kardec.Pt(originX + rule.X),
+			Y: kardec.Pt(originY + rule.Y),
 			Rect: &PlacedRect{
 				Width:     kardec.Pt(rule.Width),
 				Thickness: kardec.Pt(rule.Thickness),
