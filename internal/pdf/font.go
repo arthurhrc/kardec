@@ -113,12 +113,28 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 	}
 	sb.WriteString("]")
 
-	// 4. /Font dictionary.
+	// 4. /ToUnicode stream — the CMap mapping each WinAnsi byte
+	// back to its Unicode codepoint(s) so PDF readers extract
+	// faithful text on copy / paste / find / accessibility tools.
+	// Without it, ligatures + extended WinAnsi glyphs (smart quotes,
+	// em dash, euro, the entire 0x80..0xFF range) come out as
+	// garbage in extracted text.
+	cmapBytes := buildToUnicodeCMap()
+	cmapCompressed := flateAlways(cmapBytes)
+	cmapID := ow.allocID()
+	ow.writeStreamObject(cmapID, fmt.Sprintf(
+		"/Length %d /Filter /FlateDecode",
+		len(cmapCompressed),
+	), cmapCompressed)
+
+	// 5. /Font dictionary.
 	fontBody := fmt.Sprintf(
 		"<< /Type /Font /Subtype /TrueType /BaseFont /%s "+
 			"/FirstChar %d /LastChar %d /Widths %s "+
-			"/FontDescriptor %s /Encoding /WinAnsiEncoding >>",
+			"/FontDescriptor %s /Encoding /WinAnsiEncoding "+
+			"/ToUnicode %s >>",
 		psName, firstChar, lastChar, sb.String(), ref(descriptorID),
+		ref(cmapID),
 	)
 	fontID := ow.allocAndWrite(fontBody)
 
