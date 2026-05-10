@@ -25,18 +25,27 @@ func TestRenderMathProducesValidPDF(t *testing.T) {
 	}
 }
 
-func TestRenderMathDoesNotEmbedMathFontYet(t *testing.T) {
-	// v0.3 routes math glyphs through the default body font because
-	// the PDF writer cannot embed OpenType/CFF yet (Latin Modern Math
-	// is OTF). When CFF support lands the writer will start including
-	// "LatinModernMath" — until then this assertion guards the
-	// documented limitation.
+func TestRenderMathEmbedsLatinModernMath(t *testing.T) {
+	// v0.15 wired CFF font embedding (Type 0 + CIDFontType0 +
+	// FontFile3 / Subtype /CIDFontType0C). Math content now
+	// embeds Latin Modern Math itself instead of falling back to
+	// the body font's accidental glyph coverage. The PDF byte
+	// stream should reference the math font by name and carry
+	// the CIDFontType0C subtype on the FontFile3 stream.
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).Math(`\alpha + \beta`)
 	out, err := Bytes(doc)
 	if err != nil {
 		t.Fatalf("Bytes: %v", err)
 	}
-	if bytes.Contains(out, []byte("LatinModernMath")) {
-		t.Errorf("math font embedding is documented as v0.3.x; should not appear yet")
+	for _, want := range []string{
+		"LatinModernMath",
+		"/Subtype /Type0",
+		"/Encoding /Identity-H",
+		"/Subtype /CIDFontType0",
+		"/Subtype /CIDFontType0C",
+	} {
+		if !bytes.Contains(out, []byte(want)) {
+			t.Errorf("math-font embedding marker %q missing from PDF byte stream", want)
+		}
 	}
 }

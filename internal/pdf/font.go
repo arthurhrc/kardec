@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+// fontKind discriminates between the two emission paths the writer
+// supports: simple TrueType (single-byte WinAnsi encoding, /Subtype
+// /TrueType) and composite CFF (two-byte Identity-H CIDs, Type 0 +
+// CIDFontType0 descendant + FontFile3 /Subtype /CIDFontType0C).
+type fontKind uint8
+
+const (
+	fontKindTrueType fontKind = iota
+	fontKindCFF
+)
+
 // fontHandle is the writer's record of an embedded font: the indirect ID
 // of its /Font dictionary (referenced from /Resources), its parsed
 // metrics, and its PDF resource name (e.g. "F0", "F1", ...).
@@ -12,6 +23,7 @@ type fontHandle struct {
 	Name    string // resource name used inside content streams ("F0")
 	DictID  int    // indirect ID of the /Font dictionary
 	Metrics *ttfMetrics
+	Kind    fontKind
 }
 
 // emitFont writes three indirect objects for a TrueType font:
@@ -38,6 +50,14 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 		// whitespace, parens, brackets. We strip them; the result is
 		// purely cosmetic (Acrobat shows it in the Properties panel).
 		psName = sanitizePSName(font.Name)
+	}
+
+	// CFF outlines (OpenType fonts with 'OTTO' scaler) take a
+	// different emission path: Type 0 wrapper + CIDFontType0
+	// descendant + FontFile3 stream with /Subtype /CIDFontType0C.
+	// Math fonts (Latin Modern Math) live here.
+	if metrics.IsCFF {
+		return emitCFFFont(ow, idx, font, metrics, psName)
 	}
 
 	// 1. FontFile2 stream. When the caller supplied KeepGIDs the
