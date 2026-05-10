@@ -44,6 +44,9 @@ jobs:
       - name: go test
         run: go test -race -coverprofile=coverage.out ./...
 
+      - name: reproducibility check (render twice + sha256 diff)
+        run: go run ./cmd/reprocheck
+
       - name: coverage gate
         # Coverage is identical across OSes (same source, same
         # Go); gate on the Linux run only to keep the matrix
