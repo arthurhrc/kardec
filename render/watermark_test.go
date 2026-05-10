@@ -19,11 +19,14 @@ func TestWatermarkEmitsTextAndRotation(t *testing.T) {
 		t.Fatalf("Bytes: %v", err)
 	}
 	s := string(out)
+	// Watermark text is hex glyph IDs (Identity-H) post-v0.22, so
+	// instead of grep'ing for "(DRAFT) Tj" we verify the structural
+	// markers that distinguish a watermark page from an unmarked
+	// one: rotation cm + ExtGState alpha entry + ca opacity value.
 	for _, want := range []string{
-		"(DRAFT) Tj", // watermark string painted via show-text
-		" cm\n",      // CTM operator (rotation matrix)
-		"/ExtGState", // page resources include the alpha entry
-		"/ca 0.30",   // configured 30 % opacity
+		" cm\n",        // CTM operator (rotation matrix)
+		"/ExtGState",   // page resources include the alpha entry
+		"/ca 0.3000",   // configured 30 % opacity (rendered with %.4f)
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("watermark marker %q missing", want)
@@ -43,8 +46,12 @@ func TestWatermarkOpaqueOmitsExtGState(t *testing.T) {
 	if bytes.Contains(out, []byte("/ExtGState")) {
 		t.Errorf("opaque watermark should not declare /ExtGState")
 	}
-	if !bytes.Contains(out, []byte("(FINAL) Tj")) {
-		t.Errorf("watermark text not rendered")
+	// Opaque watermark still emits the rotation cm and a Tj op.
+	// The body paragraph contributes 1 Tj; the watermark adds 1
+	// more, so a properly rendered doc has ≥ 2 Tj ops.
+	tjCount := bytes.Count(out, []byte(" Tj"))
+	if tjCount < 2 {
+		t.Errorf("expected ≥ 2 Tj ops (body + watermark), got %d", tjCount)
 	}
 }
 

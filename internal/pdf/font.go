@@ -1,14 +1,22 @@
 package pdf
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 )
 
-// fontKind discriminates between the two emission paths the writer
-// supports: simple TrueType (single-byte WinAnsi encoding, /Subtype
-// /TrueType) and composite CFF (two-byte Identity-H CIDs, Type 0 +
-// CIDFontType0 descendant + FontFile3 /Subtype /CIDFontType0C).
+// fontKind tags the font's outline format. Both kinds emit through a
+// Type 0 / Identity-H composite-font wrapper; the difference is in
+// the descendant's /Subtype and the /FontFile* used in the descriptor.
+//
+//   - fontKindTrueType: TrueType outlines, /CIDFontType2 + /FontFile2.
+//   - fontKindCFF: Compact Font Format outlines (OTF / OTTO scaler),
+//     /CIDFontType0 + /FontFile3 with /Subtype /CIDFontType0C.
+//
+// Content-stream emission is identical for both: 2-byte hex-encoded
+// glyph IDs (`<00410042>`) since Identity-H makes CID == glyph index.
 type fontKind uint8
 
 const (
@@ -26,19 +34,18 @@ type fontHandle struct {
 	Kind    fontKind
 }
 
-// emitFont writes three indirect objects for a TrueType font:
+// emitFont writes the indirect objects for an embedded font and
+// returns the handle the page Resources dict will reference.
 //
-//  1. the FontFile2 stream (raw TTF bytes, FlateDecode-compressed)
-//  2. the FontDescriptor dictionary
-//  3. the /Font dictionary (Subtype /TrueType, WinAnsiEncoding)
-//
-// It returns a fontHandle the Writer attaches to the page Resources dict.
-//
-// Limitation (v0.1, documented in package doc): WinAnsiEncoding caps the
-// representable character set at CP1252. Glyphs outside that range are
-// substituted with '?' at content-stream emission time. Migration to a
-// composite (Type 0 / CIDFontType2 with Identity-H) font is the v0.2 work
-// item; the writer's public API does not change when that lands.
+// Both TrueType and CFF outlines emit as composite Type 0 /
+// Identity-H fonts so every Unicode codepoint the source TTF/OTF
+// covers is renderable. Pre-v0.22, TrueType used the simple
+// /Subtype /TrueType + WinAnsiEncoding form, which silently
+// substituted '?' for any character outside CP1252 (Δ, Σ, Ω,
+// Cyrillic, CJK, …). The Identity-H path makes that limitation
+// disappear at the cost of two-byte glyph indices in the content
+// stream — a fixed +N per glyph that compresses away under
+// FlateDecode.
 func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error) {
 	metrics, err := parseTTF(font.TTFData)
 	if err != nil {
@@ -52,19 +59,26 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 		psName = sanitizePSName(font.Name)
 	}
 
-	// CFF outlines (OpenType fonts with 'OTTO' scaler) take a
-	// different emission path: Type 0 wrapper + CIDFontType0
-	// descendant + FontFile3 stream with /Subtype /CIDFontType0C.
-	// Math fonts (Latin Modern Math) live here.
 	if metrics.IsCFF {
 		return emitCFFFont(ow, idx, font, metrics, psName)
 	}
+	return emitTrueTypeIdentityH(ow, idx, font, metrics, psName)
+}
 
-	// 1. FontFile2 stream. When the caller supplied KeepGIDs the
-	// writer zeroes glyf data for every non-kept glyph before
-	// compressing — keeps file structure intact while shrinking the
-	// FlateDecode stream dramatically. Failures fall back to the
-	// full font so a malformed-but-renderable input still ships.
+// emitTrueTypeIdentityH writes a TrueType font as a PDF 1.7
+// composite (Type 0) font with Identity-H encoding. Object layout:
+//
+//  1. FontFile2 stream — the raw TrueType bytes, FlateDecode-compressed.
+//     When KeepGIDs is set the writer subsets unused glyphs first.
+//  2. FontDescriptor — same fields the simple-TrueType path used.
+//  3. CIDFontType2 descendant — references the descriptor and carries
+//     the /W array (advance widths keyed by glyph index, in 1/1000 em)
+//     plus /CIDToGIDMap /Identity.
+//  4. ToUnicode CMap — maps each glyph back to its Unicode codepoint
+//     so text extraction round-trips faithfully.
+//  5. Type 0 wrapper /Font dict — what the page's Resources reference.
+func emitTrueTypeIdentityH(ow *objectWriter, idx int, font EmbeddedFont, metrics *ttfMetrics, psName string) (*fontHandle, error) {
+	// 1. FontFile2.
 	ttf := font.TTFData
 	if len(font.KeepGIDs) > 0 {
 		if subset, err := subsetTrueType(font.TTFData, font.KeepGIDs); err == nil {
@@ -73,11 +87,10 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 	}
 	compressed := flateAlways(ttf)
 	streamID := ow.allocID()
-	streamDict := fmt.Sprintf(
+	ow.writeStreamObject(streamID, fmt.Sprintf(
 		"/Length %d /Length1 %d /Filter /FlateDecode",
 		len(compressed), len(ttf),
-	)
-	ow.writeStreamObject(streamID, streamDict, compressed)
+	), compressed)
 
 	// 2. FontDescriptor.
 	flags := computeFontFlags(metrics)
@@ -101,45 +114,23 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 	)
 	descriptorID := ow.allocAndWrite(descriptorBody)
 
-	// 3. /Widths array. Simple fonts use FirstChar..LastChar inclusive;
-	// each entry is the advance width of the glyph that WinAnsi byte maps
-	// to, expressed in 1/1000 em. Bytes that don't map to any glyph get
-	// width 0.
-	firstChar, lastChar := 32, 255
-	widths := make([]int, 0, lastChar-firstChar+1)
-	for b := firstChar; b <= lastChar; b++ {
-		cp := winAnsiToUnicode[b]
-		var w int
-		if cp != 0 {
-			if g, ok := metrics.CmapUnicode[cp]; ok && int(g) < len(metrics.AdvanceWidth) {
-				w = scale(int16(metrics.AdvanceWidth[g]))
-			} else if len(metrics.AdvanceWidth) > 0 {
-				// Fall back to glyph 0's advance — the spec requires a
-				// width entry even for absent glyphs, and 0 is acceptable
-				// but uglier in viewers that draw the missing-glyph box.
-				w = scale(int16(metrics.AdvanceWidth[0]))
-			}
-		}
-		widths = append(widths, w)
-	}
+	// 3. CIDFontType2 descendant. /W is a width array keyed by glyph
+	// index in PDF "scope" form: `gid [w1 w2 w3]` lists consecutive
+	// widths starting at gid. We collect the glyphs we have advance
+	// data for, sort, and emit one entry per contiguous run.
+	wArray := buildTrueTypeWArray(metrics, scale)
+	descendantBody := fmt.Sprintf(
+		"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /%s "+
+			"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> "+
+			"/FontDescriptor %s /CIDToGIDMap /Identity /W %s >>",
+		psName, ref(descriptorID), wArray,
+	)
+	descendantID := ow.allocAndWrite(descendantBody)
 
-	var sb strings.Builder
-	sb.WriteString("[")
-	for i, w := range widths {
-		if i > 0 {
-			sb.WriteByte(' ')
-		}
-		fmt.Fprintf(&sb, "%d", w)
-	}
-	sb.WriteString("]")
-
-	// 4. /ToUnicode stream — the CMap mapping each WinAnsi byte
-	// back to its Unicode codepoint(s) so PDF readers extract
-	// faithful text on copy / paste / find / accessibility tools.
-	// Without it, ligatures + extended WinAnsi glyphs (smart quotes,
-	// em dash, euro, the entire 0x80..0xFF range) come out as
-	// garbage in extracted text.
-	cmapBytes := buildToUnicodeCMap()
+	// 4. ToUnicode CMap built from the cmap table so PDF readers can
+	// extract text for Find / Copy / accessibility — same shape as
+	// the CFF font's CMap (one bfchar per used codepoint).
+	cmapBytes := buildIdentityHToUnicodeCMap(metrics)
 	cmapCompressed := flateAlways(cmapBytes)
 	cmapID := ow.allocID()
 	ow.writeStreamObject(cmapID, fmt.Sprintf(
@@ -147,14 +138,11 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 		len(cmapCompressed),
 	), cmapCompressed)
 
-	// 5. /Font dictionary.
+	// 5. Type 0 wrapper.
 	fontBody := fmt.Sprintf(
-		"<< /Type /Font /Subtype /TrueType /BaseFont /%s "+
-			"/FirstChar %d /LastChar %d /Widths %s "+
-			"/FontDescriptor %s /Encoding /WinAnsiEncoding "+
-			"/ToUnicode %s >>",
-		psName, firstChar, lastChar, sb.String(), ref(descriptorID),
-		ref(cmapID),
+		"<< /Type /Font /Subtype /Type0 /BaseFont /%s "+
+			"/Encoding /Identity-H /DescendantFonts [%s] /ToUnicode %s >>",
+		psName, ref(descendantID), ref(cmapID),
 	)
 	fontID := ow.allocAndWrite(fontBody)
 
@@ -162,7 +150,71 @@ func emitFont(ow *objectWriter, idx int, font EmbeddedFont) (*fontHandle, error)
 		Name:    fmt.Sprintf("F%d", idx),
 		DictID:  fontID,
 		Metrics: metrics,
+		Kind:    fontKindTrueType,
 	}, nil
+}
+
+// buildTrueTypeWArray emits the /W array body PDF 9.7.4 expects.
+// Empty AdvanceWidth list yields `[]` (acceptable; reader uses /DW
+// fallback). For non-empty input we group consecutive glyph indices
+// with the same advance into ranges and emit them as `gid [w]`
+// entries — the most compact form.
+func buildTrueTypeWArray(m *ttfMetrics, scale func(int16) int) string {
+	var b bytes.Buffer
+	b.WriteString("[")
+	if len(m.AdvanceWidth) == 0 {
+		b.WriteString("]")
+		return b.String()
+	}
+	// Simple form: one big run starting at GID 0.
+	fmt.Fprintf(&b, "0 [")
+	for i, w := range m.AdvanceWidth {
+		if i > 0 {
+			b.WriteByte(' ')
+		}
+		fmt.Fprintf(&b, "%d", scale(int16(w)))
+	}
+	b.WriteString("]]")
+	return b.String()
+}
+
+// buildIdentityHToUnicodeCMap writes a CMap mapping each glyph
+// index used by m's Cmap back to its source Unicode codepoint, so
+// PDF readers can extract text correctly.
+func buildIdentityHToUnicodeCMap(m *ttfMetrics) []byte {
+	var b bytes.Buffer
+	b.WriteString("/CIDInit /ProcSet findresource begin\n")
+	b.WriteString("12 dict begin\n")
+	b.WriteString("begincmap\n")
+	b.WriteString("/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n")
+	b.WriteString("/CMapName /Adobe-Identity-UCS def\n")
+	b.WriteString("/CMapType 2 def\n")
+	b.WriteString("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n")
+
+	type pair struct {
+		gid uint16
+		cp  uint32
+	}
+	pairs := make([]pair, 0, len(m.CmapUnicode))
+	for cp, gid := range m.CmapUnicode {
+		pairs = append(pairs, pair{gid: gid, cp: cp})
+	}
+	sort.Slice(pairs, func(i, j int) bool { return pairs[i].gid < pairs[j].gid })
+
+	// Chunk in batches of 100 (PDF 1.7 §9.10.3 limit).
+	for i := 0; i < len(pairs); i += 100 {
+		end := i + 100
+		if end > len(pairs) {
+			end = len(pairs)
+		}
+		fmt.Fprintf(&b, "%d beginbfchar\n", end-i)
+		for _, p := range pairs[i:end] {
+			fmt.Fprintf(&b, "<%04X> <%04X>\n", p.gid, p.cp)
+		}
+		b.WriteString("endbfchar\n")
+	}
+	b.WriteString("endcmap CMapName currentdict /CMap defineresource pop end end\n")
+	return b.Bytes()
 }
 
 // computeFontFlags fills the /Flags integer of the FontDescriptor per
@@ -177,7 +229,7 @@ func computeFontFlags(m *ttfMetrics) int {
 		italic      = 1 << 6
 		forceBold   = 1 << 18
 	)
-	flags := nonsymbolic // WinAnsiEncoding implies the font is treated as nonsymbolic.
+	flags := symbolic // Identity-H is treated as symbolic by spec.
 	if m.IsFixedPitch {
 		flags |= fixedPitch
 	}
@@ -188,7 +240,7 @@ func computeFontFlags(m *ttfMetrics) int {
 		flags |= forceBold
 	}
 	_ = serif
-	_ = symbolic
+	_ = nonsymbolic
 	return flags
 }
 

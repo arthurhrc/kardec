@@ -110,12 +110,13 @@ func snippet(s string, maxLen int) string {
 }
 
 // textShow holds one decoded Tj operator paired with its preceding
-// Td position and Tf size — the minimum needed to reason about word
-// placement.
+// Td position, Tf size, and Tf font name — the minimum needed to
+// reason about word placement and font identity.
 type textShow struct {
-	X, Y    float64
-	SizePt  float64
-	Operand string // raw inside the parens or angle brackets
+	X, Y     float64
+	SizePt   float64
+	Font     string // resource name from Tf (e.g. "F0", "F2")
+	Operand  string // raw inside the parens or angle brackets
 }
 
 // parseTextShows pulls every (Tf, Td, Tj) triple out of a content
@@ -124,16 +125,18 @@ type textShow struct {
 // size carried by each subsequent Tj.
 func parseTextShows(stream string) []textShow {
 	var (
-		out      []textShow
-		curSize  float64
+		out        []textShow
+		curSize    float64
+		curFont    string
 		curX, curY float64
 	)
-	tfRE := regexp.MustCompile(`/F\d+ ([\d.\-]+) Tf`)
+	tfRE := regexp.MustCompile(`/(F\d+) ([\d.\-]+) Tf`)
 	tdRE := regexp.MustCompile(`([\d.\-]+) ([\d.\-]+) Td`)
 	tjRE := regexp.MustCompile(`(?:\(([^)]*)\)|<([0-9A-Fa-f]+)>) Tj`)
 	for _, ln := range strings.Split(stream, "\n") {
 		if m := tfRE.FindStringSubmatch(ln); m != nil {
-			curSize, _ = strconv.ParseFloat(m[1], 64)
+			curFont = m[1]
+			curSize, _ = strconv.ParseFloat(m[2], 64)
 			continue
 		}
 		if m := tdRE.FindStringSubmatch(ln); m != nil {
@@ -146,7 +149,9 @@ func parseTextShows(stream string) []textShow {
 			if operand == "" {
 				operand = "<" + m[2] + ">"
 			}
-			out = append(out, textShow{X: curX, Y: curY, SizePt: curSize, Operand: operand})
+			out = append(out, textShow{
+				X: curX, Y: curY, SizePt: curSize, Font: curFont, Operand: operand,
+			})
 		}
 	}
 	return out
@@ -181,26 +186,37 @@ func TestVisualRegression_WordAdvance(t *testing.T) {
 	if len(streams) == 0 {
 		t.Fatalf("no page content streams found")
 	}
-	shows := parseTextShows(snippet(streams[0], 600))
-	hello, ok := findShow(shows, "Hello,")
-	if !ok {
-		t.Fatalf("did not find (Hello,) Tj in stream\n%s", snippet(streams[0], 600))
+	shows := parseTextShows(streams[0])
+	// Body text emits 2-byte hex glyph IDs (Identity-H) post-v0.22,
+	// so identify the heading by font size: the heading is the
+	// largest size in the stream, and its first two shows are the
+	// "Hello," and "Kardec" runs (split on whitespace by the layout
+	// engine).
+	var bigSize float64
+	for _, s := range shows {
+		if s.SizePt > bigSize {
+			bigSize = s.SizePt
+		}
 	}
-	kardec1, ok := findShow(shows, "Kardec")
-	if !ok {
-		t.Fatalf("did not find (Kardec) Tj in stream\n%s", snippet(streams[0], 600))
+	if bigSize < 12 {
+		t.Fatalf("no large-size shows found (bigSize=%.2f); snippet:\n%s", bigSize, snippet(streams[0], 400))
 	}
-	if hello.SizePt < 1 {
-		t.Fatalf("expected non-trivial font size, got %v", hello.SizePt)
+	var headingLine []textShow
+	for _, s := range shows {
+		if s.SizePt == bigSize {
+			headingLine = append(headingLine, s)
+		}
 	}
-	advance := kardec1.X - hello.X
-	// Liberation Sans Bold's width for "Hello, " at 24pt is ≈ 71pt.
-	// The pre-fix output had ≈ 25pt. Threshold sits comfortably
-	// between those bands.
+	if len(headingLine) < 2 {
+		t.Fatalf("need ≥ 2 heading shows, got %d", len(headingLine))
+	}
+	advance := headingLine[1].X - headingLine[0].X
+	// Liberation Sans Bold's width for "Hello," at 24pt is ≈ 65pt.
+	// The pre-fix output had ≈ 25pt. Threshold sits between bands.
 	const minAdvance = 50.0
 	if advance < minAdvance {
-		t.Errorf("advance from \"Hello,\" to \"Kardec\" was %.2fpt, want ≥ %.2fpt — text rendering is regressing back to the canvas-units bug",
-			advance, minAdvance)
+		t.Errorf("advance between first two heading words was %.2fpt at size %.2f, want ≥ %.2fpt — canvas-units regression",
+			advance, bigSize, minAdvance)
 	}
 }
 
@@ -273,43 +289,56 @@ func TestVisualRegression_InlineMathBaseline(t *testing.T) {
 	if len(streams) == 0 {
 		t.Fatalf("no page content streams")
 	}
-	shows := parseTextShows(snippet(streams[0], 600))
-	textBefore, ok := findShow(shows, "a")
-	if !ok {
-		t.Fatalf("did not find (a) Tj\n%s", snippet(streams[0], 600))
-	}
-	textAfter, ok := findShow(shows, "z")
-	if !ok {
-		t.Fatalf("did not find (z) Tj\n%s", snippet(streams[0], 600))
-	}
-	if textBefore.Y == 0 || textAfter.Y == 0 {
-		t.Fatalf("text Y positions look invalid: %v %v", textBefore.Y, textAfter.Y)
-	}
-	// Find the math glyph between them. Its operand will be a hex
-	// string `<XXXX>` (Identity-H encoding) — pick the first one in
-	// the stream that sits between the two text shows.
-	var mathY float64
+	shows := parseTextShows(streams[0])
+	// Body text and math both use hex operands (Identity-H), so we
+	// distinguish them by font resource. The body fonts are F0/F1
+	// (registry-default + bold); the math font is the last font ID
+	// added to the document (assigned during render). Group shows
+	// by font and pick out the body row(s) and math row.
+	fontCounts := map[string]int{}
 	for _, s := range shows {
-		if !strings.HasPrefix(s.Operand, "<") {
-			continue
-		}
-		if s.X <= textBefore.X || s.X >= textAfter.X {
-			continue
-		}
-		mathY = s.Y
-		break
+		fontCounts[s.Font]++
 	}
-	if mathY == 0 {
-		t.Fatalf("did not find an inline-math glyph between (a) and (z)\n%s", snippet(streams[0], 600))
+	if len(fontCounts) < 2 {
+		t.Fatalf("expected ≥ 2 distinct fonts (body + math), got %d: %v", len(fontCounts), fontCounts)
+	}
+	// Body fonts have many shows (carry the prose); math has few.
+	// Identify the math font as the one with the FEWEST shows on
+	// the line — the single inline glyph.
+	var mathFont string
+	minN := 1 << 30
+	for f, n := range fontCounts {
+		if n < minN {
+			minN = n
+			mathFont = f
+		}
+	}
+	if mathFont == "" {
+		t.Fatalf("could not identify math font in %v", fontCounts)
+	}
+	var mathShow textShow
+	var bodyShows []textShow
+	for _, s := range shows {
+		if s.Font == mathFont {
+			if mathShow.Y == 0 {
+				mathShow = s
+			}
+		} else if s.SizePt > 0 && s.SizePt < 30 {
+			// Skip tiny / huge outliers; keep body-size shows.
+			bodyShows = append(bodyShows, s)
+		}
+	}
+	if mathShow.Y == 0 || len(bodyShows) == 0 {
+		t.Fatalf("missing math (%v) or body (%d shows) glyph", mathShow, len(bodyShows))
 	}
 	// Tolerance: math baseline within 3pt of surrounding text. A
 	// regression to the +ln.ascent formula puts math 10+ pt below
 	// the text baseline — well outside this band.
 	const tol = 3.0
-	deltaBefore := mathY - textBefore.Y
-	if deltaBefore < -tol || deltaBefore > tol {
-		t.Errorf("math glyph Y=%.2f is %.2fpt off the preceding text Y=%.2f — inline-math baseline alignment regressing",
-			mathY, deltaBefore, textBefore.Y)
+	delta := mathShow.Y - bodyShows[0].Y
+	if delta < -tol || delta > tol {
+		t.Errorf("math glyph Y=%.2f is %.2fpt off the body text Y=%.2f — inline-math baseline alignment regressing",
+			mathShow.Y, delta, bodyShows[0].Y)
 	}
 }
 

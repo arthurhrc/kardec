@@ -56,19 +56,9 @@ func appendWatermark(buf *bytes.Buffer, w *Watermark, fh *fontHandle, pageWidth,
 	buf.WriteString("BT\n")
 	fmt.Fprintf(buf, "/%s %.4f Tf\n", fh.Name, w.FontSize)
 
-	// Encoding follows the same TrueType vs CFF split as body text;
-	// watermarks are normally English ASCII so WinAnsi covers the
-	// common case, but the CFF path is wired in too so a math-font
-	// or Asian-glyph watermark renders correctly when it ships in
-	// v0.20.x.
-	var operand string
-	switch fh.Kind {
-	case fontKindCFF:
-		operand = encodeCFFHex([]rune(w.Text), fh.Metrics)
-	default:
-		encoded := encodeWinAnsi([]rune(w.Text))
-		operand = escapeLiteralString(string(encoded))
-	}
+	// Identity-H 2-byte hex encoding for both TrueType and CFF paths
+	// (post-v0.22).
+	operand := encodeCFFHex([]rune(w.Text), fh.Metrics)
 	fmt.Fprintf(buf, "%s Tj\nET\nQ\n", operand)
 }
 
