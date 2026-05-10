@@ -7,6 +7,46 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until
 
 ## [Unreleased]
 
+## [0.12.0]
+
+### Added
+
+- **CI quality gates.** New jobs alongside the existing test +
+  build-examples flow: a coverage gate (parses `go tool cover`,
+  fails when total falls below `COVERAGE_FLOOR=60` — current actual
+  ~66 %), direct `staticcheck` + `ineffassign` + `misspell` lint
+  (golangci-lint binaries are still built with Go 1.24 and refuse
+  to lint a 1.26 go.mod), and `govulncheck` against the full module
+  graph.
+- **Cross-OS test matrix.** Test job now fans out to
+  `ubuntu-latest`, `macos-latest`, `windows-latest` with
+  `defaults.run.shell: bash` for portability. The byte-
+  reproducibility claim Kardec ships on is meaningless if only
+  Linux is exercised; the matrix lets a Windows-only race surface
+  in CI.
+- **`cmd/reprocheck` + reproducibility CI step.** Standalone binary
+  that builds a canonical document twice with a pinned creation
+  date, sha256s each render, and exits 1 on mismatch. Runs in every
+  matrix entry — cross-OS nondeterminism now fails the matrix
+  rather than corrupting bytes downstream.
+- **`.goreleaser.yml` + release workflow with cosign keyless
+  signing.** Tag push (`vX.Y.Z`) triggers goreleaser to build
+  `cmd/kardec` for linux / darwin / windows × amd64 / arm64,
+  package each archive with the canonical docs, emit `SHA256SUMS`,
+  and sign the checksums file with cosign keyless OIDC. Releases
+  land as drafts for human review. Reproducibility flags
+  (`-trimpath`, pinned `mod_timestamp`, static linker flags) keep
+  binaries byte-identical across runs.
+
+### Changed
+
+- Eight unused-code findings cleared (dead types / fields / funcs
+  in `internal/layout`, `internal/math`, `internal/typography`,
+  and the table builder). Friend-package `// Deprecated` calls in
+  `render` (`SetRenderImpl`, `FontRegistry`) annotated with
+  `//lint:ignore SA1019` documenting their legitimate-caller
+  status.
+
 ## [0.11.0]
 
 ### Added
@@ -583,7 +623,8 @@ dependency.
 - Go: 1.22+ (the project tracks `go.mod`'s declared toolchain version).
 - License: MIT for the source, OFL 1.1 for the bundled TTFs.
 
-[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/arthurhrc/kardec/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.12.0
 [0.11.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.11.0
 [0.10.0]: https://github.com/arthurhrc/kardec/releases/tag/v0.10.0
 [0.9.1]: https://github.com/arthurhrc/kardec/releases/tag/v0.9.1
