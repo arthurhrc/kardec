@@ -44,10 +44,15 @@ func (e Engine) placeTOC(cur *pageCursor, flush func(), doc *kardec.Document, to
 		titleX := cur.x0 + indent
 		titleMaxWidth := available - indent - pageNumWidth - style.sizePt
 
-		// Emit the title.
+		// Emit the title with a hyperlink to the heading's auto-
+		// anchor. Click on the title text in a TOC and the reader
+		// jumps to the heading body — the natural expectation that
+		// was missing through v0.14 (only the sidebar outline
+		// links worked).
 		titleRuns := []kardec.Run{kardec.Text(h.title)}
 		titleTokens := shapeRuns(titleRuns, fonts, style, kardec.Pt(style.sizePt), style.color)
-		emitInlineTokens(cur, titleTokens, titleX, cur.cursorY)
+		titleLink := "#" + tocHeadingAnchor(h.title)
+		emitInlineTokensWithLink(cur, titleTokens, titleX, cur.cursorY, titleLink)
 
 		// Compute how wide the title actually drew so we can stretch
 		// a dot leader between it and the page number.
@@ -75,6 +80,14 @@ func (e Engine) placeTOC(cur *pageCursor, flush func(), doc *kardec.Document, to
 // (startX, baselineY). Used by the TOC and chrome paths that don't
 // need the line-break logic.
 func emitInlineTokens(cur *pageCursor, tokens []token, startX, baselineY float64) {
+	emitInlineTokensWithLink(cur, tokens, startX, baselineY, "")
+}
+
+// emitInlineTokensWithLink is the link-aware variant: every token
+// inherits the supplied link target so the renderer's link-annot
+// pass produces a single click-region spanning the whole token
+// strip. Empty link reverts to plain emission.
+func emitInlineTokensWithLink(cur *pageCursor, tokens []token, startX, baselineY float64, link string) {
 	x := startX
 	for _, t := range tokens {
 		if t.isSpace {
@@ -88,9 +101,47 @@ func emitInlineTokens(cur *pageCursor, tokens []token, startX, baselineY float64
 			Font:  t.font,
 			Size:  kardec.Pt(t.sizePt),
 			Color: t.color,
+			Link:  link,
 		})
 		x += t.width
 	}
+}
+
+// tocHeadingAnchor produces the slugified anchor name a Heading
+// gets at placement time so TOC entries can link to it. Slug rule:
+// ASCII lowercase + digits + dashes for any other rune. The slug
+// is prefixed with a fixed string so it can't collide with a user
+// anchor and so the link form (#kardec-toc-...) is unambiguous.
+//
+// Duplicate-title docs produce duplicate slugs; the first anchor
+// wins on link resolution. Documented limitation.
+func tocHeadingAnchor(title string) string {
+	const prefix = "kardec-toc-"
+	var b []byte
+	prevDash := false
+	for _, r := range title {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b = append(b, byte(r))
+			prevDash = false
+		case r >= 'A' && r <= 'Z':
+			b = append(b, byte(r-'A'+'a'))
+			prevDash = false
+		default:
+			if !prevDash {
+				b = append(b, '-')
+				prevDash = true
+			}
+		}
+	}
+	// Strip trailing dash.
+	for len(b) > 0 && b[len(b)-1] == '-' {
+		b = b[:len(b)-1]
+	}
+	if len(b) == 0 {
+		b = []byte("untitled")
+	}
+	return prefix + string(b)
 }
 
 // tokensWidth sums the widths of a token slice.

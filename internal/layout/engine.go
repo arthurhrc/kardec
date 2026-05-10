@@ -345,9 +345,18 @@ func (e Engine) placeBlock(
 		return e.placeTextBlock(cur, flush, v.Runs(), style, fonts)
 	case kardec.Heading:
 		style := styleFromKardec(doc.ResolveBlockStyle(v))
+		title := headingTitle(v)
+		// Auto-anchor each heading so TOC entries can hyperlink
+		// to the body. Slug derived from the heading title; the
+		// TOC placement constructs the same slug to wire Link
+		// targets onto the title tokens.
+		cur.anchors = append(cur.anchors, AnchorMark{
+			Name: tocHeadingAnchor(title),
+			Y:    kardec.Pt(cur.cursorY),
+		})
 		cur.headings = append(cur.headings, HeadingMark{
 			Level: v.Level(),
-			Title: headingTitle(v),
+			Title: title,
 			Y:     kardec.Pt(cur.cursorY),
 		})
 		return e.placeTextBlock(cur, flush, v.Runs(), style, fonts)
