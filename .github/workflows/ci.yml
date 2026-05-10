@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Floor below which the test job fails. Current actual coverage is
+# tracked in CHANGELOG; the gate stays at the floor so a regression
+# is what trips it, not "didn't improve". Tighten in increments.
+env:
+  COVERAGE_FLOOR: '60'
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -28,8 +34,48 @@ jobs:
       - name: go test
         run: go test -race -coverprofile=coverage.out ./...
 
-      - name: coverage report
-        run: go tool cover -func=coverage.out | tail -1
+      - name: coverage gate
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","",$3); print $3}')
+          echo "total coverage: $total%"
+          # Compare as floats. awk handles the comparison cleanly even
+          # without locale-aware bash arithmetic.
+          if awk -v t="$total" -v f="$COVERAGE_FLOOR" 'BEGIN { exit !(t < f) }'; then
+            echo "::error ::coverage $total% is below floor $COVERAGE_FLOOR%"
+            exit 1
+          fi
+
+      - name: upload coverage profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-profile
+          path: coverage.out
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61
+
+  vuln:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
 
   build-examples:
     runs-on: ubuntu-latest
