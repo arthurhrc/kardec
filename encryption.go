@@ -74,10 +74,9 @@ func ReadOnlyPermissions() Permissions {
 // with a per-object key derived from the supplied passwords +
 // permissions + document /ID.
 //
-// String literals (Title, Author, link URIs) stay plaintext in
-// v0.16: the writer declares /StrF /Identity in the /Encrypt
-// dict so PDF readers do not try to decrypt them. Full string
-// encryption is a v0.16.x follow-up.
+// Strings (Title, Author, Subject, Keywords, link /URI) are
+// encrypted alongside streams (post-v0.22). The /Encrypt dict
+// declares /StmF /StdCF /StrF /StdCF so AESV2 covers both.
 //
 // Calling SetEncryption with the zero EncryptionOptions disables
 // any prior encryption.

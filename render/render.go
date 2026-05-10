@@ -244,9 +244,69 @@ func buildPDFModel(pages []layout.Page, registry *typography.Registry) (pdf.Docu
 			}
 		}
 		pdfPage.Links = linkRanges.flush()
+		// Per-block PDF/UA structure groups: walk the layout
+		// items in order and start a new StructBlock every time
+		// the role changes. Items with empty role are folded
+		// into the surrounding block.
+		pdfPage.StructBlocks = buildStructBlocks(lp)
 		out.Pages = append(out.Pages, pdfPage)
 	}
 	return out, index, nil
+}
+
+// buildStructBlocks groups consecutive PlacedItems by their Role
+// into pdf.StructBlock spans. Items without a role inherit the
+// previous block's role; if there's no previous role, they default
+// to "P". Image-only blocks (Role == BlockRoleFigure) get their
+// images included in the block's image range.
+func buildStructBlocks(p layout.Page) []pdf.StructBlock {
+	if len(p.Items) == 0 {
+		return nil
+	}
+	var blocks []pdf.StructBlock
+	curRole := ""
+	textIdx := 0
+	imageIdx := 0
+	pdfTextIdx := 0
+	pdfImageIdx := 0
+	for _, it := range p.Items {
+		role := string(it.Role)
+		if role == "" {
+			role = "P"
+		}
+		// Map layout-only items (rules, decorations) into the
+		// current block by skipping role transitions when the
+		// item carries no Role field.
+		if role != curRole {
+			// Close previous block.
+			if curRole != "" {
+				blocks[len(blocks)-1].ItemEnd = pdfTextIdx
+				blocks[len(blocks)-1].ImageEnd = pdfImageIdx
+			}
+			blocks = append(blocks, pdf.StructBlock{
+				Role:       role,
+				ItemStart:  pdfTextIdx,
+				ImageStart: pdfImageIdx,
+			})
+			curRole = role
+		}
+		// Advance the right counter depending on item kind.
+		switch {
+		case it.Image != nil:
+			pdfImageIdx++
+		case it.Rect != nil:
+			// Rects don't contribute to MCIDs; skip.
+		default:
+			pdfTextIdx++
+		}
+		textIdx++
+		_ = imageIdx
+	}
+	if len(blocks) > 0 {
+		blocks[len(blocks)-1].ItemEnd = pdfTextIdx
+		blocks[len(blocks)-1].ImageEnd = pdfImageIdx
+	}
+	return blocks
 }
 
 // collectUsedFontKeys walks every PlacedItem on every page and gathers

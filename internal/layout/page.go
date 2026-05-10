@@ -48,11 +48,38 @@ type HeadingMark struct {
 	Y     kardec.Length
 }
 
+// BlockRole tags a PlacedItem with the source block's PDF/UA role
+// so the writer can wrap each block in its own marked-content
+// sequence and emit the matching StructElem (PDF 14.7.2 Table 333).
+//
+// Empty role means "default / paragraph" — the writer treats it as
+// "P". Layout sets the role on every item it appends so render and
+// the writer can group consecutive same-role items into structural
+// blocks without re-walking the source tree.
+type BlockRole string
+
+const (
+	BlockRoleP       BlockRole = "P"
+	BlockRoleH1      BlockRole = "H1"
+	BlockRoleH2      BlockRole = "H2"
+	BlockRoleH3      BlockRole = "H3"
+	BlockRoleH4      BlockRole = "H4"
+	BlockRoleH5      BlockRole = "H5"
+	BlockRoleH6      BlockRole = "H6"
+	BlockRoleFigure  BlockRole = "Figure"
+	BlockRoleCaption BlockRole = "Caption"
+)
+
 // PlacedItem is a positioned, fully styled fragment ready to be drawn.
 // A given PlacedItem is either a text fragment (Text + Font + Size +
 // Color set) or an image (Image non-nil); the renderer dispatches on
 // whether Image is nil.
 type PlacedItem struct {
+	// Role tags this item with its source-block PDF/UA role so the
+	// renderer can group consecutive same-role items into
+	// structural blocks for tagging. Empty value is treated as "P".
+	Role BlockRole
+
 	// X and Y are the top-left coordinates of the item, in PDF points,
 	// relative to the page's top-left corner.
 	X, Y kardec.Length

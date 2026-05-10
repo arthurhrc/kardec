@@ -129,6 +129,7 @@ func emitLine(cur *pageCursor, ln line, style blockStyle, isLastLine bool) {
 			Size:  kardec.Pt(t.sizePt),
 			Color: t.color,
 			Link:  t.link,
+			Role:  cur.curRole,
 		})
 		emitDecorations(cur, t, x, baselineY)
 		cur.recordFootnoteRef(t.footnoteRef)
@@ -169,6 +170,7 @@ func emitJustifiedLine(cur *pageCursor, ln line, style blockStyle, available flo
 			Size:  kardec.Pt(t.sizePt),
 			Color: t.color,
 			Link:  t.link,
+			Role:  cur.curRole,
 		})
 		emitDecorations(cur, t, x, baselineY)
 		cur.recordFootnoteRef(t.footnoteRef)

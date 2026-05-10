@@ -14,17 +14,27 @@ import (
 // borders by default do not draw a visible box around the link
 // rectangle. The PDF spec defaults to a solid 1pt border which
 // otherwise distracts from textual hyperlinks.
+//
+// When ow.fileKey is set the URI literal is encrypted with the
+// annotation's per-object key so confidential URLs (private
+// staging hosts, internal tooling links) stay confidential under
+// document encryption.
 func emitLinkAnnots(ow *objectWriter, p Page) []int {
 	if len(p.Links) == 0 {
 		return nil
 	}
 	ids := make([]int, 0, len(p.Links))
 	for _, ln := range p.Links {
+		// Pre-allocate the annotation ID so the URI's per-object
+		// encryption key is derived correctly. allocAndWrite
+		// would defer the ID until the body is built; we need it
+		// up front to encrypt the URI.
+		annotID := ow.allocID()
 		var action string
 		switch {
 		case ln.URI != "":
 			action = fmt.Sprintf("<< /Type /Action /S /URI /URI %s >>",
-				escapeLiteralString(ln.URI))
+				encryptString(ow.fileKey, annotID, ln.URI))
 		case ln.DestName != "":
 			// /GoTo with a Name resolves via the catalog's /Dests
 			// dictionary (PDF 12.3.2.3). The dict uses Name keys —
@@ -44,7 +54,8 @@ func emitLinkAnnots(ow *objectWriter, p Page) []int {
 			ln.X, ln.Y, ln.X+ln.W, ln.Y+ln.H,
 			action,
 		)
-		ids = append(ids, ow.allocAndWrite(body))
+		ow.writeObject(annotID, body)
+		ids = append(ids, annotID)
 	}
 	return ids
 }

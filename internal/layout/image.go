@@ -66,6 +66,7 @@ func (e Engine) placeImage(cur *pageCursor, flush func(), img kardec.Image) erro
 			Width:  kardec.Pt(w),
 			Height: kardec.Pt(h),
 		},
+		Role: cur.curRole,
 	})
 	cur.cursorY += h
 	return nil

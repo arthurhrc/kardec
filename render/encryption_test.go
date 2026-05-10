@@ -28,7 +28,7 @@ func TestEncryptionEmitsEncryptDictAndIDArray(t *testing.T) {
 		"/Length 128",       // AES-128
 		"/CFM /AESV2",       // AES-V2 crypt filter method
 		"/StmF /StdCF",      // streams use the StdCF filter
-		"/StrF /Identity",   // strings stay plaintext (v0.16 lite)
+		"/StrF /StdCF",      // strings encrypted via AESV2 (v0.22+)
 		"/Encrypt ",         // trailer entry
 		"/ID [<",            // /ID array required by the security handler
 	} {

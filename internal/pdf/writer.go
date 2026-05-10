@@ -109,16 +109,23 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 		wmAlphaID, wmAlphaName = emitWatermarkAlpha(ow, doc.Watermark.Opacity)
 	}
 
-	// Pre-allocate per-page StructElem IDs in tagged mode so each
-	// /Page dict can forward-reference its owning structure element
-	// through /StructParents N (where N is the page index in
-	// ParentTree.Nums). The objects themselves are emitted later
-	// by emitStructTree once the page dicts are known.
-	var pageElemIDs []int
+	// Pre-allocate per-block StructElem IDs in tagged mode so each
+	// /Page dict can forward-reference its owning structure
+	// elements through /StructParents N. Pages without
+	// StructBlocks fall back to one synthetic /P element covering
+	// the whole page (lite mode).
+	var pageBlockElemIDs [][]int
 	if doc.Tagged {
-		pageElemIDs = make([]int, len(doc.Pages))
-		for i := range pageElemIDs {
-			pageElemIDs[i] = ow.allocID()
+		pageBlockElemIDs = make([][]int, len(doc.Pages))
+		for i, p := range doc.Pages {
+			n := len(p.StructBlocks)
+			if n == 0 {
+				n = 1 // lite-mode placeholder
+			}
+			pageBlockElemIDs[i] = make([]int, n)
+			for j := range pageBlockElemIDs[i] {
+				pageBlockElemIDs[i][j] = ow.allocID()
+			}
 		}
 	}
 
@@ -135,13 +142,17 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 			usedFonts = ensureFontIncluded(usedFonts, handles, doc.Watermark.FontID)
 		}
 		raw := buildContentStreamWithWatermark(p, handles, imageHandles, doc.Watermark, wmAlphaName)
-		// In tagged mode the page's glyph operators are wrapped
-		// in a single /P marked-content sequence with MCID 0 —
-		// every item on the page belongs to one logical
-		// paragraph element. v0.17.x will split this into
-		// per-block sequences (heading, paragraph, figure).
+		// In tagged mode wrap each block (or the whole page in
+		// lite mode) in its own marked-content sequence. The
+		// per-block path produces real PDF/UA semantics; the
+		// fallback keeps backward-compat with v0.17 docs that
+		// don't carry block roles.
 		if doc.Tagged {
-			raw = wrapMarkedContent(raw, "P", 0)
+			if len(p.StructBlocks) > 0 {
+				raw = wrapMarkedContentByBlocks(p, handles, imageHandles, doc.Watermark, wmAlphaName)
+			} else {
+				raw = wrapMarkedContent(raw, "P", 0)
+			}
 		}
 		data, compressed := maybeFlate(raw)
 
@@ -210,7 +221,7 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 	// catalog so the catalog can reference the StructTreeRoot.
 	structTreeRootID := 0
 	if doc.Tagged {
-		structTreeRootID = emitStructTree(ow, pageIDs, pageElemIDs)
+		structTreeRootID = emitStructTree(ow, pageIDs, doc.Pages, pageBlockElemIDs)
 	}
 
 	// Catalog last among the structural objects — it points at /Pages
@@ -240,7 +251,7 @@ func (wr Writer) Write(w io.Writer, doc Document) error {
 
 	// Info dict (optional; /Producer "Kardec" + Title/Author when set).
 	infoID := ow.allocID()
-	infoBody := buildInfoDict(doc, now)
+	infoBody := buildInfoDict(doc, now, infoID, ow.fileKey)
 	ow.writeObject(infoID, infoBody)
 
 	// Final emission: header, body, xref, trailer, startxref.
@@ -329,33 +340,38 @@ func pageImages(p Page, all []*imageHandle) []*imageHandle {
 	return used
 }
 
-// buildInfoDict assembles the /Info dictionary body. Title/Author are
-// written as PDF literal strings (UTF-8 inside parens, escaped); Acrobat
-// reads ASCII subsets correctly. Non-ASCII metadata would need a UTF-16BE
-// "BOM-prefixed" string in v0.2.
-func buildInfoDict(doc Document, now time.Time) string {
+// buildInfoDict assembles the /Info dictionary body. Title/Author/...
+// are written as PDF literal strings; when fileKey is non-nil they
+// are first encrypted with the indirect object's per-object key
+// (PDF 7.6.3.4 algorithm 1.A) so confidential metadata stays
+// confidential under encryption — the v0.22 fix for the v0.16
+// regression that left /Info plaintext.
+//
+// objNum is the indirect-object ID this dict will live inside;
+// the encryption key is derived from it.
+func buildInfoDict(doc Document, now time.Time, objNum int, fileKey []byte) string {
 	var buf bytes.Buffer
 	buf.WriteString("<<")
 	if doc.Title != "" {
-		fmt.Fprintf(&buf, " /Title %s", escapeLiteralString(doc.Title))
+		fmt.Fprintf(&buf, " /Title %s", encryptString(fileKey, objNum, doc.Title))
 	}
 	if doc.Author != "" {
-		fmt.Fprintf(&buf, " /Author %s", escapeLiteralString(doc.Author))
+		fmt.Fprintf(&buf, " /Author %s", encryptString(fileKey, objNum, doc.Author))
 	}
 	if doc.Subject != "" {
-		fmt.Fprintf(&buf, " /Subject %s", escapeLiteralString(doc.Subject))
+		fmt.Fprintf(&buf, " /Subject %s", encryptString(fileKey, objNum, doc.Subject))
 	}
 	if doc.Keywords != "" {
-		fmt.Fprintf(&buf, " /Keywords %s", escapeLiteralString(doc.Keywords))
+		fmt.Fprintf(&buf, " /Keywords %s", encryptString(fileKey, objNum, doc.Keywords))
 	}
-	fmt.Fprintf(&buf, " /Producer %s", escapeLiteralString("Kardec PDF Writer v0.1"))
-	fmt.Fprintf(&buf, " /Creator %s", escapeLiteralString("Kardec"))
+	fmt.Fprintf(&buf, " /Producer %s", encryptString(fileKey, objNum, "Kardec PDF Writer v0.1"))
+	fmt.Fprintf(&buf, " /Creator %s", encryptString(fileKey, objNum, "Kardec"))
 	// PDF date format: D:YYYYMMDDHHmmSSOHH'mm — see PDF 7.9.4. The 'Z'
 	// timezone form (UTC) keeps the value comparable across machines;
 	// the caller passes the wall-clock or a fixed moment for
 	// reproducible builds.
 	stamp := now.UTC().Format("20060102150405")
-	fmt.Fprintf(&buf, " /CreationDate (D:%sZ)", stamp)
+	fmt.Fprintf(&buf, " /CreationDate %s", encryptString(fileKey, objNum, "D:"+stamp+"Z"))
 	buf.WriteString(" >>")
 	return buf.String()
 }

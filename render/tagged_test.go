@@ -23,12 +23,14 @@ func TestTaggedEmitsStructureMarkers(t *testing.T) {
 		"/StructTreeRoot ",             // catalog reference
 		"/Lang (en)",                   // catalog language
 		"/Type /StructTreeRoot",        // root object
-		"/Type /StructElem",            // per-page element
-		"/S /P",                        // role
+		"/Type /StructElem",            // per-block element
+		"/S /H1",                       // heading role
+		"/S /P",                        // paragraph role
 		"/ParentTree ",                 // number tree pointer
 		"/StructParents 0",             // page parent-tree key
 		"/Tabs /S",                     // logical tab order
-		"/P << /MCID 0 >> BDC",         // marked-content open
+		"/H1 << /MCID 0 >> BDC",        // heading marked-content open
+		"/P << /MCID 1 >> BDC",         // paragraph marked-content open
 		"EMC",                          // marked-content close
 	} {
 		if !bytes.Contains(out, []byte(want)) {
