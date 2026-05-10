@@ -1,0 +1,100 @@
+# goreleaser configuration for the cmd/kardec CLI binary plus
+# checksum + cosign signature artifacts. Triggered by the release
+# workflow on tag push.
+#
+# To validate locally without publishing:
+#
+#   goreleaser release --snapshot --clean
+
+version: 2
+
+project_name: kardec
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: kardec
+    main: ./cmd/kardec
+    binary: kardec
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .CommitDate }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Reproducibility: pin mod time to commit date so byte-identical
+    # binaries roll out from byte-identical sources.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: kardec
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    # `kardec_v0.12.0_linux_amd64.tar.gz` style names — readable,
+    # tool-friendly, no spaces.
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - NOTICE.md
+      - README.md
+      - CHANGELOG.md
+      - MIGRATING.md
+
+checksum:
+  name_template: "SHA256SUMS"
+  algorithm: sha256
+
+signs:
+  # Cosign keyless signing via GitHub OIDC. The release workflow
+  # supplies COSIGN_EXPERIMENTAL=1 and the OIDC token; the resulting
+  # `SHA256SUMS.sig` lives next to the checksums file in the release
+  # assets.
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    output: true
+    args:
+      - "sign-blob"
+      - "--yes"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+    signature: "${artifact}.sig"
+
+release:
+  github:
+    owner: arthurhrc
+    name: kardec
+  # Mark as draft so a human still reviews before going live;
+  # promote via gh release edit --draft=false if all looks good.
+  draft: true
+  prerelease: auto
+  header: |
+    See [CHANGELOG.md](https://github.com/arthurhrc/kardec/blob/main/CHANGELOG.md) for the full release notes.
+    Verify the binary signatures with cosign:
+
+    ```sh
+    cosign verify-blob \
+      --certificate-identity-regexp "https://github.com/arthurhrc/kardec/.github/workflows/release.yml@.*" \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      --signature SHA256SUMS.sig \
+      SHA256SUMS
+    ```
+
+changelog:
+  disable: true
