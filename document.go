@@ -100,6 +100,10 @@ type Document struct {
 	// Document.SetLineBreakAlgorithm.
 	lineBreakAlgo LineBreakAlgorithm
 
+	// watermark, when non-nil, opts the document into a per-page
+	// diagonal text overlay. Set via Document.SetWatermark.
+	watermark *watermarkConfig
+
 	// figureCounter / tableCounter assign the auto-numbers behind
 	// LabeledFigure / LabeledTable. They are 1-based and never reset
 	// across sections.

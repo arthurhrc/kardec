@@ -37,6 +37,13 @@ type Document struct {
 	// the trailer carries the /Encrypt indirect-object reference.
 	Encryption *Encryption
 
+	// Watermark, when non-nil, stamps a diagonal overlay text on
+	// every page after the page's primary content. The most common
+	// use is a "DRAFT" or "CONFIDENTIAL" marker; the rendered
+	// glyphs sit underneath any future annotations or interactive
+	// content but on top of body text and images.
+	Watermark *Watermark
+
 	// Tagged opts the writer into PDF/UA-1 lite tagging: every
 	// page's content stream is wrapped in a marked-content
 	// sequence, the catalog declares /MarkInfo /Marked true plus
@@ -47,6 +54,26 @@ type Document struct {
 	// file declares structure but not language).
 	Tagged bool
 	Lang   string
+}
+
+// Watermark is the writer's local model for a page-overlay text
+// stamp. The renderer translates kardec.Watermark into this struct
+// at the conversion boundary.
+//
+// Text is the literal string painted on every page. FontID indexes
+// into Document.Fonts (typically the body font). FontSize is in
+// points. Color is the device-RGB fill. Opacity is in [0, 1] and
+// activates an /ExtGState resource so the stamp blends with the
+// underlying content rather than obscuring it. AngleDeg is the
+// counter-clockwise rotation in degrees applied around the page
+// centre — 45° for the canonical diagonal "DRAFT" overlay.
+type Watermark struct {
+	Text     string
+	FontID   int
+	FontSize float64
+	Color    Color
+	Opacity  float64
+	AngleDeg float64
 }
 
 // Encryption configures the PDF Standard Security Handler. UserPwd
