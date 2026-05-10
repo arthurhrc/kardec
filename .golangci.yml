@@ -1,0 +1,49 @@
+# golangci-lint configuration. The set of linters here is conservative
+# — every linter that runs in CI must produce a clean output, so adding
+# one means committing to fixing every existing finding it surfaces.
+#
+# To run locally:
+#
+#   golangci-lint run ./...
+
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck      # unchecked errors
+    - govet         # go vet — suspicious constructs
+    - ineffassign   # ineffective assignments
+    - misspell      # typos in comments and strings
+    - staticcheck   # go vet successor; comprehensive
+    - unused        # unused funcs / vars / consts
+    - gosimple      # simpler equivalents for common patterns
+
+linters-settings:
+  errcheck:
+    # Errors from these functions are conventionally ignored — they
+    # appear inside fmt.Fprintf chains writing to bytes.Buffer or
+    # strings.Builder, which never fail.
+    exclude-functions:
+      - (*bytes.Buffer).Write
+      - (*bytes.Buffer).WriteString
+      - (*bytes.Buffer).WriteByte
+      - (*strings.Builder).Write
+      - (*strings.Builder).WriteString
+      - (*strings.Builder).WriteByte
+      - fmt.Fprintf
+      - fmt.Fprintln
+
+issues:
+  # Exclude sample sources / examples from style nags so the
+  # ergonomic shape readers see is not bent by a linter rule.
+  exclude-dirs:
+    - examples
+  # Test files exercise edge cases that often shadow names or
+  # discard returns intentionally; allow that.
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
