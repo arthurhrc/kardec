@@ -51,19 +51,20 @@ func TestSubsetFontsOffByDefault(t *testing.T) {
 // DisableFontSubsetting (covered by toggles_test.go in the root
 // package); this test remains so the deprecated path keeps working
 // for v0.x consumers until v1.0 removes it.
-//
-//lint:ignore SA1019 covers the deprecated path on purpose
 func TestSubsetFontsOptIn(t *testing.T) {
+	//lint:ignore SA1019 testing deprecated path
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		SubsetFonts(true) //nolint:staticcheck // testing deprecated path
+		SubsetFonts(true)
 	if !doc.FontSubsetEnabled() {
 		t.Errorf("SubsetFonts(true) should enable")
 	}
-	doc.SubsetFonts(false) //nolint:staticcheck // testing deprecated path
+	//lint:ignore SA1019 testing deprecated path
+	doc.SubsetFonts(false)
 	if doc.FontSubsetEnabled() {
 		t.Errorf("SubsetFonts(false) should disable")
 	}
-	doc.SubsetFonts() //nolint:staticcheck // testing deprecated path
+	//lint:ignore SA1019 testing deprecated path
+	doc.SubsetFonts()
 	if !doc.FontSubsetEnabled() {
 		t.Errorf("SubsetFonts() with no args should enable")
 	}
