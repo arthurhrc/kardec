@@ -10,7 +10,7 @@ import (
 
 func TestPDFAOptInEmitsConformanceMarkers(t *testing.T) {
 	doc := kardec.New(kardec.PageA4, kardec.MarginsNormal).
-		PDFA().
+		EnablePDFA().
 		SetCreationDate(time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)).
 		Heading(1, kardec.Text("Title")).
 		Paragraph(kardec.Text("body"))

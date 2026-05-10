@@ -122,6 +122,33 @@ type labelInfo struct {
 // PDF/A-2b — the markers are present but veraPDF flags the
 // missing OutputIntent. Most consumer readers (Acrobat, Foxit,
 // Chrome) honor the marker regardless.
+// EnablePDFA opts the document into PDF/A-2b conformance markers.
+// Replaces the variadic-bool PDFA(on ...bool) form for an idiomatic
+// Go API. Pair with DisablePDFA when conditional code paths need to
+// turn the flag back off.
+func (d *Document) EnablePDFA() *Document {
+	if d.err != nil {
+		return d
+	}
+	d.pdfa = true
+	return d
+}
+
+// DisablePDFA clears the PDF/A flag set by EnablePDFA. Useful when a
+// conditional template flips the conformance choice between renders.
+func (d *Document) DisablePDFA() *Document {
+	if d.err != nil {
+		return d
+	}
+	d.pdfa = false
+	return d
+}
+
+// PDFA opts the document into PDF/A markers.
+//
+// Deprecated: use EnablePDFA / DisablePDFA. Variadic-bool toggles are
+// unidiomatic Go and the form ships only for the v0.x line. Removed
+// at v1.0.
 func (d *Document) PDFA(on ...bool) *Document {
 	if d.err != nil {
 		return d
@@ -137,9 +164,33 @@ func (d *Document) PDFA(on ...bool) *Document {
 // PDFAEnabled reports whether PDF/A markers will be emitted.
 func (d *Document) PDFAEnabled() bool { return d.pdfa }
 
+// EnableFontSubsetting opts the document into glyf-table subsetting:
+// every glyph not referenced by a PlacedItem is wiped from the
+// embedded TTF before the FontFile2 stream is FlateDecode-compressed.
+// Real documents drop ~70% of their PDF size with this on.
+func (d *Document) EnableFontSubsetting() *Document {
+	if d.err != nil {
+		return d
+	}
+	d.subsetFonts = true
+	return d
+}
+
+// DisableFontSubsetting clears the subset flag set by
+// EnableFontSubsetting, restoring the full-font embed path.
+func (d *Document) DisableFontSubsetting() *Document {
+	if d.err != nil {
+		return d
+	}
+	d.subsetFonts = false
+	return d
+}
+
 // SubsetFonts toggles glyf-table subsetting for embedded fonts.
-// Default is off — calls without arguments turn it on for fluent
-// chaining; pass false to opt back out.
+//
+// Deprecated: use EnableFontSubsetting / DisableFontSubsetting.
+// Variadic-bool is unidiomatic; this form ships only for the v0.x
+// line. Removed at v1.0.
 func (d *Document) SubsetFonts(on ...bool) *Document {
 	if d.err != nil {
 		return d
