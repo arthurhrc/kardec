@@ -3,6 +3,7 @@ module github.com/arthurhrc/kardec
 go 1.26.3
 
 require (
+	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c
 	github.com/go-fonts/latin-modern v0.3.3
 	github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e
 	github.com/yuin/goldmark v1.8.2
