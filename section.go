@@ -33,39 +33,27 @@ func (d *Document) Footer(runs ...Run) *Document {
 	return d
 }
 
-// NewSection starts a new section configured from the supplied page
-// size and margins. Subsequent block / header / footer calls land in
-// the new section; the previous section's blocks are frozen as-is.
+// NewSection starts a new section configured from the supplied
+// PageSetup. Subsequent block / header / footer calls land in the
+// new section; the previous section's blocks are frozen as-is.
 //
-// Use this to interleave landscape pages, tighter-margin appendices,
-// or a Letter-sized cover before the body switches to A4. Each
-// section carries its own Header / Footer; pass them right after
-// NewSection to override the defaults inherited from PageSetup.
+// Use SetupOf for the common (size + margins, portrait) path:
 //
-// orientation defaults to Portrait — pass `Landscape` explicitly via
-// the returned PageSetup if a landscape break is wanted. The helper
-// below preserves the orientation of the current section so callers
-// who only want margin or page-size changes don't have to repeat it.
-func (d *Document) NewSection(size PageSize, margins Margins) *Document {
-	if d.err != nil {
-		return d
-	}
-	sec := &Section{
-		Setup: PageSetup{
-			Size:        size,
-			Orientation: d.cur.Setup.Orientation,
-			Margins:     margins,
-		},
-	}
-	d.sections = append(d.sections, sec)
-	d.cur = sec
-	return d
-}
-
-// NewSectionWithSetup is the explicit-setup counterpart to NewSection,
-// useful when the caller has a pre-built PageSetup (e.g. landscape
-// orientation) it wants applied verbatim.
-func (d *Document) NewSectionWithSetup(setup PageSetup) *Document {
+//	doc.NewSection(kardec.SetupOf(kardec.PageLetter, kardec.MarginsNarrow))
+//
+// or build a PageSetup directly when orientation, columns or column
+// gap differ from the defaults:
+//
+//	doc.NewSection(kardec.PageSetup{
+//	    Size:        kardec.PageA4,
+//	    Orientation: kardec.Landscape,
+//	    Margins:     kardec.MarginsNormal,
+//	})
+//
+// The previous (size, margins) signature was folded into this one
+// during the v0.10 sweep so the document carries a single section
+// constructor — old callers should migrate via SetupOf.
+func (d *Document) NewSection(setup PageSetup) *Document {
 	if d.err != nil {
 		return d
 	}
@@ -73,6 +61,31 @@ func (d *Document) NewSectionWithSetup(setup PageSetup) *Document {
 	d.sections = append(d.sections, sec)
 	d.cur = sec
 	return d
+}
+
+// SetupOf composes a PageSetup from a size + margins pair, defaulting
+// orientation to Portrait. Convenience for the most common
+// NewSection invocation:
+//
+//	doc.NewSection(kardec.SetupOf(kardec.PageLetter, kardec.MarginsNarrow))
+//
+// For explicit orientation, columns, or gap, build the PageSetup
+// directly.
+func SetupOf(size PageSize, margins Margins) PageSetup {
+	return PageSetup{
+		Size:        size,
+		Orientation: Portrait,
+		Margins:     margins,
+	}
+}
+
+// NewSectionWithSetup forwards to NewSection.
+//
+// Deprecated: use NewSection(setup). The two methods were folded
+// into one during the v0.10 sweep; this alias ships only for the
+// v0.x line and is removed at v1.0.
+func (d *Document) NewSectionWithSetup(setup PageSetup) *Document {
+	return d.NewSection(setup)
 }
 
 // CurrentSection returns the section receiving subsequent block
