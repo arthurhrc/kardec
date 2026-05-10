@@ -40,6 +40,26 @@ const (
 // Layout function to read kardec.Document.LineBreakAlgorithm()).
 func NewEngine() Engine { return Engine{Algorithm: LineBreakFirstFit} }
 
+// headingRoleFor maps a heading level (1..6) to the matching PDF/UA
+// BlockRole. Levels outside the range collapse to H6 — the most
+// permissive valid heading role per PDF spec.
+func headingRoleFor(level int) BlockRole {
+	switch level {
+	case 1:
+		return BlockRoleH1
+	case 2:
+		return BlockRoleH2
+	case 3:
+		return BlockRoleH3
+	case 4:
+		return BlockRoleH4
+	case 5:
+		return BlockRoleH5
+	default:
+		return BlockRoleH6
+	}
+}
+
 // breakLines dispatches paragraph line-break to the algorithm
 // currently configured on the engine. Centralising the switch here
 // keeps placeTextBlock and table layout unaware of the breaker
@@ -184,6 +204,13 @@ type pageCursor struct {
 	x0, y0       float64 // top-left of the active column
 	x1, y1       float64 // bottom-right of the active column
 	cursorY      float64 // current Y position, top-left origin
+
+	// curRole is the PDF/UA role of the block currently being
+	// placed. placeBlock sets it before dispatching to the
+	// type-specific placeXxx; the place methods stamp it on every
+	// PlacedItem they emit so the writer can wrap each role's
+	// items in their own marked-content sequence.
+	curRole BlockRole
 
 	// Multi-column state. columns == 1 keeps single-column geometry
 	// (pageX0 == x0, pageX1 == x1).
@@ -377,6 +404,7 @@ func (e Engine) placeBlock(
 	switch v := b.(type) {
 	case kardec.Paragraph:
 		style := styleFromKardec(doc.ResolveBlockStyle(v))
+		cur.curRole = BlockRoleP
 		return e.placeTextBlock(cur, flush, doc, v.Runs(), style, fonts)
 	case kardec.Heading:
 		style := styleFromKardec(doc.ResolveBlockStyle(v))
@@ -394,6 +422,7 @@ func (e Engine) placeBlock(
 			Title: title,
 			Y:     kardec.Pt(cur.cursorY),
 		})
+		cur.curRole = headingRoleFor(v.Level())
 		return e.placeTextBlock(cur, flush, doc, v.Runs(), style, fonts)
 	case kardec.Table:
 		cellStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleTableCell))
@@ -401,6 +430,7 @@ func (e Engine) placeBlock(
 		e.placeTable(cur, flush, v, headerStyle, cellStyle, fonts)
 		return nil
 	case kardec.Image:
+		cur.curRole = BlockRoleFigure
 		return e.placeImage(cur, flush, v)
 	case kardec.Math:
 		mathStyle := styleFromKardec(doc.ResolveStyle(kardec.StyleDefault))

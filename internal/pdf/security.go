@@ -170,20 +170,41 @@ func hexNibbleToByte(c byte) byte {
 }
 
 // buildEncryptDict assembles the body of the /Encrypt indirect
-// object for V=4 / R=4 / AES-128 with one default crypt filter
-// (StdCF) shared by streams, and /Identity for strings — Kardec's
-// v0.16 security model encrypts streams (where the bulk of
-// content lives) and leaves strings (Title, Author, link URIs)
-// plaintext for v0.16.x to address.
+// object for V=4 / R=4 / AES-128. Both streams and strings flow
+// through StdCF (AESV2): /Info Title/Author/Subject/Keywords,
+// link-annotation /URIs, and any other literal-string field that
+// the writer encrypts via encryptString are rendered as
+// hex-encoded ciphertext, opaque to anyone without the password.
+//
+// (v0.16 shipped with /StrF /Identity which left strings plaintext;
+// v0.22 closes that gap so strict regulators that require Title
+// confidentiality see a fully encrypted document.)
 func buildEncryptDict(oHash, uHash []byte, perms int32) string {
 	return fmt.Sprintf(
 		"<< /Filter /Standard /V 4 /R 4 /Length 128 /P %d "+
 			"/O <%s> /U <%s> "+
 			"/CF << /StdCF << /CFM /AESV2 /Length 16 /AuthEvent /DocOpen >> >> "+
-			"/StmF /StdCF /StrF /Identity >>",
+			"/StmF /StdCF /StrF /StdCF >>",
 		perms,
 		hexEncodeBytes(oHash), hexEncodeBytes(uHash),
 	)
+}
+
+// encryptString returns the hex-encoded ciphertext form of s
+// suitable for embedding in a PDF dictionary that lives in the
+// indirect object identified by objNum. The output already
+// includes the surrounding `<…>` delimiters so callers can drop
+// it in where they would have written `(plain)`.
+//
+// Callers must NOT escape s before passing it in — encryption
+// works on the raw bytes. The output's hex digits are themselves
+// always safe in a PDF dict and need no escaping.
+func encryptString(fileKey []byte, objNum int, s string) string {
+	if len(fileKey) == 0 {
+		return escapeLiteralString(s)
+	}
+	cipher := aesEncryptObject(fileKey, objNum, 0, []byte(s))
+	return "<" + hexEncodeBytes(cipher) + ">"
 }
 
 func hexEncodeBytes(b []byte) string {

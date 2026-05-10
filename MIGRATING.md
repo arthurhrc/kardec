@@ -8,6 +8,69 @@ and a sed-style codemod hint where one applies.
 The `// Deprecated:` doc-comment on each forwarder also points at the
 new name; gopls surfaces the migration target in your editor.
 
+## v0.22 — v1.0 freeze cleanup
+
+v0.22 is the last v0.x minor before v1.0. It removes every
+deprecated identifier that had a 1:1 replacement and migrates
+internal text rendering to Identity-H so all Unicode (Greek, CJK,
+Cyrillic, …) is renderable. Encryption now covers strings as well
+as streams. PDF/UA tagging emits per-block roles (H1–H6, P,
+Figure) instead of the v0.17 lite single-/P-per-page form.
+
+### Removed at v0.22 (no forwarder)
+
+These all carried `// Deprecated: … Removed at v1.0` since v0.10
+and shipped a 1:1 substitute. v0.22 finally drops them so the
+public surface stays small.
+
+| Old API | New API | Codemod |
+|---|---|---|
+| `kardec.BordersNone` | `kardec.TableBordersNone` | `s/\bBordersNone\b/TableBordersNone/g` |
+| `kardec.BordersHorizontal` | `kardec.TableBordersHorizontal` | `s/\bBordersHorizontal\b/TableBordersHorizontal/g` |
+| `kardec.BordersAll` | `kardec.TableBordersAll` | `s/\bBordersAll\b/TableBordersAll/g` |
+| `kardec.AlignLeftCol()` | `kardec.WithAlignment(kardec.AlignLeft)` | `s/AlignLeftCol()/WithAlignment(AlignLeft)/g` |
+| `kardec.AlignCenterCol()` | `kardec.WithAlignment(kardec.AlignCenter)` | similar |
+| `kardec.AlignRightCol()` | `kardec.WithAlignment(kardec.AlignRight)` | similar |
+| `kardec.AlignDecimalCol()` | `kardec.WithAlignment(kardec.AlignDecimal)` | similar |
+| `kardec.Cells(runs...)` | `kardec.NewCell(runs...)` | `s/\bCells(/NewCell(/g` |
+| `kardec.Footnote(d, body)` | `d.Footnote(body)` | `s/Footnote(\(\w+\), /\1.Footnote(/g` |
+| `kardec.FootnoteWithMarker(d, marker, body...)` | `d.FootnoteWith(marker, body...)` | `s/FootnoteWithMarker(\(\w+\), /\1.FootnoteWith(/g` |
+| `Document.NewSectionWithSetup(setup)` | `Document.NewSection(setup)` | `s/NewSectionWithSetup(/NewSection(/g` |
+| `Document.PDFA(on ...bool)` | `Document.EnablePDFA()` / `Document.DisablePDFA()` | `s/\.PDFA()/.EnablePDFA()/g; s/\.PDFA(true)/.EnablePDFA()/g; s/\.PDFA(false)/.DisablePDFA()/g` |
+| `Document.SubsetFonts(on ...bool)` | `Document.EnableFontSubsetting()` / `Document.DisableFontSubsetting()` | similar |
+
+### Behaviour changes (no API change)
+
+- **Body text emits Type 0 / Identity-H.** Pre-v0.22, characters
+  outside CP1252 (Greek `Δ`, Ω, Cyrillic, CJK) silently became `?`
+  in the rendered PDF. v0.22 makes every Unicode codepoint the
+  source TTF supports renderable. PDF size grows slightly (one
+  extra byte per glyph in the content stream) but compresses away
+  under FlateDecode.
+- **Encryption covers strings.** v0.16 declared `/StrF /Identity`
+  in the security handler — Title, Author, link URIs leaked even
+  in encrypted documents. v0.22 switches to `/StrF /StdCF` so
+  AESV2 covers both streams and strings.
+- **PDF/UA tagging is per-block.** `SetTagged(lang)` emits one
+  StructElem per heading / paragraph / figure with the correct
+  role (`H1`, `H2`, `P`, `Figure`), instead of the v0.17 lite form
+  that wrapped each whole page in one `/P` element. Existing code
+  needs no change.
+
+### Friend-package seams (still public, still deprecated)
+
+These stay exported because there is no alternative without an
+architectural restructure. The `// Deprecated:` doc-comments warn
+callers via gopls / pkg.go.dev:
+
+| Identifier | Reason |
+|---|---|
+| `kardec.SetRenderImpl` | render package's init hook needs it |
+| `Document.FontRegistry()` | leaks `*typography.Registry` (internal type) |
+| `Document.MathFont()` | leaks `typography.MathFont` (internal type) |
+| `Document.WatermarkResolved()` | render's friend access to watermark config |
+| `Run.MathSource()` | layout's friend access to inline-math runs |
+
 ## v0.10 — API rename sweep (the big one)
 
 v0.10 normalised the public surface ahead of the v1.0 freeze. Every

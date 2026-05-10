@@ -119,6 +119,89 @@ func buildContentStreamWithWatermark(page Page, fonts []*fontHandle, images []*i
 	return buf.Bytes()
 }
 
+// wrapMarkedContentByBlocks emits the page's draw operators
+// partitioned into per-block marked-content sequences, one per
+// StructBlock entry. Each block's items + images are wrapped in
+// `/<role> << /MCID N >> BDC ... EMC` so the structure tree can
+// reference the right MCIDs.
+//
+// Items / images that fall outside any block range are emitted
+// outside any BDC/EMC pair — they show on the page but are not
+// part of the PDF/UA structure tree (e.g. footnote separators,
+// auto-injected page numbers).
+func wrapMarkedContentByBlocks(page Page, fonts []*fontHandle, images []*imageHandle, watermark *Watermark, alphaName string) []byte {
+	var buf bytes.Buffer
+	// Rects (no PDF/UA role, just visual chrome) come first.
+	for _, r := range page.Rects {
+		fmt.Fprintf(&buf,
+			"q\n%.4f %.4f %.4f rg\n%.4f %.4f %.4f %.4f re\nf\nQ\n",
+			float64(r.Color.R)/255.0,
+			float64(r.Color.G)/255.0,
+			float64(r.Color.B)/255.0,
+			r.X, r.Y, r.W, r.H,
+		)
+	}
+	// Per-block content. Items + images for each block sit inside
+	// one BDC/EMC pair.
+	for blockIdx, block := range page.StructBlocks {
+		fmt.Fprintf(&buf, "/%s << /MCID %d >> BDC\n", block.Role, blockIdx)
+		// Images first inside the block.
+		for i := block.ImageStart; i < block.ImageEnd && i < len(page.Images); i++ {
+			emitImageDraw(&buf, page.Images[i], images)
+		}
+		// Then text items.
+		for i := block.ItemStart; i < block.ItemEnd && i < len(page.Items); i++ {
+			emitTextItem(&buf, page.Items[i], fonts)
+		}
+		buf.WriteString("EMC\n")
+	}
+	// Watermark sits outside any block — purely decorative, no
+	// PDF/UA role.
+	if watermark != nil && watermark.Text != "" && watermark.FontID >= 0 && watermark.FontID < len(fonts) {
+		appendWatermark(&buf, watermark, fonts[watermark.FontID], page.Width, page.Height, alphaName)
+	}
+	return buf.Bytes()
+}
+
+// emitImageDraw writes the operators for one ImageDraw — extracted
+// from buildContentStream so the per-block path can call it without
+// duplicating the cm-matrix logic.
+func emitImageDraw(buf *bytes.Buffer, im ImageDraw, images []*imageHandle) {
+	if im.ImageID < 0 || im.ImageID >= len(images) {
+		return
+	}
+	ih := images[im.ImageID]
+	sx, sy := im.W, im.H
+	if ih.IsForm && ih.Width > 0 && ih.Height > 0 {
+		sx = im.W / float64(ih.Width)
+		sy = im.H / float64(ih.Height)
+	}
+	fmt.Fprintf(buf,
+		"q\n%.4f 0 0 %.4f %.4f %.4f cm\n/%s Do\nQ\n",
+		sx, sy, im.X, im.Y, ih.Name,
+	)
+}
+
+// emitTextItem writes the operators for one TextItem — also
+// extracted for the per-block path.
+func emitTextItem(buf *bytes.Buffer, it TextItem, fonts []*fontHandle) {
+	if it.FontID < 0 || it.FontID >= len(fonts) {
+		return
+	}
+	fh := fonts[it.FontID]
+	r := float64(it.Color.R) / 255.0
+	g := float64(it.Color.G) / 255.0
+	b := float64(it.Color.B) / 255.0
+	operand := encodeCFFHex([]rune(it.Text), fh.Metrics)
+	fmt.Fprintf(buf,
+		"q\n%.4f %.4f %.4f rg\nBT\n/%s %.4f Tf\n%.4f %.4f Td\n%s Tj\nET\nQ\n",
+		r, g, b,
+		fh.Name, it.FontSize,
+		it.X, it.Y,
+		operand,
+	)
+}
+
 // encodeCFFHex turns a slice of Unicode runes into the
 // `<00410042...>` hex string a Type 0 / Identity-H content stream
 // expects: each glyph index is two bytes, big-endian. Glyph indices

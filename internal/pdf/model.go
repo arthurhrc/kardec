@@ -144,6 +144,27 @@ type Page struct {
 	Images        []ImageDraw
 	Rects         []RectDraw
 	Links         []LinkAnnot
+
+	// StructBlocks groups adjacent text/image draws into PDF/UA
+	// structure blocks. Empty list means "untagged or single-P
+	// page" — the writer falls back to wrapping the whole content
+	// stream in one /P MCID. When non-empty, the writer emits one
+	// marked-content sequence per block, each with its own role
+	// and MCID, and structtree.go emits one StructElem per block.
+	StructBlocks []StructBlock
+}
+
+// StructBlock is one PDF/UA-tagged region inside a page. Role is
+// the structure type (P, H1..H6, Figure, …); ItemStart..ItemEnd is
+// the half-open range of Page.Items the block covers; ImageStart..
+// ImageEnd is the half-open range of Page.Images. Empty image
+// range (Start == End == 0) means "no images in this block".
+type StructBlock struct {
+	Role       string
+	ItemStart  int
+	ItemEnd    int
+	ImageStart int
+	ImageEnd   int
 }
 
 // LinkAnnot is one rectangular hyperlink area on a page. The
