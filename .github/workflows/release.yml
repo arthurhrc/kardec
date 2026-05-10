@@ -1,0 +1,44 @@
+# Release workflow: triggered by tag push (vX.Y.Z), runs goreleaser
+# to build cross-platform CLI binaries, produces SHA256SUMS, and
+# signs the checksums file with cosign keyless OIDC. The resulting
+# release lives as a draft on GitHub until a maintainer promotes it.
+#
+# Required permissions: id-token (for OIDC) and contents (to upload
+# release assets). No repo-scoped secrets are needed — the GITHUB_TOKEN
+# the runner injects covers the contents writes.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COSIGN_EXPERIMENTAL: "1"
