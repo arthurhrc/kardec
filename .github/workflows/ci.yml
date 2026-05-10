@@ -62,7 +62,12 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
+          # latest tracks the most recent release; required because
+          # pinned versions built with older Go (1.61 ships with
+          # Go 1.23) refuse to lint against the go.mod directive
+          # (1.26.x). Pin once a version that supports the target
+          # Go is in wide use.
+          version: latest
 
   vuln:
     runs-on: ubuntu-latest
