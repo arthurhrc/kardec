@@ -56,15 +56,13 @@ func (d *Document) appendMarkdownNode(node ast.Node, source []byte) {
 	case *ast.ThematicBreak:
 		d.PageBreak()
 	case *ast.FencedCodeBlock, *ast.CodeBlock:
-		d.AddParagraph(Text(string(extractText(node, source)))).
-			WithNamedStyle(StyleCode).
-			Done()
+		d.Paragraph(Text(string(extractText(node, source)))).
+			WithNamedStyle(StyleCode)
 	case *ast.List:
 		d.appendMarkdownList(n, source)
 	case *ast.Blockquote:
-		d.AddParagraph(runsFromInline(d, n, source)...).
-			WithNamedStyle(StyleQuote).
-			Done()
+		d.Paragraph(runsFromInline(d, n, source)...).
+			WithNamedStyle(StyleQuote)
 	case *extast.Table:
 		d.appendMarkdownTable(n, source)
 	default:
