@@ -31,7 +31,7 @@ func (e Engine) placeTextBlock(cur *pageCursor, flush func(), runs []kardec.Run,
 		return nil
 	}
 
-	lines := breakLines(tokens, cur.availableWidth())
+	lines := e.breakLines(tokens, cur.availableWidth())
 
 	for i, ln := range lines {
 		lineHeight := style.lineHeight * style.sizePt

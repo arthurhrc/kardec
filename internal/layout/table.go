@@ -100,7 +100,7 @@ func (e Engine) placeTableRow(
 	maxLines := 0
 	for i, p := range plan {
 		tokens := shapeRuns(row.Cells[i].Runs, fonts, style, kardec.Pt(style.sizePt), style.color)
-		ls := breakLines(tokens, p.width)
+		ls := e.breakLines(tokens, p.width)
 		plan[i].lines = ls
 		if len(ls) > maxLines {
 			maxLines = len(ls)
